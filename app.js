@@ -1,15 +1,5 @@
 /* =====================================================================
-   ⚙️ 1. BELLA NAPOLI BEAT-TIMING
-   ===================================================================== */
-const BELLA_CONFIG = {
-  hit1: 50,        // 1. "BELLA!" (Direkt nach Klick)
-  hit2: 1650,      // 2. "BELLA!" (Aufladen der Kugel)
-  drop: 3050,      // "NAPOLI!" (Völlige Eskalation)
-  duration: 6900   // Ende
-};
-
-/* =====================================================================
-   ⚙️ 2. GEORGS PARTY-KONFIGURATION
+   ⚙️ GEORGS PARTY-KONFIGURATION
    ===================================================================== */
 const PARTY_CONFIG = {
   hostName: "Georg",
@@ -21,11 +11,14 @@ const PARTY_CONFIG = {
   dresscode: "Schick, verkleidet oder nackt... Mir doch egal!"
 };
 
+// Globale Sperre, damit man Sudo-Befehle nicht doppelt klickt
+let isSudoRunning = false;
+
 /* =====================================================================
-   FX CANVAS ENGINE (LAG-FREI OPTIMIERT)
+   FX CANVAS ENGINE (KONFETTI, EMOJIS, LASER)
    ===================================================================== */
 const canvas = document.getElementById('fxCanvas');
-const ctx = canvas.getContext('2d', { alpha: true }); // Alpha true hilft manchmal bei Performance
+const ctx = canvas.getContext('2d', { alpha: true });
 let particles = [];
 let lasers = [];
 let fxAnimFrame = null;
@@ -59,7 +52,7 @@ class Particle {
     this.x += this.speedX;
     this.y += this.speedY;
     this.rotation += this.rotationSpeed;
-    this.opacity -= 0.012; // Tick schneller verschwinden lassen
+    this.opacity -= 0.012;
   }
   draw(c) {
     c.save();
@@ -67,7 +60,6 @@ class Particle {
     c.translate(this.x, this.y);
     c.rotate((this.rotation * Math.PI) / 180);
     
-    // Performance Boost: Kein shadowBlur, kein shadowColor
     if (this.shape === 'emoji') {
       c.font = `${this.size}px Arial`;
       c.textAlign = 'center';
@@ -123,30 +115,26 @@ function fireLaserBurst() {
 function runFxEngine() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Zeichne Laser
   for (let i = lasers.length - 1; i >= 0; i--) {
     const l = lasers[i];
     ctx.save();
     ctx.globalAlpha = l.life;
     ctx.strokeStyle = l.color;
     ctx.lineWidth = l.width;
-    // Shadow entfernt für extreme FPS
     ctx.beginPath();
     ctx.moveTo(l.x1, l.y1);
     ctx.lineTo(l.x2, l.y2);
     ctx.stroke();
     
-    // Kleiner Trick für einen "Fake-Glow" ohne teures Blur
     ctx.globalAlpha = l.life * 0.4;
     ctx.lineWidth = l.width * 2.5;
     ctx.stroke();
-    
     ctx.restore();
+    
     l.life -= 0.12; 
     if (l.life <= 0) lasers.splice(i, 1);
   }
 
-  // Zeichne Konfetti/Emojis
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.update();
@@ -171,7 +159,7 @@ function ensureFxLoop() {
 function triggerShockwave(color = '#22c55e') {
   const ring = document.createElement('div');
   ring.className = 'shockwave-ring';
-  ring.style.color = color; // Für das currentColor im CSS
+  ring.style.color = color; 
   document.body.appendChild(ring);
   setTimeout(() => ring.remove(), 650);
 }
@@ -186,106 +174,7 @@ function showSplashText(text, color = '#ffffff') {
 }
 
 /* =====================================================================
-   SUDO PARTY: DORF-ABRISS & BELLA NAPOLI
-   ===================================================================== */
-let isBellaRunning = false;
-
-function triggerSudoParty() {
-  if (isBellaRunning) return;
-  isBellaRunning = true;
-
-  const root = document.getElementById('bodyRoot');
-  const disco = document.getElementById('discoOverlay');
-  const discoBall = document.getElementById('discoBallElem');
-  const audioElem = document.getElementById('audioBellaNapoli');
-
-  if (audioElem && audioElem.src) {
-    audioElem.currentTime = 0;
-    audioElem.play().catch(() => playBellaNapoliSynthFallback());
-  } else {
-    playBellaNapoliSynthFallback();
-  }
-
-  appendLine(`<span class='text-amber-300 font-bold'>[SUDO] Zünde Dorf-Abriss (Bella Napoli)...</span>`);
-
-  // Phase 1: Intro
-  discoBall.className = 'discoball-base discoball-intro';
-  discoBall.classList.remove('hidden');
-  disco.className = 'fixed inset-0 pointer-events-none z-40 transition-opacity duration-300 opacity-30 bg-amber-500';
-
-  // Hit 1: Erstes "BELLA!"
-  setTimeout(() => {
-    root.classList.add('fx-punch');
-    setTimeout(() => root.classList.remove('fx-punch'), 280);
-    showSplashText("BELLA!", "#22c55e");
-    triggerShockwave("#22c55e");
-    
-    // Performance-optimierter Count (60 statt 80)
-    blastConfetti(0, canvas.height * 0.8, 60, ['#22c55e', '#ffffff', '#ef4444'], ['🍺', '🎉', '🎶', '✨']);
-    ensureFxLoop();
-    if (navigator.vibrate) navigator.vibrate(200);
-  }, BELLA_CONFIG.hit1);
-
-  // Hit 2: Zweites "BELLA!"
-  setTimeout(() => {
-    root.classList.add('fx-punch');
-    setTimeout(() => root.classList.remove('fx-punch'), 280);
-    
-    discoBall.className = 'discoball-base discoball-warning';
-    
-    showSplashText("BELLA!", "#f59e0b");
-    triggerShockwave("#f59e0b");
-    
-    blastConfetti(canvas.width, canvas.height * 0.8, 60, ['#f59e0b', '#ffffff', '#22c55e'], ['🍻', '🔥', '💥', '🥨']);
-    ensureFxLoop();
-    if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
-  }, BELLA_CONFIG.hit2);
-
-  // Drop: "NAPOLI!"
-  setTimeout(() => {
-    showSplashText("NAPOLI!", "#ef4444");
-    triggerShockwave("#ef4444");
-    root.classList.add('fx-earthquake');
-    
-    discoBall.className = 'discoball-base discoball-party';
-
-    // Drop optimiert: 120 Partikel reichen dicke aus!
-    blastConfetti(canvas.width / 2, canvas.height / 2, 120, ['#ef4444', '#22c55e', '#ffffff', '#f59e0b', '#06b6d4', '#ec4899'], ['🍕', '🍻', '🥃', '🎊', '🚜', '🔥', '🚀', '🥳', '💃', '🕺', '🔊']);
-    ensureFxLoop();
-
-    let tick = 0;
-    const partyTimer = setInterval(() => {
-      const colors = ['bg-rose-600', 'bg-emerald-500', 'bg-white', 'bg-cyan-400'];
-      disco.className = `fixed inset-0 pointer-events-none z-40 transition-opacity duration-75 opacity-60 ${colors[tick % colors.length]}`;
-      
-      // Laser Dauerfeuer
-      if (tick % 2 === 0) fireLaserBurst();
-      
-      tick++;
-    }, 90);
-
-    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500, 100, 800]);
-    appendLine("<span class='text-rose-400 font-extrabold text-sm animate-pulse'>🎺 [DROP] NAPOLI! PARTYRAUM ERREICHT MAXIMALEN DURCHSATZ!</span>");
-
-    // Reset
-    setTimeout(() => {
-      root.classList.remove('fx-earthquake');
-      clearInterval(partyTimer);
-      disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
-      discoBall.className = "hidden";
-      if (audioElem) {
-        audioElem.pause();
-        audioElem.currentTime = 0;
-      }
-      isBellaRunning = false;
-      appendLine("<span class='text-emerald-400 font-bold'>[STATUS] System wieder abgekühlt.</span>");
-    }, BELLA_CONFIG.duration - BELLA_CONFIG.drop);
-
-  }, BELLA_CONFIG.drop);
-}
-
-/* =====================================================================
-   AUDIO-SYNTHESIZER (FALLBACK & UI SOUNDS)
+   AUDIO-SYNTHESIZER (UI SOUNDS)
    ===================================================================== */
 let audioCtx = null;
 let soundEnabled = true;
@@ -356,14 +245,6 @@ function playSuccessChime() {
   });
 }
 
-function playBellaNapoliSynthFallback() {
-  setTimeout(() => { playTone(523, 'square', 0.35, 0.2); }, BELLA_CONFIG.hit1);
-  setTimeout(() => { playTone(587, 'square', 0.35, 0.2); }, BELLA_CONFIG.hit2);
-  setTimeout(() => {
-    [659, 784, 880, 1046, 880, 784, 659, 880].forEach((f, idx) => setTimeout(() => playTone(f, 'sawtooth', 0.15, 0.2), idx * 180));
-  }, BELLA_CONFIG.drop);
-}
-
 /* =====================================================================
    TERMINAL & BOOT
    ===================================================================== */
@@ -389,7 +270,7 @@ const bootSequence = [
   { text: "------------------------------------------------------------", delay: 1950 },
   { text: `<span class='text-cyan-300 font-bold text-sm'>🚨 OFFIZIELLE EINLADUNG: ${PARTY_CONFIG.hostName.toUpperCase()}'S 21. GEBURTSTAG 🚨</span>`, delay: 2150 },
   { text: "Dorf-Abriss trifft Mathe-Informatik. Keine Kompromisse.", delay: 2350 },
-  { text: "Wähle unten <strong class='text-emerald-300 bg-emerald-950 px-1 rounded'>[1] ZUSAGEN</strong> oder teste <strong class='text-amber-300'>BELLA NAPOLI</strong>.", delay: 2550 }
+  { text: "Wähle unten <strong class='text-emerald-300 bg-emerald-950 px-1 rounded'>[1] ZUSAGEN</strong> oder starte ein <strong class='text-amber-300'>SUDO MODUL</strong>.", delay: 2550 }
 ];
 
 function runBoot() {

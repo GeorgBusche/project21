@@ -6,7 +6,6 @@
 body {
   font-family: 'Share Tech Mono', monospace;
   color: #4ade80;
-  text-shadow: 0 0 6px var(--terminal-glow);
   background-color: #030706;
   overflow-x: hidden;
   touch-action: manipulation;
@@ -25,16 +24,13 @@ body {
   opacity: 0.8;
 }
 
-/* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #020905; }
 ::-webkit-scrollbar-thumb { background: #15803d; border-radius: 3px; }
 
-/* Blinking Cursor */
 @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
 .cursor-blink { animation: blink 0.85s infinite; }
 
-/* Absage Button Shake */
 @keyframes localShake {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8px) rotate(-2deg); }
@@ -44,23 +40,20 @@ body {
 }
 .shake-denied { animation: localShake 0.35s ease-in-out; }
 
-/* Radar Sweep Needle */
 @keyframes radarSweep {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 .radar-sweep { animation: radarSweep 3.5s linear infinite; }
 
-/* Beat Impact Punch */
+/* OPTIMIERT: Kein Filter/Contrast-Lag mehr */
 @keyframes screenImpact {
-  0% { transform: scale(1.08) translate(-6px, 4px); filter: contrast(140%); }
-  25% { transform: scale(1.04) translate(6px, -4px); }
-  50% { transform: scale(1.02) translate(-3px, 2px); }
-  100% { transform: scale(1) translate(0, 0); filter: none; }
+  0% { transform: scale(1.05) translate(-4px, 4px); }
+  50% { transform: scale(1.02) translate(4px, -2px); }
+  100% { transform: scale(1) translate(0, 0); }
 }
-.fx-punch { animation: screenImpact 0.28s cubic-bezier(0.1, 0.9, 0.2, 1); }
+.fx-punch { animation: screenImpact 0.2s ease-out; }
 
-/* Erdbeben Drop */
 @keyframes heavyDropShake {
   0%, 100% { transform: translate(0, 0); }
   20% { transform: translate(-4px, 3px); }
@@ -70,9 +63,9 @@ body {
 }
 .fx-earthquake { animation: heavyDropShake 0.1s linear infinite; }
 
-/* Performance-freundliche Stoßwelle */
+/* OPTIMIERT: Stoßwelle OHNE box-shadow */
 @keyframes shockwaveExpand {
-  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 1; border-width: 10px; }
+  0% { transform: translate(-50%, -50%) scale(0.1); opacity: 1; border-width: 15px; }
   100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; border-width: 2px; }
 }
 .shockwave-ring {
@@ -82,14 +75,13 @@ body {
   width: 60vh;
   height: 60vh;
   border-radius: 50%;
+  border-style: solid;
   pointer-events: none;
   z-index: 9998;
-  /* Reduzierter Glow für Performance */
-  box-shadow: 0 0 15px currentColor;
-  animation: shockwaveExpand 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  animation: shockwaveExpand 0.6s ease-out forwards;
 }
 
-/* Typo-Splash Text (Schneller & ohne aufwändigen Shadow) */
+/* OPTIMIERT: Splash Text OHNE text-shadow */
 @keyframes textExplosion {
   0% { transform: translate(-50%, -50%) scale(0.3) rotate(-6deg); opacity: 0; }
   30% { transform: translate(-50%, -50%) scale(1.3) rotate(2deg); opacity: 1; }
@@ -105,11 +97,11 @@ body {
   letter-spacing: 0.12em;
   pointer-events: none;
   z-index: 9999;
-  text-shadow: 0 0 15px rgba(255,255,255,0.8);
-  animation: textExplosion 0.8s forwards cubic-bezier(0.15, 0.85, 0.35, 1.2);
+  animation: textExplosion 0.8s forwards ease-out;
 }
 
-/* --- DISKOKUGEL PHASEN --- */
+/* --- OPTIMIERTE DISKOKUGEL PHASEN --- */
+/* OHNE Drop-Shadows! Das rettet die FPS auf dem Handy */
 .discoball-base {
   position: fixed;
   left: 50%;
@@ -125,26 +117,18 @@ body {
   70% { top: 12%; transform: scale(1.1) rotate(240deg); }
   100% { top: 12%; transform: scale(1) rotate(360deg); }
 }
-.discoball-intro {
-  animation: discoBallDrop 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
-}
+.discoball-intro { animation: discoBallDrop 1.2s ease-out forwards; }
 
-/* Optimierte Warning-Kugel (Nur ein Shadow-Layer) */
 @keyframes discoBallWarning {
-  0% { top: 12%; transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 10px #f59e0b) brightness(1.2); }
-  50% { top: 12%; transform: scale(1.1) rotate(10deg); filter: drop-shadow(0 0 20px #ef4444) brightness(1.8); }
-  100% { top: 12%; transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 10px #f59e0b) brightness(1.2); }
+  0% { top: 12%; transform: scale(1) rotate(0deg); filter: brightness(1); }
+  50% { top: 12%; transform: scale(1.15) rotate(15deg); filter: brightness(1.5); }
+  100% { top: 12%; transform: scale(1) rotate(0deg); filter: brightness(1); }
 }
-.discoball-warning {
-  animation: discoBallWarning 0.2s infinite;
-}
+.discoball-warning { animation: discoBallWarning 0.2s infinite; }
 
-/* Optimierte Party-Kugel */
 @keyframes discoBallRave {
-  0% { top: 12%; transform: scale(1.3) rotate(0deg); filter: drop-shadow(0 0 20px #06b6d4) hue-rotate(0deg) brightness(2); }
-  50% { top: 12%; transform: scale(1.5) rotate(180deg); filter: drop-shadow(0 0 30px #ec4899) hue-rotate(180deg) brightness(2.5); }
-  100% { top: 12%; transform: scale(1.3) rotate(360deg); filter: drop-shadow(0 0 20px #22c55e) hue-rotate(360deg) brightness(2); }
+  0% { top: 12%; transform: scale(1.3) rotate(0deg); filter: hue-rotate(0deg) brightness(1.5); }
+  50% { top: 12%; transform: scale(1.6) rotate(180deg); filter: hue-rotate(180deg) brightness(2); }
+  100% { top: 12%; transform: scale(1.3) rotate(360deg); filter: hue-rotate(360deg) brightness(1.5); }
 }
-.discoball-party {
-  animation: discoBallRave 0.4s infinite linear;
-}
+.discoball-party { animation: discoBallRave 0.4s infinite linear; }
