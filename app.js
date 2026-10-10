@@ -529,3 +529,29 @@ window.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('click', unlockAudio);
   window.addEventListener('touchstart', unlockAudio);
 });
+
+/* =====================================================================
+   🎲 SUDO ROULETTE (ZUFALLS-GENERATOR)
+   ===================================================================== */
+function triggerRandomSudoParty() {
+  // Wenn schon eine Party läuft, blockieren wir weitere Klicks
+  if (isSudoRunning) {
+    showToast("⚠️ System eskaliert bereits!");
+    return;
+  }
+  
+  // Liste aller verfügbaren Sudo-Module
+  // Wenn du später noch Scooter oder Hardstyle hinzufügst, 
+  // trägst du den Funktionsnamen einfach hier mit ein!
+  const sudoModules = [
+    triggerWollePetry,
+    triggerWollePetry
+  ];
+
+  // Wähle eine zufällige Party aus der Liste
+  const randomParty = sudoModules[Math.floor(Math.random() * sudoModules.length)];
+  
+  // Zünde die ausgewählte Party
+  randomParty();
+}
+

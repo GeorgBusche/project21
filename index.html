@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body id="bodyRoot" class="h-full flex flex-col justify-between p-2 sm:p-4 select-none relative crt-overlay">
 
@@ -73,9 +73,10 @@
           ❌ [2] ABSAGEN
         </button>
 
-        <button id="sudoPartyBtn" onclick="triggerBellaNapoli()" class="px-3 py-2 rounded bg-gradient-to-r from-red-600 via-amber-500 to-emerald-500 hover:opacity-90 text-white font-extrabold text-xs sm:text-sm transition active:scale-95 shadow-[0_0_18px_rgba(245,158,11,0.6)]">
-          🍕 SUDO: BELLA NAPOLI
-        </button>
+       <!-- SUDO PARTY ROULETTE -->
+      <button id="sudoPartyBtn" onclick="triggerRandomSudoParty()" class="px-3 py-2 rounded bg-gradient-to-r from-red-600 via-fuchsia-500 to-cyan-500 hover:opacity-90 text-white font-extrabold text-xs sm:text-sm transition active:scale-95 shadow-[0_0_15px_rgba(236,72,153,0.6)]">
+        🎲 SUDO: PARTY-ROULETTE
+      </button>
 
         <!-- INFOS -->
         <button onclick="runCommand('info')" class="px-2.5 py-2 rounded border border-emerald-700 bg-emerald-950/50 hover:bg-emerald-900/40 text-emerald-300 text-xs sm:text-sm transition active:scale-95">
@@ -292,15 +293,17 @@
 
   <!-- Audio Element -->
   <audio id="audioBellaNapoli" preload="auto" src="bella_napoli.mp3"></audio>
+  <audio id="audioWolle" preload="auto" src="wolle.mp3"></audio>
 
   <!-- Eigene JavaScript Logik -->
   <script src="app.js" defer></script>
 
-  <!-- Core Engine (Muss zuerst geladen werden, damit Canvas & Audio bereitstehen) -->
-<script src="app.js?v=2"></script>  
-  <!-- Deine modularen Sudo-Partys -->
-<script src="sudo_bella.js?v=2"></script>
-  <!-- Hier kommt später z.B. <script src="sudo_techno.js"></script> hin -->
+ <!-- Core Engine -->
+  <script src="app.js?v=4"></script>
+  
+  <!-- Sudo Module -->
+  <script src="sudo_bella.js?v=4"></script>
+  <script src="sudo_wolle.js?v=4"></script>
 </body>
 
 </body>
