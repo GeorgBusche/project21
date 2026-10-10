@@ -62,12 +62,12 @@ function triggerBellaNapoli() {
   // Hit 1
   setTimeout(() => {
     root.classList.add('fx-punch');
-    setTimeout(() => root.classList.remove('fx-punch'), 200);
+    setTimeout(() => root.classList.remove('fx-punch'), 280);
     showSplashText("BELLA!", "#22c55e");
     triggerShockwave("#22c55e");
     
-    // Partikel auf 35 reduziert (für Handys)
-    blastConfetti(0, canvas.height * 0.8, 35, ['#22c55e', '#ffffff', '#ef4444'], ['🍺', '🎉', '🎶']);
+    // Die originalen 80 Partikel für den ersten Schlag
+    blastConfetti(0, canvas.height * 0.8, 80, ['#22c55e', '#ffffff', '#ef4444'], ['🍺', '🎉', '🎶', '✨']);
     ensureFxLoop();
     if (navigator.vibrate) navigator.vibrate(200);
   }, BELLA_CONFIG.hit1);
@@ -75,13 +75,13 @@ function triggerBellaNapoli() {
   // Hit 2
   setTimeout(() => {
     root.classList.add('fx-punch');
-    setTimeout(() => root.classList.remove('fx-punch'), 200);
+    setTimeout(() => root.classList.remove('fx-punch'), 280);
     discoBall.className = 'discoball-base discoball-warning';
     showSplashText("BELLA!", "#f59e0b");
     triggerShockwave("#f59e0b");
     
-    // Partikel auf 35 reduziert
-    blastConfetti(canvas.width, canvas.height * 0.8, 35, ['#f59e0b', '#ffffff', '#22c55e'], ['🍻', '🔥', '💥']);
+    // Die originalen 80 Partikel für den zweiten Schlag
+    blastConfetti(canvas.width, canvas.height * 0.8, 80, ['#f59e0b', '#ffffff', '#22c55e'], ['🍻', '🔥', '💥', '🥨']);
     ensureFxLoop();
     if (navigator.vibrate) navigator.vibrate([150, 50, 150]);
   }, BELLA_CONFIG.hit2);
@@ -93,17 +93,15 @@ function triggerBellaNapoli() {
     root.classList.add('fx-earthquake');
     discoBall.className = 'discoball-base discoball-party';
 
-    // Drop-Partikel auf 80 reduziert (statt 250) - sieht immer noch fett aus
-    blastConfetti(canvas.width / 2, canvas.height / 2, 80, ['#ef4444', '#22c55e', '#ffffff', '#f59e0b', '#06b6d4'], ['🍕', '🍻', '🥃', '🚜', '🚀', '💃']);
+    // MAXIMUM OVERDRIVE: 250 Partikel für den Napoli-Drop!
+    blastConfetti(canvas.width / 2, canvas.height / 2, 250, ['#ef4444', '#22c55e', '#ffffff', '#f59e0b', '#06b6d4', '#ec4899'], ['🍕', '🍻', '🥃', '🎊', '🚜', '🔥', '🚀', '🥳', '💃', '🕺', '🔊']);
     ensureFxLoop();
 
     let tick = 0;
     const partyTimer = setInterval(() => {
       const colors = ['bg-rose-600', 'bg-emerald-500', 'bg-white', 'bg-cyan-400'];
       disco.className = `fixed inset-0 pointer-events-none z-40 transition-opacity duration-75 opacity-60 ${colors[tick % colors.length]}`;
-      
-      // Laser auch etwas reduziert
-      if (tick % 3 === 0) fireLaserBurst();
+      if (tick % 2 === 0) fireLaserBurst();
       tick++;
     }, 90);
 

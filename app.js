@@ -11,11 +11,10 @@ const PARTY_CONFIG = {
   dresscode: "Schick, verkleidet oder nackt... Mir doch egal!"
 };
 
-// Globale Sperre, damit man Sudo-Befehle nicht doppelt klickt
 let isSudoRunning = false;
 
 /* =====================================================================
-   FX CANVAS ENGINE (KONFETTI, EMOJIS, LASER)
+   FX CANVAS ENGINE (VOLLE GRAFIK-POWER)
    ===================================================================== */
 const canvas = document.getElementById('fxCanvas');
 const ctx = canvas.getContext('2d', { alpha: true });
@@ -52,7 +51,7 @@ class Particle {
     this.x += this.speedX;
     this.y += this.speedY;
     this.rotation += this.rotationSpeed;
-    this.opacity -= 0.012;
+    this.opacity -= 0.009; // Längere Hangtime wiederhergestellt
   }
   draw(c) {
     c.save();
@@ -67,6 +66,9 @@ class Particle {
       c.fillText(this.color, 0, 0);
     } else {
       c.fillStyle = this.color;
+      // Schatten wieder aktiv!
+      c.shadowBlur = 10;
+      c.shadowColor = this.color;
       if (this.shape === 'rect') {
         c.fillRect(-this.size / 2, -this.size / 2, this.size, this.size * 0.5);
       } else if (this.shape === 'circle') {
@@ -120,18 +122,19 @@ function runFxEngine() {
     ctx.save();
     ctx.globalAlpha = l.life;
     ctx.strokeStyle = l.color;
+    
+    // Satte Laser-Schatten zurück
+    ctx.shadowColor = l.color;
+    ctx.shadowBlur = 20;
+    
     ctx.lineWidth = l.width;
     ctx.beginPath();
     ctx.moveTo(l.x1, l.y1);
     ctx.lineTo(l.x2, l.y2);
     ctx.stroke();
-    
-    ctx.globalAlpha = l.life * 0.4;
-    ctx.lineWidth = l.width * 2.5;
-    ctx.stroke();
     ctx.restore();
     
-    l.life -= 0.12; 
+    l.life -= 0.1; // Laser bleiben etwas länger
     if (l.life <= 0) lasers.splice(i, 1);
   }
 
@@ -159,7 +162,8 @@ function ensureFxLoop() {
 function triggerShockwave(color = '#22c55e') {
   const ring = document.createElement('div');
   ring.className = 'shockwave-ring';
-  ring.style.color = color; 
+  ring.style.borderColor = color;
+  ring.style.boxShadow = `0 0 40px ${color}, inset 0 0 40px ${color}`; // Extreme Leuchtkraft zurück
   document.body.appendChild(ring);
   setTimeout(() => ring.remove(), 650);
 }
