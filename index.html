@@ -14,7 +14,43 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="style.css?v=11">
+  <!-- 🔥 DER ZENTRALE VERSION-CONTROLLER 🔥 -->
+  <script>
+    // Wenn du etwas änderst, erhöhe einfach diese Zahl (z.B. auf "21.2"):
+    const APP_VERSION = "5.0";
+
+    // 1. CSS dynamisch laden
+    const cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = 'css/style.css?v=' + APP_VERSION;
+    document.head.appendChild(cssLink);
+
+    // 2. Alle Skripte in der exakten Reihenfolge definieren
+    const appScripts = [
+      "js/config.js",
+      "js/engine.js",
+      "js/core.js",
+      "js/modules/mod_commands.js",
+      "js/modules/mod_radar.js",
+      "js/modules/mod_music.js",
+      "js/modules/mod_rsvp.js",
+      "js/sudo/sudo_bella.js",
+      "js/sudo/sudo_wolle.js",
+      "js/sudo/sudo_rammstein.js",
+      "js/sudo/sudo_biertornado.js",
+      "js/sudo/sudo_ragecage.js",
+      "js/sudo/sudo_schuettelkorn.js"
+    ];
+
+    // 3. Skripte ins Dokument einfügen
+    appScripts.forEach(src => {
+      const script = document.createElement('script');
+      script.src = src + '?v=' + APP_VERSION;
+      // async = false zwingt den Browser, die Dateien in der korrekten Reihenfolge auszuführen
+      script.async = false; 
+      document.head.appendChild(script);
+    });
+  </script>
 </head>
 <body id="bodyRoot" class="h-full flex flex-col justify-between p-2 sm:p-4 select-none relative crt-overlay">
 
@@ -221,7 +257,7 @@
     </div>
   </div>
 
-<!-- Modal: Cyber-Radar Lohhof 49 -->
+  <!-- Modal: Cyber-Radar Lohhof 49 -->
   <div id="radarModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
     <div class="w-full max-w-md border-2 border-cyan-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(6,182,212,0.4)]">
       
@@ -237,69 +273,45 @@
         </button>
       </div>
 
-      <!-- HUD Taktik-Bildschirm -->
       <div class="relative w-full h-64 mx-auto rounded-lg border-2 border-cyan-700 bg-neutral-950 overflow-hidden shadow-[inset_0_0_30px_rgba(6,182,212,0.5)]">
-        
-       <!-- ECHTE KARTE: Kontrast gefixt, Straßen sind wieder sichtbar! -->
         <iframe 
           style="position: absolute; width: calc(100% + 120px); height: calc(100% + 120px); top: -60px; left: -60px; filter: grayscale(100%) invert(100%) sepia(100%) hue-rotate(130deg) saturate(250%) contrast(1.1) brightness(1.4); pointer-events: none;"
           src="https://maps.google.com/maps?q=Lohhof%2049,%2031600%20Uchte&t=m&z=17&ie=UTF8&iwloc=&output=embed" 
           frameborder="0" scrolling="no">
         </iframe>
-
-        <!-- Taktisches Raster Overlay -->
         <div class="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.25)_1px,transparent_1px)] [background-size:25px_25px] pointer-events-none"></div>
-
-        <!-- Fadenkreuz -->
         <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-80 z-20">
            <div class="w-full h-[1px] bg-cyan-400/60 absolute"></div>
            <div class="h-full w-[1px] bg-cyan-400/60 absolute"></div>
            <div class="w-16 h-16 border-2 border-cyan-300/80 rounded-full absolute"></div>
            <div class="w-32 h-32 border border-cyan-500/50 rounded-full absolute"></div>
-           <!-- Äußerer Ring -->
            <div class="w-48 h-48 border border-cyan-700/50 rounded-full absolute border-dashed"></div>
         </div>
-
-        <!-- Pulsierendes rotes Ziel exakt in der Mitte -->
         <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-30">
             <span class="absolute w-8 h-8 bg-rose-500 rounded-full animate-ping opacity-60"></span>
             <span class="relative w-3 h-3 bg-rose-500 border border-white rounded-full shadow-[0_0_15px_#f43f5e]"></span>
         </div>
-
-        <!-- PERFEKTER RADAR-SCANNER: Ein gigantischer 800px Kreis, der nicht mehr abgeschnitten wird -->
         <div class="absolute top-1/2 left-1/2 z-10 pointer-events-none mix-blend-screen overflow-visible">
           <div class="radar-sweep absolute w-[800px] h-[800px] -ml-[400px] -mt-[400px] rounded-full" 
                style="background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(6,182,212,0.15) 320deg, rgba(6,182,212,0.8) 358deg, rgba(255,255,255,1) 360deg);">
           </div>
         </div>
-
-        <!-- Filmreife HUD Text-Elemente -->
         <div class="absolute top-2 left-2 text-[10px] text-cyan-300 font-mono bg-black/70 px-1.5 py-0.5 rounded border border-cyan-800/80 z-30 shadow-md">
           SAT-LINK: <strong class="text-emerald-400">ESTABLISHED</strong><br>
           ALT: <span class="animate-pulse">45m</span> / Z: 17
         </div>
-
-        <!-- Feste, coole Tech-Infos oben rechts -->
         <div class="absolute top-2 right-2 text-[9px] text-cyan-400 font-mono text-right z-30 bg-black/60 px-1.5 py-0.5 rounded leading-tight border border-cyan-900/50">
-          SYS.TRACKING<br>
-          V 2.10.44<br>
-          MEM: <span class="text-emerald-400">OK</span><br>
+          SYS.TRACKING<br>V 2.10.44<br>MEM: <span class="text-emerald-400">OK</span><br>
           <span id="fakeCoords" class="text-rose-300">0x00F8A</span>
         </div>
-        
-        <!-- Koordinaten unten links -->
         <div class="absolute bottom-2 left-2 text-[9px] text-cyan-400/80 font-mono z-30 bg-black/50 px-1.5 py-0.5 rounded">
-          DIST: 0.00m<br>
-          AZM: 184.2°
+          DIST: 0.00m<br>AZM: 184.2°
         </div>
-        
-        <!-- Target Locked Box -->
         <div class="absolute bottom-2 right-2 text-[11px] text-rose-400 font-mono bg-black/80 px-2 py-0.5 rounded border border-rose-900 animate-pulse font-bold tracking-widest z-30 shadow-[0_0_10px_rgba(225,29,72,0.4)]">
           TARGET LOCKED
         </div>
       </div>
 
-      <!-- Taktische Daten unter der Karte -->
       <div class="bg-neutral-900/90 p-2.5 rounded border border-cyan-800/80 text-xs font-mono text-cyan-200 space-y-1 my-3 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-16 h-16 bg-cyan-900/20 rounded-bl-full pointer-events-none"></div>
         <div>📍 <strong>Zielgebiet:</strong> Partyraum Lohhof 49, Uchte</div>
@@ -316,39 +328,8 @@
           📋 ADRESSE KOPIEREN
         </button>
       </div>
-
     </div>
   </div>
-
-  <!-- Toast Notification -->
-  <div id="toastNotification" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-neutral-900 border border-emerald-500 text-emerald-300 text-xs rounded-lg shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none text-center">
-    Meldung
-  </div>
-
- <!-- Deine Audio Dateien -->
-  <audio id="audioBellaNapoli" preload="auto" src="bella_napoli.mp3"></audio>
-  <audio id="audioWolle" preload="auto" src="wolle.mp3"></audio>
-  <audio id="audioRammstein" preload="auto" src="sonne.mp3"></audio>
-  <audio id="audioTornado" preload="auto" src="biertornado.mp3"></audio>
-  <audio id="audioGas" preload="auto" src="gas.mp3"></audio>
-  <audio id="audioKorn" preload="auto" src="schuettelkorn.mp3"></audio> <!-- NEU -->
-
-
-  <!-- Firebase Core & Realtime Database -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-  <!-- Core Engine -->
-  <script src="app.js?v=11"></script>
-  
-  <!-- Sudo Module -->
-  <script src="sudo_bella.js?v=11"></script>
-  <script src="sudo_wolle.js?v=11"></script>
-  <script src="sudo_rammstein.js?v=11"></script>
-  <script src="sudo_biertornado.js?v=11"></script>
-  <script src="sudo_ragecage.js?v=11"></script>
-  <script src="sudo_schuettelkorn.js?v=11"></script> <!-- NEU -->
-
 
   <!-- Modal: Musik-Radar -->
   <div id="musicModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
@@ -366,7 +347,6 @@
         </button>
       </div>
 
-      <!-- Neuer Song Input -->
       <div class="flex gap-2 mb-3">
         <input type="text" id="newSongInput" placeholder="Artist - Trackname..." 
                class="flex-1 px-3 py-2 bg-neutral-900 border border-fuchsia-800 rounded text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-fuchsia-400">
@@ -375,11 +355,26 @@
           + DROP
         </button>
       </div>
-
-      <!-- Live-Liste der Songs -->
       <div id="songListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
-
     </div>
   </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-neutral-900 border border-emerald-500 text-emerald-300 text-xs rounded-lg shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none text-center">
+    Meldung
+  </div>
+
+  <!-- AUDIO-DATEIEN (Neue Struktur im assets/ Ordner) -->
+  <audio id="audioBellaNapoli" preload="auto" src="assets/audio/bella_napoli.mp3"></audio>
+  <audio id="audioWolle" preload="auto" src="assets/audio/wolle.mp3"></audio>
+  <audio id="audioRammstein" preload="auto" src="assets/audio/sonne.mp3"></audio>
+  <audio id="audioTornado" preload="auto" src="assets/audio/biertornado.mp3"></audio>
+  <audio id="audioGas" preload="auto" src="assets/audio/gas.mp3"></audio>
+  <audio id="audioKorn" preload="auto" src="assets/audio/schuettelkorn.mp3"></audio>
+
+  <!-- Firebase Core & Realtime Database -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 </body>
 </html>
