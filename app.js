@@ -1,4 +1,213 @@
 /* =====================================================================
+   🔥 FIREBASE REALTIME DATABASE & GERÄTE-IDENTIFIKATION
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDhQTJJSmk6L1XGIvwRIjR03VHY4HXUZ1A",
+  authDomain: "project21-2cea0.firebaseapp.com",
+  databaseURL: "https://project21-2cea0-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "project21-2cea0",
+  storageBucket: "project21-2cea0.firebasestorage.app",
+  messagingSenderId: "879692488069",
+  appId: "1:879692488069:web:82a55d6a3d5b39bfaa38ec",
+  measurementId: "G-35C5HH0RF0"
+};
+// Initialisieren
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// Eindeutiger Geräte-Token (Verhindert Mehrfach-Votes & Duplikate)
+function getDeviceToken() {
+  let token = localStorage.getItem('party_device_token');
+  if (!token) {
+    token = 'usr_' + Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+    localStorage.setItem('party_device_token', token);
+  }
+  return token;
+}
+
+const myUserToken = getDeviceToken();
+
+// 1. Zusage speichern & synchronisieren
+function saveRsvpToFirebase(data) {
+  const userRef = db.ref('rsvps/' + myUserToken);
+  userRef.set({
+    name: data.name,
+    plusOne: data.plusOne,
+    plusOneName: data.plusOneName,
+    drink: data.drink,
+    pegel: data.pegel,
+    gift: data.gift,
+    timestamp: Date.now()
+  });
+}
+
+// Erweitere deine bestehende dispatchRsvpWhatsApp-Funktion:
+const originalDispatch = dispatchRsvpWhatsApp;
+dispatchRsvpWhatsApp = function() {
+  const name = document.getElementById('rsvpName').value.trim();
+  if (!name) {
+    showToast("⚠️ Bitte Namen angeben!");
+    return;
+  }
+
+  const plusOne = document.getElementById('rsvpPlusOneToggle').checked;
+  const plusOneName = document.getElementById('rsvpPlusOneName').value.trim();
+  const drink = document.getElementById('rsvpDrink').value;
+  const pegel = document.getElementById('rsvpPegel').value;
+  const gift = document.getElementById('rsvpGift').value.trim();
+
+  // In Firebase sichern
+  saveRsvpToFirebase({ name, plusOne, plusOneName, drink, pegel, gift });
+
+  // Original-WhatsApp-Weiterleitung ausführen
+  originalDispatch();
+};
+
+// 2. Befehl: Gästeliste abrufen & Live-Board im Terminal rendern
+function showGuestBoard() {
+  appendLine("<span class='text-cyan-400 font-bold'>[GÄSTE-RADAR] Lade aktuelle Zusagen aus der Cloud...</span>");
+  
+  db.ref('rsvps').once('value', snapshot => {
+    const data = snapshot.val();
+    if (!data) {
+      appendLine("<span class='text-neutral-500'>Noch keine Einträge. Sei der Erste!</span>");
+      return;
+    }
+
+    const guests = Object.values(data);
+    let output = `<div class='border border-cyan-800 bg-neutral-900/80 p-3 rounded my-2 text-xs font-mono space-y-2'>`;
+    output += `<div class='text-cyan-300 font-bold border-b border-cyan-800 pb-1 flex justify-between'>
+                 <span>ANGEMELDETE CREW (${guests.length})</span>
+                 <span>PEGEL-PROGNOSE</span>
+               </div>`;
+
+    guests.forEach(g => {
+      const isDriver = g.drink.includes("Fahrer");
+      const statusBadge = isDriver 
+        ? `<span class='text-emerald-400 font-bold'>🚗 FAHRER (0,0‰)</span>` 
+        : `<span class='text-amber-400'>🥃 ${g.drink}</span>`;
+      
+      const companion = g.plusOne ? ` <span class='text-neutral-400'>(+1: ${g.plusOneName || 'Begleitung'})</span>` : '';
+
+      output += `
+        <div class='flex justify-between items-start py-1 border-b border-neutral-800/50'>
+          <div>
+            <span class='text-white font-bold'>${escapeHtml(g.name)}</span>${companion}<br>
+            <span class='text-[11px] text-neutral-400'>Treibstoff: ${statusBadge}</span>
+          </div>
+          <div class='text-right'>
+            <span class='text-emerald-400 font-bold'>${g.pegel}%</span>
+          </div>
+        </div>`;
+    });
+
+    output += `</div>`;
+    appendLine(output);
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/* =====================================================================
+   🎵 LIVE MUSIK-RADAR (UPVOTES)
+   ===================================================================== */
+function openMusicModal() {
+  document.getElementById('musicModal').classList.remove('hidden');
+  listenToMusicUpdates();
+}
+
+function closeMusicModal() {
+  document.getElementById('musicModal').classList.add('hidden');
+}
+
+// Neuer Song einreichen
+function submitSongProposal() {
+  const input = document.getElementById('newSongInput');
+  const title = input.value.trim();
+  if (!title) return;
+
+  const songId = 'song_' + Date.now();
+  db.ref('songs/' + songId).set({
+    title: title,
+    votesCount: 1,
+    voters: {
+      [myUserToken]: true // Ersteller votet automatisch
+    }
+  });
+
+  input.value = '';
+  showToast("✓ Song hinzugefügt & gevotet!");
+}
+
+// Upvote abgeben
+function toggleSongVote(songId) {
+  const songRef = db.ref('songs/' + songId);
+  songRef.transaction(song => {
+    if (song) {
+      if (!song.voters) song.voters = {};
+      
+      // Hat dieser User schon gevotet?
+      if (song.voters[myUserToken]) {
+        // Vote zurücknehmen
+        delete song.voters[myUserToken];
+        song.votesCount = Math.max(0, (song.votesCount || 1) - 1);
+      } else {
+        // Vote hinzufügen
+        song.voters[myUserToken] = true;
+        song.votesCount = (song.votesCount || 0) + 1;
+      }
+    }
+    return song;
+  });
+}
+
+// Echtzeit-Listener: Aktualisiert die Liste automatisch auf allen Geräten
+function listenToMusicUpdates() {
+  db.ref('songs').on('value', snapshot => {
+    const listEl = document.getElementById('songListContainer');
+    if (!listEl) return;
+
+    const data = snapshot.val();
+    if (!data) {
+      listEl.innerHTML = "<p class='text-xs text-neutral-500 text-center py-4'>Noch keine Songs. Schlag den ersten Track vor!</p>";
+      return;
+    }
+
+    // Nach Votes sortieren (meiste Stimmen oben)
+    const songs = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+    songs.sort((a, b) => b.votesCount - a.votesCount);
+
+    let html = '';
+    songs.forEach(song => {
+      const hasVoted = song.voters && song.voters[myUserToken];
+      const btnClass = hasVoted 
+        ? "bg-emerald-500 text-black font-extrabold shadow-[0_0_10px_#22c55e]" 
+        : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700";
+
+      html += `
+        <div class="flex items-center justify-between p-2.5 rounded bg-neutral-900 border border-neutral-800">
+          <div class="truncate pr-2">
+            <span class="text-xs sm:text-sm font-bold text-white block truncate">${escapeHtml(song.title)}</span>
+          </div>
+          <button onclick="toggleSongVote('${song.id}')" 
+                  class="px-3 py-1.5 rounded text-xs transition active:scale-95 flex items-center gap-1.5 flex-shrink-0 ${btnClass}">
+            <span>🔥</span>
+            <span>${song.votesCount || 0}</span>
+          </button>
+        </div>`;
+    });
+
+    listEl.innerHTML = html;
+  });
+}
+
+/* =====================================================================
    ⚙️ GEORGS PARTY-KONFIGURATION
    ===================================================================== */
 const PARTY_CONFIG = {
@@ -387,16 +596,31 @@ function runCommand(cmd) {
 }
 
 /* =====================================================================
-   RADAR MODAL
+   RADAR MODAL (HUD)
    ==================================================================== */
+let fakeCoordInterval = null;
+
 function openRadarModal() {
   playTone(500, 'sine', 0.08);
   setTimeout(() => playTone(1000, 'sine', 0.1), 90);
   document.getElementById('radarModal').classList.remove('hidden');
+
+  // Hacker-Style: Koordinaten zählen wild hoch
+  const coordDisplay = document.getElementById('fakeCoords');
+  if (coordDisplay) {
+    fakeCoordInterval = setInterval(() => {
+      // Generiert einen zufälligen Hex-Code (z.B. 0x4A7F)
+      const hex = Math.floor(Math.random() * 65535).toString(16).toUpperCase();
+      coordDisplay.textContent = `0x${hex.padStart(4, '0')}`;
+    }, 150);
+  }
 }
 
 function closeRadarModal() {
   document.getElementById('radarModal').classList.add('hidden');
+  if (fakeCoordInterval) {
+    clearInterval(fakeCoordInterval);
+  }
 }
 
 function copyAddressToClipboard() {
@@ -407,7 +631,6 @@ function copyAddressToClipboard() {
     showToast("Lohhof 49, 31600 Uchte");
   });
 }
-
 /* =====================================================================
    RSVP & WHATSAPP GENERATOR
    ===================================================================== */
