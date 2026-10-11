@@ -531,27 +531,119 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =====================================================================
-   🎲 SUDO ROULETTE (ZUFALLS-GENERATOR)
+   🛑 SUDO KILL-SWITCH (NOT-AUS / SKIP FUNKTION)
    ===================================================================== */
+let canSkip = false;
+
+document.addEventListener('click', handleSkipAttempt);
+document.addEventListener('touchstart', handleSkipAttempt, { passive: true });
+
+function handleSkipAttempt(e) {
+  if (isSudoRunning && canSkip) {
+    emergencySkipParty();
+  }
+}
+
+function emergencySkipParty() {
+  // 1. Timeouts und Intervalle killen
+  let highestTimeoutId = window.setTimeout(() => {}, 0);
+  for (let i = 0; i < highestTimeoutId; i++) window.clearTimeout(i);
+  
+  let highestIntervalId = window.setInterval(() => {}, 0);
+  for (let i = 0; i < highestIntervalId; i++) window.clearInterval(i);
+
+  // 2. Audio stoppen
+  document.querySelectorAll('audio').forEach(a => {
+    a.pause();
+    a.currentTime = 0;
+  });
+
+  // 3. Alle DOM-Elemente (Effekte) der Partys vom Bildschirm fegen
+  const fxClasses = [
+    '.shockwave-ring', '.splash-text', '.wolle-flannel', '.wolle-karaoke', 
+    '.wolle-lighter', '.wolle-band', '.wolle-falling-item', '.wolle-flash',
+    '.ramm-darkness', '.ramm-text', '.ramm-sonne-text', '.ramm-flamethrower',
+    '.ramm-sun-orb', '.ramm-ember', '.tornado-storm-bg', '.tornado-lightning',
+    '.tornado-text', '.tornado-crate', '.sternburg-camo', '.tornado-alert-border',
+    '.wind-blast-item', '.vortex-wrapper', '.rage-speedlines', '.ping-pong',
+    '.red-cup', '.rage-strobe', '.rage-borders', '.korn-tear', '.brause-bubble',
+    '.schuettel-item', '.korn-text', '.rage-text' 
+  ];
+  
+  fxClasses.forEach(selector => {
+    document.querySelectorAll(selector).forEach(el => el.remove());
+  });
+
+  if (window.wolleElements) window.wolleElements = [];
+  if (window.rammElements) window.rammElements = [];
+  if (window.tornadoElements) window.tornadoElements = [];
+  if (window.rageElements) window.rageElements = [];
+  if (window.kornElements) window.kornElements = [];
+
+  // 4. Styles und Klassen zurücksetzen
+  const root = document.getElementById('bodyRoot');
+  root.className = 'h-full flex flex-col justify-between p-2 sm:p-4 select-none relative crt-overlay';
+  root.style.transform = 'none';
+
+  const disco = document.getElementById('discoOverlay');
+  if (disco) disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
+  const discoBall = document.getElementById('discoBallElem');
+  if (discoBall) discoBall.className = "hidden";
+
+  // 5. Canvas (Konfetti/Laser) säubern
+  particles = [];
+  lasers = [];
+  if (fxAnimFrame) {
+    cancelAnimationFrame(fxAnimFrame);
+    fxAnimFrame = null;
+  }
+  const canvas = document.getElementById('fxCanvas');
+  if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+
+  // 6. System normalisieren
+  isSudoRunning = false;
+  canSkip = false;
+  
+  appendLine("<span class='text-rose-500 font-extrabold'>[ABBRUCH] Eskalation manuell gestoppt! System normalisiert.</span>");
+  playTone(150, 'sawtooth', 0.2);
+}
+
+/* =====================================================================
+   🎲 SUDO ROULETTE (OHNE DOPPELUNGEN)
+   ===================================================================== */
+let lastSudoParty = null; // Merkt sich, was als letztes lief
+
 function triggerRandomSudoParty() {
-  // Wenn schon eine Party läuft, blockieren wir weitere Klicks
   if (isSudoRunning) {
     showToast("⚠️ System eskaliert bereits!");
     return;
   }
   
-  // Liste aller verfügbaren Sudo-Module
-  // Wenn du später noch Scooter oder Hardstyle hinzufügst, 
-  // trägst du den Funktionsnamen einfach hier mit ein!
+  // Liste aller verfügbaren Partys
   const sudoModules = [
+    triggerBellaNapoli,
     triggerWollePetry,
-    triggerWollePetry
+    triggerRammstein,
+    triggerBiertornado,
+    triggerRagecage,
+    triggerSchuettelkorn
   ];
 
-  // Wähle eine zufällige Party aus der Liste
-  const randomParty = sudoModules[Math.floor(Math.random() * sudoModules.length)];
+  // Filtere die Party heraus, die direkt davor lief
+  let availableParties = sudoModules.filter(party => party !== lastSudoParty);
   
-  // Zünde die ausgewählte Party
-  randomParty();
-}
+  // Sicherheitsnetz (sollte nie passieren, aber sicher ist sicher)
+  if (availableParties.length === 0) availableParties = sudoModules;
 
+  // Wähle aus den verbleibenden Partys
+  const randomParty = availableParties[Math.floor(Math.random() * availableParties.length)];
+  
+  // Speichere die aktuelle Wahl für den nächsten Klick
+  lastSudoParty = randomParty;
+  
+  // Abfahrt!
+  randomParty();
+
+  canSkip = false;
+  setTimeout(() => { canSkip = true; }, 1000);
+}
