@@ -139,3 +139,171 @@ body {
 .discoball-party {
   animation: discoBallRave 0.4s infinite linear;
 }
+
+/* === ACCESS DENIED GLITCH EFFEKT === */
+@keyframes glitchFlash {
+  0% { opacity: 0; filter: invert(0); transform: scale(1.5); }
+  10% { opacity: 1; filter: invert(1) hue-rotate(90deg); transform: scale(1) translateX(-10px); }
+  15% { filter: invert(0); transform: translateX(10px); }
+  20% { opacity: 1; transform: translateX(0); }
+  80% { opacity: 1; transform: translateX(0); } 
+  90% { opacity: 0.5; filter: invert(1) hue-rotate(-90deg); transform: scale(1.1); }
+  100% { opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes stampIn {
+  0% { transform: scale(2) rotate(-15deg); opacity: 0; }
+  15% { transform: scale(1) rotate(-10deg); opacity: 1; text-shadow: 0 0 50px #ff0000; }
+  80% { transform: scale(1) rotate(-10deg); opacity: 1; text-shadow: 0 0 20px #dc2626; }
+  100% { transform: scale(0.8) rotate(-10deg); opacity: 0; }
+}
+
+/* === EASTER EGG & GAME KLASSEN === */
+.egg-flip {
+  transform: rotate(180deg);
+  transition: transform 1.5s ease-in-out;
+}
+
+.egg-drunk {
+  animation: drunkenSway 3s infinite alternate ease-in-out;
+  filter: hue-rotate(25deg) contrast(1.2);
+  transform: rotate(180deg); /* Bleibt auf dem Kopf */
+}
+
+@keyframes drunkenSway {
+  0% { transform: rotate(180deg) translateX(0) skewX(0); }
+  50% { transform: rotate(184deg) translateX(15px) skewX(2deg); }
+  100% { transform: rotate(176deg) translateX(-15px) skewX(-2deg); }
+}
+
+/* Lässt den Button flüssig an neue Orte fliegen */
+.btn-flee {
+  position: fixed !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+  transition: top 0.25s ease-out, left 0.25s ease-out, right 0.25s ease-out, bottom 0.25s ease-out !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 15px rgba(225,29,72,0.5) !important;
+}
+
+/* === EASTER EGG & GAME KLASSEN === */
+.egg-flip {
+  transform: rotate(180deg);
+  transition: transform 1.5s ease-in-out;
+}
+
+.egg-drunk {
+  animation: drunkenSway 3s infinite alternate ease-in-out;
+  filter: hue-rotate(25deg) contrast(1.2);
+  transform: rotate(180deg);
+}
+
+@keyframes drunkenSway {
+  0% { transform: rotate(180deg) translateX(0) skewX(0); }
+  50% { transform: rotate(184deg) translateX(15px) skewX(2deg); }
+  100% { transform: rotate(176deg) translateX(-15px) skewX(-2deg); }
+}
+
+/* Physik für das Fliehen (Phase 1) */
+.btn-flee {
+  position: fixed !important;
+  margin: 0 !important;
+  /* Sanfte, aber schnelle Flugkurve */
+  transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 20px rgba(225,29,72,0.8) !important;
+}
+
+/* Physik für das Fliehen (Phase 2 - Aggressiv ab Klick 10) */
+.btn-flee-fast {
+  transition: top 0.15s ease-out, left 0.15s ease-out !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 35px rgba(225,29,72,1) !important;
+}
+
+/* Der Plasma-Schweif hinter dem Button */
+.trail-particle {
+  position: fixed;
+  border-radius: 50%;
+  background: #ef4444;
+  pointer-events: none;
+  z-index: 9998;
+  filter: blur(2px);
+  box-shadow: 0 0 10px #f43f5e;
+  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+}
+/* Globale Variable für die Rotation */
+:root {
+  --game-rot: 0deg;
+}
+
+/* === NEU: DIE FLÜSSIGE ROTATION === */
+/* Wir trennen die Drehung vom Rest und geben ihr eine weiche "Feder"-Animation */
+#bodyRoot {
+  rotate: var(--game-rot);
+  transition: rotate 1.2s cubic-bezier(0.68, -0.55, 0.26, 1.55);
+}
+
+/* === DAS FIECH (Neon-Terminal Farbverlauf) === */
+.btn-fiech {
+  background: linear-gradient(135deg, #059669, #06b6d4) !important; /* Giftiges Cyber-Grün/Cyan */
+  border: 3px solid #ffffff !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 20px #22c55e, inset 0 0 10px rgba(255,255,255,0.5) !important;
+  overflow: visible !important; 
+}
+
+/* Die Kulleraugen */
+.btn-fiech .monster-eye {
+  position: absolute; top: -16px; width: 22px; height: 22px;
+  background: white; border: 3px solid black; border-radius: 50%;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.3);
+}
+.btn-fiech .monster-eye.left { left: 4px; }
+.btn-fiech .monster-eye.right { right: 4px; }
+
+/* Die Pupillen (Schlafen anfangs als Strich) */
+.btn-fiech .monster-eye::after {
+  content: ''; position: absolute; width: 6px; height: 2px;
+  background: black; border-radius: 2px; top: 8px; left: 5px;
+}
+
+/* Wach-Zustand (Augen auf & wild zitternd) */
+.btn-fiech.awake .monster-eye::after { 
+  width: 8px; height: 8px; border-radius: 50%; top: 4px; left: 4px;
+  animation: crazyPupil 0.3s infinite alternate; 
+}
+@keyframes crazyPupil { 0% { transform: translate(0, 0); } 100% { transform: translate(3px, 2px); } }
+
+/* Die Strich-Beinchen */
+.btn-fiech .monster-leg {
+  position: absolute; bottom: -18px; width: 4px; height: 18px;
+  background: black; border-radius: 2px;
+  opacity: 0; transition: opacity 0.3s;
+}
+.btn-fiech.awake .monster-leg { opacity: 1; }
+.btn-fiech.awake .monster-leg.left { left: 14px; transform-origin: top; animation: runLeft 0.15s infinite alternate; }
+.btn-fiech.awake .monster-leg.right { right: 14px; transform-origin: top; animation: runRight 0.15s infinite alternate; }
+@keyframes runLeft { 0% { transform: rotate(25deg); } 100% { transform: rotate(-35deg); } }
+@keyframes runRight { 0% { transform: rotate(-35deg); } 100% { transform: rotate(25deg); } }
+
+/* Flug-Physik */
+.flee-slow { transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important; }
+.flee-fast { transition: top 0.35s ease-out, left 0.35s ease-out !important; }
+
+/* Der dicke, grelle Plasma-Schweif */
+.trail-particle {
+  position: absolute; border-radius: 50%;
+  background: #00ffcc; pointer-events: none; z-index: 9997; filter: blur(2px);
+  box-shadow: 0 0 15px #00ffcc, 0 0 30px #00aaff, inset 0 0 10px #ffffff;
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+/* === GAME EFFEKTE (Bereinigt) === */
+/* Da die Rotation jetzt oben am #bodyRoot hängt, muss der Drunk-Modus nur noch wackeln! */
+.egg-drunk {
+  animation: drunkenSway 3s infinite alternate ease-in-out;
+  filter: hue-rotate(25deg) contrast(1.2);
+}
+@keyframes drunkenSway {
+  0% { transform: translateX(0) skewX(0); }
+  50% { transform: translateX(15px) skewX(2deg); }
+  100% { transform: translateX(-15px) skewX(-2deg); }
+}

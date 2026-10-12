@@ -1,24 +1,6 @@
 /* =====================================================================
-   ⌨️ MODUL: TERMINAL BEFEHLE & ABSAGEN
+   ⌨️ MODUL: TERMINAL BEFEHLE
    ===================================================================== */
-
-let declineCount = 0;
-
-function handleDeclineClick() {
-  declineCount++; playBuzzerError(); if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  const btn = document.getElementById('declineBtn');
-  btn.classList.add('shake-denied'); setTimeout(() => btn.classList.remove('shake-denied'), 350);
-  
-  appendLine(`<span class='text-rose-400 font-bold'>[ABGELEHNT #${declineCount}] ${CONFIG.declinePhrases[(declineCount - 1) % CONFIG.declinePhrases.length]}</span>`);
-  
-  if (declineCount < 5) {
-    btn.innerText = `❌ NICHT MÖGLICH (${5 - declineCount})`;
-  } else {
-    btn.innerText = "🏳️ KAPITULATION: ICH KOMME!"; 
-    btn.className = "px-3 py-2 rounded bg-emerald-500 text-black font-extrabold shadow-[0_0_15px_#22c55e]";
-    btn.onclick = () => { appendLine("<span class='text-emerald-300 font-bold'>[ERFOLG] Vernunft siegt!</span>"); openRsvpModal(); };
-  }
-}
 
 function runCommand(cmd) {
   playTone(650, 'sine', 0.05);
@@ -36,5 +18,30 @@ function runCommand(cmd) {
     case 'geschenke': 
       appendLine(`<div class='bg-emerald-950/40 p-3 rounded border border-emerald-600 text-xs text-emerald-200'>🎁 Bringt einfach gute Laune mit!</div>`); 
       break;
+  }
+}
+
+/* =====================================================================
+   🔽 UI-TOGGLE: BEFEHLE EINKLAPPEN
+   ===================================================================== */
+let commandsCollapsed = false;
+
+function toggleCommands() {
+  commandsCollapsed = !commandsCollapsed;
+  const grid = document.getElementById('commandGrid');
+  const toggleBtn = document.getElementById('cmdToggleBtn');
+  const texts = document.querySelectorAll('.cmd-text');
+  const btns = document.querySelectorAll('.cmd-btn');
+  
+  if (commandsCollapsed) {
+    grid.className = "grid grid-cols-8 gap-1";
+    toggleBtn.innerHTML = "<span>▲</span> AUSKLAPPEN";
+    texts.forEach(t => t.classList.add('hidden'));
+    btns.forEach(b => { b.classList.remove('py-2'); b.classList.add('py-1.5'); });
+  } else {
+    grid.className = "grid grid-cols-2 sm:grid-cols-4 gap-1.5";
+    toggleBtn.innerHTML = "<span>▼</span> EINKLAPPEN";
+    texts.forEach(t => t.classList.remove('hidden'));
+    btns.forEach(b => { b.classList.remove('py-1.5'); b.classList.add('py-2'); });
   }
 }

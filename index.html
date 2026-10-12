@@ -30,6 +30,7 @@
       "js/config.js",
       "js/engine.js",
       "js/core.js",
+      "js/modules/mod_game.js",
       "js/modules/mod_commands.js",
       "js/modules/mod_radar.js",
       "js/modules/mod_music.js",
@@ -52,113 +53,105 @@
     });
   </script>
 </head>
-<body id="bodyRoot" class="h-full flex flex-col justify-between p-2 sm:p-4 select-none relative crt-overlay">
+<body id="bodyRoot" class="h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20"> <!-- pb-20 statt 24 für weniger Platzverbrauch unten -->
 
   <!-- Fullscreen FX Canvas (Konfetti, Partikel) -->
   <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
-
   <!-- Strobo / Farb-Overlay -->
   <div id="discoOverlay" class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"></div>
-
-  <!-- Diskokugel Element -->
   <div id="discoBallElem" class="hidden">🪩</div>
 
-  <!-- Top System Bar -->
-  <header class="relative z-30 flex items-center justify-between border border-emerald-800/80 bg-neutral-950/90 px-3 py-2 rounded-lg backdrop-blur shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+  <!-- Top System Bar (Schlanker gemacht) -->
+  <header class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm">
     <div class="flex items-center space-x-2">
-      <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"></span>
-      <span class="text-xs sm:text-sm font-bold tracking-widest text-emerald-400">TTY1 // GEORG_PARTYRAUM_v21.0</span>
+      <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"></span>
+      <span class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400">GEORG_v21.0</span>
     </div>
     
-    <div class="flex items-center space-x-2">
-      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-xs border border-emerald-700 hover:border-emerald-400 rounded bg-emerald-950/40 text-emerald-300 transition flex items-center gap-1 active:scale-95">
-        <span id="soundIcon">🔊</span> <span class="hidden sm:inline text-[11px]">BEEP</span>
+    <div class="flex items-center space-x-1.5">
+      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
+        <span id="soundIcon">🔊</span>
       </button>
-
-      <button onclick="toggleCRT()" class="px-2.5 py-1 text-xs border border-emerald-700 hover:border-emerald-400 rounded bg-emerald-950/40 text-emerald-300 transition active:scale-95">
+      <button onclick="toggleCRT()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
         CRT
       </button>
     </div>
   </header>
 
-  <!-- Main Terminal Frame -->
-  <main class="relative z-10 flex-1 my-2 flex flex-col border-2 border-emerald-600/60 rounded-xl bg-black/95 p-3 sm:p-5 overflow-hidden shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+  <!-- Main Terminal Frame (Dünnere Ränder, mehr Fokus auf Text) -->
+  <main class="relative z-10 flex-1 flex flex-col mt-2 mx-2 border border-emerald-700/50 rounded-lg bg-black/95 p-2.5 sm:p-4 overflow-hidden shadow-lg">
     
-    <div class="border-b border-emerald-800/60 pb-2 mb-3 flex justify-between items-center text-xs text-emerald-500">
-      <span>SERVER: <strong class="text-emerald-300">PARTYRAUM_LOHHOF_49</strong></span>
-      <span>STATUS: <span class="text-emerald-400 font-bold animate-pulse">BEREIT ZUR ESKALATION 🍻</span></span>
+    <div class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600">
+      <span class="truncate pr-2">SERVER: <strong class="text-emerald-400">LOHHOF_49</strong></span>
+      <span class="whitespace-nowrap">STATUS: <span class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span>
     </div>
 
-    <!-- Scrollbares Terminal-Fenster -->
-    <div id="terminalOutput" class="flex-1 overflow-y-auto space-y-2 pr-1 text-xs sm:text-sm font-mono leading-relaxed"></div>
+    <!-- Scrollbares Terminal-Fenster (Schrift vergrößert & Zeilenabstand erhöht) -->
+    <div id="terminalOutput" class="flex-1 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2"></div>
 
-    <!-- Command Bar (Touch-Buttons) -->
-    <div class="pt-3 pb-1 border-t border-emerald-900/60 mt-2">
-      <div class="text-[11px] text-emerald-600 mb-2 font-bold">
-        ⚡ BEFEHLE (TOUCH):
-      </div>
-
-      <div class="flex flex-wrap gap-1.5 sm:gap-2">
-        <!-- ZUSAGEN -->
-        <button onclick="openRsvpModal()" class="px-3 py-2 rounded bg-emerald-500 text-black font-extrabold text-xs sm:text-sm hover:bg-emerald-400 transition shadow-[0_0_15px_rgba(34,197,94,0.7)] flex items-center gap-1 active:scale-95">
-          👍 [1] ZUSAGEN (RSVP)
-        </button>
-
-        <!-- ABSAGEN -->
-        <button id="declineBtn" onclick="handleDeclineClick()" class="px-3 py-2 rounded border border-rose-600/80 bg-rose-950/40 text-rose-300 font-bold text-xs sm:text-sm transition flex items-center gap-1 select-none active:scale-95">
-          ❌ [2] ABSAGEN
-        </button>
-
-       <button id="sudoPartyBtn" onclick="triggerRandomSudoParty()" class="px-3 py-2 rounded bg-gradient-to-r from-red-600 via-fuchsia-500 to-cyan-500 hover:opacity-90 text-white font-extrabold text-xs sm:text-sm transition active:scale-95 shadow-[0_0_15px_rgba(236,72,153,0.6)]">
-          🎲 SUDO: PARTY
-      </button>
-
-        <!-- INFOS -->
-        <button onclick="runCommand('info')" class="px-2.5 py-2 rounded border border-emerald-700 bg-emerald-950/50 hover:bg-emerald-900/40 text-emerald-300 text-xs sm:text-sm transition active:scale-95">
-          ℹ️ INFOS
-        </button>
-
-        <!-- RADAR -->
-        <button onclick="openRadarModal()" class="px-2.5 py-2 rounded border border-cyan-600/80 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 text-xs sm:text-sm transition active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-          📡 RADAR / LOHHOF 49
-        </button>
-
-        <!-- MATHE -->
-        <button onclick="runCommand('mathe')" class="px-2.5 py-2 rounded border border-emerald-700 bg-emerald-950/50 hover:bg-emerald-900/40 text-emerald-300 text-xs sm:text-sm transition active:scale-95">
-          ∫ BIER-INTEGRAL
-        </button>
-
-        <!-- SHOT ROULETTE -->
-        <button onclick="runCommand('shot_roulette')" class="px-2.5 py-2 rounded border border-amber-600/80 bg-amber-950/40 hover:bg-amber-900/40 text-amber-300 text-xs sm:text-sm transition active:scale-95">
-          🥃 SHOT-ROULETTE
-        </button>
-
-        <!-- GESCHENKE -->
-        <button onclick="runCommand('geschenke')" class="px-2.5 py-2 rounded border border-emerald-700/80 bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 text-xs sm:text-sm transition active:scale-95">
-          🎁 GESCHENKE?
-        </button>
-
-        <!-- WER KOMMT? -->
-        <button onclick="showGuestBoard()" class="px-2.5 py-2 rounded border border-cyan-700 bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-300 text-xs sm:text-sm transition active:scale-95">
-          👥 WER KOMMT?
-        </button>
-
-        <!-- MUSIK RADAR -->
-        <button onclick="openMusicModal()" class="px-2.5 py-2 rounded border border-fuchsia-700 bg-fuchsia-950/40 hover:bg-fuchsia-900/40 text-fuchsia-300 text-xs sm:text-sm transition active:scale-95">
-          🎵 MUSIK-RADAR
+    <!-- Einklappbares System-Befehle Gitter (Kompakter) -->
+    <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0">
+      <div class="flex justify-between items-end mb-1.5">
+        <div class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">
+          ⚡ Befehle
+        </div>
+        <button onclick="toggleCommands()" id="cmdToggleBtn" class="text-[9px] text-emerald-500 hover:text-emerald-300 border border-emerald-800/50 rounded px-1.5 py-0.5 bg-emerald-950/20 active:scale-95 transition flex items-center gap-1 leading-none">
+          <span>▼</span> EINKLAPPEN
         </button>
       </div>
-    </div>
 
-    <!-- Dummy Prompt Bar -->
-    <div class="mt-2 pt-2 border-t border-emerald-900/40 flex items-center justify-between text-xs sm:text-sm text-emerald-600/90 font-mono select-none">
-      <div class="flex items-center gap-1.5 truncate">
-        <span class="text-emerald-400 font-bold">guest@partyraum:~$</span>
-        <span class="text-emerald-500/70 italic">[Wähle einen Befehl oben]</span>
+      <div id="commandGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 transition-all">
+        <button onclick="runCommand('info')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">ℹ️</span><span class="cmd-text">INFOS</span>
+        </button>
+        <button onclick="openRadarModal()" class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">📡</span><span class="cmd-text">RADAR</span>
+        </button>
+        <button onclick="runCommand('mathe')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">∫</span><span class="cmd-text">MATHE</span>
+        </button>
+        <button onclick="runCommand('shot_roulette')" class="cmd-btn py-2 rounded border border-amber-800 bg-amber-950/30 text-amber-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">🥃</span><span class="cmd-text">ROULETTE</span>
+        </button>
+        <button onclick="showGuestBoard()" class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">👥</span><span class="cmd-text">GÄSTE</span>
+        </button>
+        <button onclick="openMusicModal()" class="cmd-btn py-2 rounded border border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">MUSIK</span>
+        </button>
+        <button onclick="runCommand('geschenke')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
+          <span class="cmd-icon text-sm">🎁</span><span class="cmd-text">GESCHENKE</span>
+        </button>
+        <button id="sudoPartyBtn" onclick="triggerRandomSudoParty()" class="cmd-btn py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]">
+          <span class="cmd-icon text-sm">🎲</span><span class="cmd-text font-bold">SUDO</span>
+        </button>
       </div>
-      <span class="cursor-blink text-emerald-400 font-bold">▋</span>
     </div>
   </main>
+
+ <!-- Sticky Bottom Action Bar (Rock-Solid Layout) -->
+  <div class="fixed bottom-0 left-0 right-0 p-2 sm:p-3 bg-black/90 border-t border-emerald-900/60 backdrop-blur-md z-40 flex gap-2.5 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.6)]" id="actionbar">
+    
+    <!-- ZUSAGEN (Startet mit flex-1, dehnt sich später aus!) -->
+    <button onclick="openRsvpModal()" class="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
+      <span>👍</span> ZUSAGEN
+    </button>
+
+    <!-- ABSAGEN WRAPPER (Startet ebenfalls mit flex-1 = 50% Breite) -->
+    <div id="declineWrapper" class="flex-1 relative h-[44px] sm:h-[48px] transition-all duration-300">
+      
+      <!-- GHOST PLATZHALTER (Wird sichtbar, wenn der echte Button abhaut) -->
+      <div id="declineGhost" class="absolute inset-0 rounded-lg border-2 border-dashed border-rose-900/40 bg-rose-950/20 flex items-center justify-center text-sm shadow-inner opacity-0 transition-opacity duration-300">
+        💨
+      </div>
+
+      <!-- ECHTER BUTTON (Liegt exakt darüber) -->
+      <button id="declineBtn" onclick="handleDeclineClick()" class="absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base z-[60] shadow-md">
+        <span id="declineIcon">❌</span> <span id="declineText">ABSAGEN</span>
+      </button>
+
+    </div>
+  </div>
 
   <!-- Modal: Zusage (RSVP) -->
   <div id="rsvpModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
