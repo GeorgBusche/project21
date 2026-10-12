@@ -45,3 +45,37 @@ function toggleCommands() {
     btns.forEach(b => { b.classList.remove('py-1.5'); b.classList.add('py-2'); });
   }
 }
+
+/* =====================================================================
+   🎲 SUDO ROULETTE & UI-SPERRE
+   ===================================================================== */
+function triggerRandomSudoParty() {
+  if (isSudoRunning) { showToast("⚠️ System eskaliert bereits!"); return; }
+  
+  // 1. UI SPERREN (Verhindert fehlerhafte Klicks während der Animation)
+  const actionBar = document.getElementById('actionbar');
+  const cmdGrid = document.getElementById('commandGrid');
+  
+  if (actionBar) actionBar.style.display = 'none'; // Untere Leiste verschwindet
+  if (cmdGrid) cmdGrid.style.pointerEvents = 'none'; // Gitter ist nicht mehr klickbar
+  
+  // 2. Party auswählen und starten
+  const sudoModules = [triggerBellaNapoli, triggerWollePetry, triggerRammstein, triggerBiertornado, triggerRagecage, triggerSchuettelkorn];
+  let available = sudoModules.filter(p => p !== lastSudoParty);
+  if (!available.length) available = sudoModules;
+  lastSudoParty = available[Math.floor(Math.random() * available.length)];
+  
+  lastSudoParty(); 
+  
+  canSkip = false; 
+  setTimeout(() => { canSkip = true; }, 1000); // Abbruch erst nach 1 Sekunde erlaubt
+
+  // 3. WÄCHTER: Prüft, wann die Party vorbei ist und stellt die UI wieder her
+  const sudoWatcher = setInterval(() => {
+    if (!isSudoRunning) {
+      if (actionBar) actionBar.style.display = 'flex';
+      if (cmdGrid) cmdGrid.style.pointerEvents = 'auto';
+      clearInterval(sudoWatcher);
+    }
+  }, 500);
+}

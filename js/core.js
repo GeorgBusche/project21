@@ -42,7 +42,7 @@ function appendLine(html, delay = 0) {
   }, delay);
 }
 
-// --- FIX: BOOT-SEQUENZ ---
+// --- FIX: KUGELSICHERE BOOT-SEQUENZ ---
 function startBootSequence() {
   const bootSequence = [
     { text: "<span class='text-emerald-500'>[SYS]</span> Lade Linux kernel 6.8.0-partyraum-generic...", delay: 100 },
@@ -58,43 +58,55 @@ function startBootSequence() {
   window.addEventListener('click', unlockAudio); window.addEventListener('touchstart', unlockAudio);
 }
 
-// Wichtig für dynamisches Laden: Prüfen, ob die Seite schon geladen IST!
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', startBootSequence);
-} else {
-  startBootSequence(); // Führt Boot direkt aus, wenn Cache-Buster aktiv ist
+// Beseitigt den Git-Lade-Bug: Prüft so lange, bis das Terminal wirklich existiert
+function initApp() {
+  if (document.getElementById('terminalOutput')) {
+    startBootSequence();
+  } else {
+    setTimeout(initApp, 50);
+  }
 }
+initApp(); // Direkt starten!
 
 // --- FIX: SUDO & NOT-AUS ---
 document.addEventListener('click', e => { if (isSudoRunning && canSkip) emergencySkipParty(); });
 document.addEventListener('touchstart', e => { if (isSudoRunning && canSkip) emergencySkipParty(); }, { passive: true });
 
 function emergencySkipParty() {
-  // 1. Richtiger Timeout/Interval Kill
+  // 1. Alle Timer radikal beenden
   const maxTimeout = window.setTimeout(() => {}, 0);
   for (let i = 0; i < maxTimeout; i++) window.clearTimeout(i);
   const maxInterval = window.setInterval(() => {}, 0);
   for (let i = 0; i < maxInterval; i++) window.clearInterval(i);
 
-  // 2. Audio stoppen
+  // 2. Audio & Synths killen
   document.querySelectorAll('audio').forEach(a => { a.pause(); a.currentTime = 0; });
   if (audioCtx && audioCtx.state !== 'closed') { audioCtx.suspend(); setTimeout(() => audioCtx.resume(), 100); }
 
-  // 3. Sudo-Elemente löschen
+  // 3. Sudo-Elemente aus dem DOM fegen
   document.querySelectorAll('[class*="wolle-"], [class*="ramm-"], [class*="tornado-"], [class*="rage-"], [class*="korn-"], .shockwave-ring, .splash-text, .brause-bubble, .ping-pong, .red-cup, .schuettel-item').forEach(el => el.remove());
 
-  // 4. Nur Sudo-Klassen vom Body entfernen (Lässt egg-flip und egg-drunk intakt!)
+  // 4. Body aufräumen
   const root = document.getElementById('bodyRoot');
   root.classList.remove('fx-earthquake', 'korn-sad-mode', 'brause-mode', 'brause-mode-green', 'wolle-3d-tilt', 'wolle-schunkel', 'wolle-hyper-schunkel', 'ramm-quake');
+  root.style.transform = 'none'; // Wichtig, falls Rammstein die Seite gedreht hat
   
+  // 5. DEN SCHWARZEN BILDSCHIRM FIXEN (Disco Overlay hart zurücksetzen)
   const disco = document.getElementById('discoOverlay');
-  if (disco) disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
+  if (disco) {
+    disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
+    disco.style.opacity = '0';
+    disco.style.backgroundColor = 'transparent';
+  }
+  
   const discoBall = document.getElementById('discoBallElem');
   if (discoBall) discoBall.className = "hidden";
 
+  // 6. Canvas leeren
   particles = []; lasers = []; if (fxAnimFrame) cancelAnimationFrame(fxAnimFrame); fxAnimFrame = null;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   
+  // 7. System entriegeln
   isSudoRunning = false; canSkip = false; playTone(150, 'sawtooth', 0.2);
 }
 
