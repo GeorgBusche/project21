@@ -3,14 +3,23 @@
   --terminal-glow: rgba(34, 197, 94, 0.45);
 }
 
+html, body {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* dVhzwingt mobile Browser, die URL-Leiste zu ignorieren */
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Verhindert das "Hinausziehen" der Seite */
+  overscroll-behavior: none; /* Blockiert den iOS/Android Bounce-Effekt */
+  touch-action: pan-y; /* Erlaubt nur Scrollen im Terminal, KEIN Pinch-to-Zoom */
+}
+
+/* Dein bestehendes Body-Styling bleibt erhalten */
 body {
   font-family: 'Share Tech Mono', monospace;
   color: #4ade80;
   text-shadow: 0 0 6px var(--terminal-glow);
   background-color: #030706;
-  overflow-x: hidden;
-  touch-action: manipulation;
-  overscroll-behavior-y: none; 
 }
 
 /* CRT Scanlines */

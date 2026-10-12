@@ -17,7 +17,7 @@
   <!-- 🔥 DER ZENTRALE VERSION-CONTROLLER 🔥 -->
   <script>
     // Wenn du etwas änderst, erhöhe einfach diese Zahl (z.B. auf "21.2"):
-    const APP_VERSION = "5.0";
+    const APP_VERSION = "6.0";
 
     // 1. CSS dynamisch laden
     const cssLink = document.createElement('link');
@@ -69,14 +69,16 @@
     </div>
     
     <div class="flex items-center space-x-1.5">
-      <!-- NEU: Vollbild Button -->
-      <button onclick="toggleFullscreen()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
-        🖵
+      <!-- NEU: Professionelles Vollbild-SVG-Icon -->
+      <button onclick="toggleFullscreen()" class="px-2.5 py-1.5 border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
       </button>
-      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
+      
+      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
         <span id="soundIcon">🔊</span>
       </button>
-      <button onclick="toggleCRT()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
+      
+      <button onclick="toggleCRT()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
         CRT
       </button>
     </div>
