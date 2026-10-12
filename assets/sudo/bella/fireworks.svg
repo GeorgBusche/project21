@@ -1,0 +1,14 @@
+<svg class="bella-fireworks" viewBox="0 0 1000 560" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <g class="bella-firework bella-firework--left">
+    <path d="M170 190v-76m0 152v76m-76-76h-76m152 0h76m-130-54-54-54m108 108 54 54m0-108 54-54m-108 108-54 54"/>
+    <circle cx="170" cy="190" r="37"/>
+  </g>
+  <g class="bella-firework bella-firework--right">
+    <path d="M820 150V74m0 152v76m-76-76h-76m152 0h76m-130-54-54-54m108 108 54 54m0-108 54-54m-108 108-54 54"/>
+    <circle cx="820" cy="150" r="34"/>
+  </g>
+  <g class="bella-firework bella-firework--small">
+    <path d="M500 235v-44m0 88v44m-44-44h-44m88 0h44m-75-31-31-31m62 62 31 31m0-62 31-31m-62 62-31 31"/>
+    <circle cx="500" cy="235" r="21"/>
+  </g>
+</svg>

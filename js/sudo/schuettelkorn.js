@@ -1,177 +1,371 @@
 import { SUDO_CUE_TIMINGS, startSudoTimeline } from './shared/cue-timings.js';
+import { fadeOutAudio } from './shared/utils.js';
+import { OUTRO_MS, startLogoOutro } from './shared/logo-outro.js';
+import kornLogo from '../../assets/sudo/schuettelkorn/logo.png';
 
-const root = window.parent.document.getElementById('bodyRoot');
 const appendLine = window.parent.appendLine;
 const playTone = window.parent.playTone;
-
 const KORN_CONFIG = Object.assign(
   { c_drop: 17500, duration: 18800, fadeTime: 2500 },
   SUDO_CUE_TIMINGS?.schuettelkorn || {}
 );
 
-function resetKornAnimation(element, animationName) {
+function createIllustration(source, className, description) {
+  const wrapper = document.createElement('div');
+  wrapper.className = className;
+  wrapper.setAttribute('aria-hidden', 'true');
+  const image = document.createElement('img');
+  image.src = source;
+  image.alt = '';
+  image.setAttribute('draggable', 'false');
+  wrapper.appendChild(image);
+  wrapper.setAttribute('data-description', description);
+  document.body.appendChild(wrapper);
+  return wrapper;
+}
+
+function createShotLatte() {
+  const rail = document.createElement('div');
+  rail.className = 'korn-shot-latte';
+  rail.setAttribute('aria-hidden', 'true');
+
+  for (let index = 0; index < 6; index++) {
+    const shot = document.createElement('div');
+    shot.className = 'korn-shot';
+    shot.style.setProperty('--shot-index', index);
+    shot.innerHTML = '<span class="korn-shot__rim"></span><span class="korn-shot__drink"></span>';
+    rail.appendChild(shot);
+  }
+
+  const handle = document.createElement('span');
+  handle.className = 'korn-shot-latte__handle';
+  rail.appendChild(handle);
+  document.body.appendChild(rail);
+  return rail;
+}
+
+function createBottle() {
+  return createIllustration(
+    new URL('../../assets/sudo/schuettelkorn/strohmann.svg', import.meta.url).href,
+    'korn-bottle',
+    'Strohmann-Kornflasche'
+  );
+}
+
+function createErhardtPortrait() {
+  return createIllustration(
+    new URL('../../assets/sudo/schuettelkorn/heinz-erhardt.svg', import.meta.url).href,
+    'heinz-portrait',
+    'Stilisierter Bühnenkomiker mit Brille und Fliege'
+  );
+}
+
+function createErhardtTitle() {
+  const title = document.createElement('div');
+  title.className = 'heinz-stage-title';
+  title.setAttribute('aria-hidden', 'true');
+  title.innerHTML =
+    '<span class="heinz-stage-title__name">HEINZ ERHARDT</span><span class="heinz-stage-title__tagline">ONKEL DER NATION</span>';
+  document.body.appendChild(title);
+  return title;
+}
+
+function createText() {
+  const text = document.createElement('div');
+  text.className = 'korn-text';
+  text.setAttribute('aria-live', 'off');
+  document.body.appendChild(text);
+  return text;
+}
+
+function setText(element, value, style = 'cream', motion = 'slam') {
+  element.className = `korn-text korn-text--${style} korn-text--${motion}`;
+  element.textContent = value;
   element.style.animation = 'none';
-  element.offsetHeight;
-  element.style.animation = animationName;
+  void element.offsetWidth;
+  element.style.animation = '';
 }
 
-function spawnSadRain() {
-  for (let i = 0; i < 15; i++) {
-    const tear = document.createElement('div');
-    tear.className = 'korn-tear';
-    tear.textContent = '💧';
-    tear.style.left = `${Math.random() * 100}vw`;
-    tear.style.animationDuration = `${0.5 + Math.random()}s`;
-    tear.style.animationDelay = `${Math.random() * 0.5}s`;
-    document.body.appendChild(tear);
-  }
+function createEffect(className, duration) {
+  const effect = document.createElement('div');
+  effect.className = className;
+  effect.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(effect);
+  window.setTimeout(() => effect.remove(), duration);
+  return effect;
 }
 
-function spawnFizz(amount, speedMultiplier = 1) {
-  for (let i = 0; i < amount; i++) {
-    const bubble = document.createElement('div');
+function spawnBubbles(amount, palette = 'citrus') {
+  const colors = {
+    citrus: ['#e9f45a', '#9fe04c', '#fff3a6'],
+    berry: ['#ff73bd', '#8f4eff', '#f8a8ff'],
+    rainbow: ['#fd4b67', '#ffb545', '#fff25d', '#6fe890', '#6ddcff', '#cb7aff']
+  }[palette];
+
+  for (let index = 0; index < amount; index++) {
+    const bubble = document.createElement('span');
+    const size = 8 + Math.random() * 30;
+    const duration = 550 + Math.random() * 950;
     bubble.className = 'brause-bubble';
-    const size = 10 + Math.random() * 40;
-    bubble.style.width = `${size}px`;
-    bubble.style.height = `${size}px`;
     bubble.style.left = `${Math.random() * 100}vw`;
-    const dur = (0.5 + Math.random() * 0.8) * speedMultiplier;
-    bubble.style.animationDuration = `${dur}s`;
+    bubble.style.setProperty('--bubble-size', `${size}px`);
+    bubble.style.setProperty('--bubble-color', colors[index % colors.length]);
+    bubble.style.setProperty('--bubble-drift', `${(Math.random() - 0.5) * 80}px`);
+    bubble.style.setProperty('--bubble-duration', `${duration}ms`);
     document.body.appendChild(bubble);
-    setTimeout(() => {
-      if (bubble.parentNode) bubble.remove();
-    }, dur * 1000);
+    window.setTimeout(() => bubble.remove(), duration);
   }
 }
 
-function spawnSchuettelItems(emojis, count) {
-  for (let i = 0; i < count; i++) {
-    setTimeout(() => {
-      const item = document.createElement('div');
-      item.className = 'schuettel-item';
-      item.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-      item.style.left = `${5 + Math.random() * 90}vw`;
-      item.style.animationDuration = `${0.6 + Math.random() * 0.6}s`;
-      document.body.appendChild(item);
-      setTimeout(() => {
-        if (item.parentNode) item.remove();
-      }, 1600);
-    }, i * 50);
+function spawnPour(bottle, shotLatte, glassIndex) {
+  const glass = shotLatte.children[glassIndex];
+  if (!glass) {
+    throw new Error('Schuettelkorn pour effect requires its bottle and target shot glass.');
   }
+
+  glass.classList.add('is-pouring');
+  window.setTimeout(() => {
+    const bottleStyle = getComputedStyle(bottle);
+    const [originX, originY] = bottleStyle.transformOrigin.split(' ').map(parseFloat);
+    const [localX, localY] = [bottle.offsetWidth / 2, bottle.offsetHeight * 0.012];
+    const transform = new DOMMatrixReadOnly(bottleStyle.transform);
+    const neck = new DOMPoint(localX - originX, localY - originY).matrixTransform(transform);
+    const target = glass.getBoundingClientRect();
+    const start = {
+      x: parseFloat(bottleStyle.left) + originX + neck.x,
+      y: parseFloat(bottleStyle.top) + originY + neck.y
+    };
+    const endX = target.left + target.width / 2;
+    const endY = target.top + target.height * 0.76;
+    const horizontalTravel = endX - start.x;
+    const verticalTravel = endY - start.y;
+    const curve = horizontalTravel * 0.28;
+    const stream = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    stream.setAttribute('viewBox', `0 0 ${window.innerWidth} ${window.innerHeight}`);
+    stream.setAttribute('aria-hidden', 'true');
+    stream.classList.add('korn-pour');
+    stream.innerHTML = `
+      <defs>
+        <linearGradient id="korn-pour-gradient" x1="0" x2="1">
+          <stop offset="0" stop-color="#c77818"/>
+          <stop offset=".45" stop-color="#fff0a2"/>
+          <stop offset="1" stop-color="#d68b20"/>
+        </linearGradient>
+      </defs>
+      <path class="korn-pour__stream" pathLength="1"
+        d="M ${start.x} ${start.y} C ${start.x + curve} ${start.y + verticalTravel * 0.38}, ${endX - curve} ${endY - verticalTravel * 0.28}, ${endX} ${endY}"/>
+      <ellipse class="korn-pour__splash" cx="${endX}" cy="${endY}" rx="2" ry="1"/>
+    `;
+    document.body.appendChild(stream);
+    window.setTimeout(() => {
+      stream.remove();
+      glass.classList.remove('is-pouring');
+      glass.classList.add('is-filled');
+    }, 900);
+  }, 220);
 }
 
-window.onload = () => {
-  const audioElem = document.getElementById('audioKorn');
+function spawnBrausePacket(color, index) {
+  const packet = document.createElement('div');
+  packet.className = `brause-packet brause-packet--${color}`;
+  packet.style.setProperty('--packet-index', index);
+  packet.textContent = 'AHOI!';
+  document.body.appendChild(packet);
+  window.setTimeout(() => packet.remove(), 1550);
+}
+
+function triggerFlash(color = 'gold') {
+  const flash = document.createElement('div');
+  flash.className = `korn-flash korn-flash--${color}`;
+  document.body.appendChild(flash);
+  window.setTimeout(() => flash.remove(), 700);
+}
+
+function triggerShaker() {
+  const shaker = document.createElement('div');
+  shaker.className = 'korn-shaker';
+  shaker.setAttribute('aria-hidden', 'true');
+  shaker.innerHTML =
+    '<span class="korn-shaker__lid"></span><span class="korn-shaker__body"><i></i><i></i><i></i></span><span class="korn-shaker__shine"></span>';
+  document.body.appendChild(shaker);
+  window.setTimeout(() => shaker.remove(), 1450);
+}
+
+function triggerFinale(scene, bottle, shotLatte, portrait, text, title) {
+  setText(text, 'VON VORN!', 'cream', 'slam');
+  text.classList.add('korn-text--finale');
+  title.classList.remove('is-visible');
+
+  scene.classList.remove(
+    'korn-scene--cabaret',
+    'korn-scene--final-act',
+    'korn-scene--brause',
+    'korn-scene--korn',
+    'korn-scene--shaken',
+    'korn-scene--surge'
+  );
+  scene.classList.add('korn-scene--encore', 'korn-scene--finale');
+  shotLatte.classList.remove('is-bubbling', 'is-shaking');
+  shotLatte.classList.add('is-loaded', 'is-encore', 'is-rewinding');
+  bottle.classList.remove('is-visible', 'is-pour');
+  portrait.classList.remove('is-laughing', 'is-watching', 'is-comic');
+  portrait.classList.add('is-visible', 'is-center-stage', 'is-encore');
+
+  const rewind = createEffect('korn-finale-rewind', 1500);
+  rewind.innerHTML = `
+    <svg viewBox="0 0 400 400" aria-hidden="true">
+      <path class="korn-finale-rewind__arc"
+        d="M 77 165 A 137 137 0 0 1 293 91 L 314 73 L 319 123 L 269 116"/>
+      <path class="korn-finale-rewind__arc korn-finale-rewind__arc--second"
+        d="M 323 237 A 137 137 0 0 1 107 311 L 86 329 L 81 279 L 131 286"/>
+    </svg>
+  `;
+  if (playTone) playTone(130, 'sawtooth', 0.45, 0.14);
+}
+
+function initializeSchuettelkorn() {
+  const audio = document.getElementById('audioKorn');
+
   startSudoTimeline(
-    audioElem,
+    audio,
     () => {
-      appendLine(
-        `<span class='text-blue-400 font-bold'>[THERAPIE] Melancholie erkannt. Verabreiche Gegenmittel...</span>`
-      );
-      root.classList.add('korn-sad-mode');
-      const mainText = document.createElement('div');
-      mainText.className = 'korn-text';
-      document.body.appendChild(mainText);
+      if (appendLine) {
+        appendLine(
+          "<span class='text-amber-300 font-bold'>[KNEIPENBÜHNE] STROTHMANN, SCHNAPSLATTE UND AHOI-BRAUSE BEREIT.</span>"
+        );
+      }
 
-      setTimeout(() => {
-        mainText.innerHTML = 'TRAURIG...';
-        resetKornAnimation(mainText, 'dropInSad 1s ease-out forwards');
-        spawnSadRain();
+      const scene = document.createElement('div');
+      scene.className = 'korn-scene korn-scene--melancholy';
+      scene.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(scene);
+
+      const bottle = createBottle();
+      const shotLatte = createShotLatte();
+      const portrait = createErhardtPortrait();
+      const title = createErhardtTitle();
+      const text = createText();
+
+      window.setTimeout(() => {
+        scene.classList.add('is-visible');
+        portrait.classList.add('is-visible');
+        setText(text, 'TRAURIG...', 'blue', 'drift');
+        spawnBubbles(8, 'citrus');
       }, KORN_CONFIG.c1_traurig1);
-      setTimeout(() => {
-        root.classList.remove('korn-sad-mode');
-        mainText.className = 'korn-text text-korn';
-        mainText.innerHTML = '1. KORN!';
-        resetKornAnimation(mainText, 'smashKorn 0.3s ease-out forwards');
-        spawnSchuettelItems(['🥃', '🌾'], 8);
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--melancholy');
+        scene.classList.add('korn-scene--korn');
+        bottle.classList.add('is-visible', 'is-pour');
+        shotLatte.classList.add('is-loaded');
+        portrait.classList.add('is-watching');
+        setText(text, '1. KORN!', 'gold', 'bottle-drop');
+        spawnPour(bottle, shotLatte, 1);
+        triggerFlash('gold');
       }, KORN_CONFIG.c2_korn1);
-      setTimeout(() => {
-        mainText.className = 'korn-text';
-        mainText.innerHTML = 'NOCH<br>TRAURIG?!';
-        resetKornAnimation(mainText, 'dropInSad 0.5s ease-out forwards');
+
+      window.setTimeout(() => {
+        portrait.classList.remove('is-watching');
+        portrait.classList.add('is-comic');
+        setText(text, 'NOCH\nTRAURIG?!', 'blue', 'tilt');
+        triggerFlash('blue');
       }, KORN_CONFIG.c3_traurig2);
-      setTimeout(() => {
-        mainText.className = 'korn-text text-brause';
-        mainText.innerHTML = 'AHOI<br>BRAUSE!';
-        resetKornAnimation(mainText, 'smashKorn 0.2s forwards');
-        root.classList.add('brause-mode');
-        spawnSchuettelItems(['🍓', '🍋', '🍬', '💥'], 10);
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--korn');
+        scene.classList.add('korn-scene--brause');
+        bottle.classList.remove('is-pour');
+        shotLatte.classList.add('is-bubbling');
+        setText(text, 'AHOI\nBRAUSE!', 'berry', 'side-pop');
+        spawnBrausePacket('green', 0);
+        spawnBrausePacket('orange', 1);
+        spawnBrausePacket('pink', 2);
+        spawnBubbles(38, 'rainbow');
+        triggerFlash('rainbow');
       }, KORN_CONFIG.c4_brause_alert);
-      setTimeout(() => {
-        mainText.className = 'korn-text text-korn';
-        mainText.innerHTML = '2. KORN!';
-        resetKornAnimation(mainText, 'smashKorn 0.2s forwards');
-        setInterval(() => spawnFizz(15), 200);
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--brause');
+        scene.classList.add('korn-scene--korn');
+        shotLatte.classList.remove('is-bubbling');
+        bottle.classList.add('is-visible');
+        bottle.classList.add('is-pour');
+        setText(text, '2. KORN!', 'gold', 'glass-clink');
+        spawnPour(bottle, shotLatte, 3);
+        triggerFlash('gold');
       }, KORN_CONFIG.c5_korn2);
-      setTimeout(() => {
-        root.classList.remove('brause-mode');
-        root.classList.add('brause-mode-green');
-        mainText.className = 'korn-text fizz-shake';
-        mainText.style.color = '#ffffff';
-        mainText.innerHTML = 'IMMER NOCH<br>TRAURIG?!';
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--korn');
+        scene.classList.add('korn-scene--brause', 'korn-scene--surge');
+        bottle.classList.remove('is-pour');
+        portrait.classList.add('is-laughing');
+        setText(text, 'IMMER NOCH\nTRAURIG?!', 'cream', 'curtain-call');
+        spawnBrausePacket('green', 0);
+        spawnBubbles(24, 'rainbow');
+        triggerFlash('rainbow');
+        if (playTone) playTone(660, 'sine', 0.35, 0.16);
       }, KORN_CONFIG.c6_traurig3);
-      setTimeout(() => {
-        mainText.className = 'korn-text text-brause fizz-shake';
-        mainText.innerHTML = 'SCHÜTTELN!';
-        mainText.style.transform = 'translate3d(-50%, -50%, 0) scale(1.5)';
-        spawnFizz(50, 0.5);
-        appendLine(
-          `<span class='text-pink-500 font-extrabold'>[WARNUNG] DRUCK IM MUNDRAUM STEIGT KRITISCH!</span>`
-        );
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--surge');
+        scene.classList.add('korn-scene--shaken');
+        shotLatte.classList.add('is-shaking');
+        setText(text, 'SCHÜTTELN!', 'berry', 'slam');
+        triggerShaker();
+        spawnBubbles(60, 'rainbow');
+        if (appendLine) {
+          appendLine(
+            "<span class='text-pink-400 font-extrabold'>[BRAUSE-REAKTOR] PRICKELN AUF ALLEN SECHS SPUREN!</span>"
+          );
+        }
+        if (playTone) playTone(110, 'sawtooth', 0.55, 0.18);
       }, KORN_CONFIG.c7_schuetteln);
-      setTimeout(() => {
-        mainText.className = 'korn-text text-korn fizz-shake';
-        mainText.innerHTML = '3. KORN!';
-        spawnSchuettelItems(['🥃', '💥', '💦'], 20);
+
+      window.setTimeout(() => {
+        scene.classList.remove('korn-scene--shaken');
+        scene.classList.add('korn-scene--korn', 'korn-scene--final-round');
+        shotLatte.classList.remove('is-shaking');
+        shotLatte.classList.add('is-loaded');
+        bottle.classList.add('is-visible', 'is-pour');
+        setText(text, '3. KORN!', 'gold', 'shot-cascade');
+        spawnPour(bottle, shotLatte, 5);
+        spawnBubbles(34, 'citrus');
+        triggerFlash('gold');
       }, KORN_CONFIG.c8_korn3);
-      setTimeout(() => {
-        root.classList.remove('brause-mode-green');
-        mainText.className = 'korn-text';
-        mainText.innerHTML = 'UND DANN...';
+
+      window.setTimeout(() => {
+        setText(text, 'UND DANN...', 'cream', 'poem');
+        portrait.classList.add('is-center-stage');
+        scene.classList.remove('korn-scene--final-round');
+        scene.classList.add('korn-scene--cabaret', 'korn-scene--final-act');
+        bottle.classList.remove('is-visible', 'is-pour');
+        shotLatte.classList.remove('is-bubbling', 'is-shaking');
+        shotLatte.classList.add('is-loaded', 'is-encore');
+        portrait.classList.add('is-visible');
+        title.classList.add('is-visible');
       }, KORN_CONFIG.c9_undwenn);
-      setTimeout(() => {
-        mainText.className = 'korn-text korn-text-vorn';
-        mainText.innerHTML = 'VON VORN!';
-        resetKornAnimation(mainText, 'spinVorn 0.5s ease-in forwards');
+
+      window.setTimeout(() => {
+        triggerFinale(scene, bottle, shotLatte, portrait, text, title);
+
+        const finaleTail = Math.max(0, KORN_CONFIG.duration - KORN_CONFIG.c11_vorn);
+        const fadeDelay = Math.max(0, finaleTail - KORN_CONFIG.fadeTime);
+        window.setTimeout(() => fadeOutAudio(audio, KORN_CONFIG.fadeTime), fadeDelay);
+        const outroMs = Math.min(OUTRO_MS, Math.round(finaleTail * 0.8));
+        window.setTimeout(
+          () => startLogoOutro({ logo: kornLogo, theme: 'bubbles', duration: outroMs }),
+          finaleTail - outroMs
+        );
+        window.setTimeout(() => window.parent.postMessage('sudo_finished', '*'), finaleTail);
       }, KORN_CONFIG.c11_vorn);
-
-      setTimeout(() => {
-        mainText.style.display = 'none';
-        root.classList.add('fx-earthquake');
-        const disco = document.getElementById('discoOverlay');
-        let tick = 0;
-        setInterval(() => {
-          const colors = ['bg-pink-500', 'bg-green-400', 'bg-yellow-400', 'bg-transparent'];
-          disco.className = `fixed inset-0 pointer-events-none z-40 transition-opacity duration-75 opacity-70 ${colors[tick % colors.length]}`;
-          if (tick % 2 === 0) spawnFizz(30, 0.4);
-          if (tick % 5 === 0) spawnSchuettelItems(['🥃', '🍬', '💥', '💦', '😵‍💫'], 5);
-          tick++;
-        }, 80);
-
-        appendLine(
-          `<span class='text-yellow-400 font-extrabold text-sm animate-pulse'>🍬 [ZUCKERSCHOCK] SCHÜTTELKORN-OVERDRIVE ERREICHT!</span>`
-        );
-
-        setTimeout(
-          () => {
-            if (audioElem && !audioElem.paused) {
-              const fadeInterval = setInterval(() => {
-                if (audioElem.volume > 0.05) audioElem.volume -= 0.05;
-                else {
-                  audioElem.pause();
-                  clearInterval(fadeInterval);
-                }
-              }, KORN_CONFIG.fadeTime / 20);
-            }
-          },
-          KORN_CONFIG.duration - KORN_CONFIG.c_drop - KORN_CONFIG.fadeTime
-        );
-
-        setTimeout(() => {
-          window.parent.postMessage('sudo_finished', '*');
-        }, KORN_CONFIG.duration - KORN_CONFIG.c_drop);
-      }, KORN_CONFIG.c_drop);
     },
     'Schuettelkorn'
   );
-};
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeSchuettelkorn, { once: true });
+} else {
+  initializeSchuettelkorn();
+}

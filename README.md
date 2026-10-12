@@ -24,6 +24,8 @@ Die Anwendung wird als Multi-Page-Build ausgeliefert. Gemeinsame JavaScript-Abh�
 - `css/sudo/` – Styles pro SUDO-Show
 - `sudo_frames/` – eigenständige HTML-Einstiegspunkte der Shows
 - `assets/audio/` – lokale Musiktitel
+- `assets/sudo/<show>/` – Grafiken der einzelnen SUDO-Shows (SVGs, Logos), per `import … ?raw` bzw. `new URL(…)` eingebunden
+- `js/sudo/shared/` – gemeinsame Show-Helfer (`cue-timings.js`, `utils.js`, `logo-outro.js`)
 
 ## GitHub Pages
 

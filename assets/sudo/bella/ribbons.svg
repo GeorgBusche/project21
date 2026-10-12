@@ -1,0 +1,5 @@
+<svg class="bella-ribbons" viewBox="0 0 1000 600" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  <path class="bella-ribbons__green" d="M-80 330C150 275 280 375 500 330S820 270 1080 325"/>
+  <path class="bella-ribbons__white" d="M-80 354C150 299 280 399 500 354S820 294 1080 349"/>
+  <path class="bella-ribbons__red" d="M-80 378C150 323 280 423 500 378S820 318 1080 373"/>
+</svg>

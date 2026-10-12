@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 430">
+  <defs>
+    <linearGradient id="bottle-glass" x1="0" x2="1">
+      <stop offset="0" stop-color="#d6e8d7" stop-opacity=".24" />
+      <stop offset=".22" stop-color="#fff" stop-opacity=".78" />
+      <stop offset=".5" stop-color="#b9d6c5" stop-opacity=".4" />
+      <stop offset=".8" stop-color="#fff" stop-opacity=".7" />
+      <stop offset="1" stop-color="#6d9a7a" stop-opacity=".55" />
+    </linearGradient>
+    <linearGradient id="korn-liquid" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffe58b" />
+      <stop offset="1" stop-color="#c87c19" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M61 8h38v63l15 30c5 10 13 19 19 32 5 11 7 24 7 39v216c0 19-9 30-27 32H47c-18-2-27-13-27-32V172c0-15 2-28 7-39 6-13 14-22 19-32l15-30z"
+    fill="url(#bottle-glass)"
+    stroke="#ecf7e8"
+    stroke-width="4"
+  />
+  <path d="M59 10h42v28H59z" fill="#dfc56b" stroke="#fff1b2" stroke-width="2" />
+  <path d="M61 5h38v12H61z" fill="#343328" stroke="#bda954" stroke-width="2" />
+  <path d="M39 176h82v151H39z" fill="#f1d76f" stroke="#fff0ae" stroke-width="5" />
+  <path d="M46 185h68v134H46z" fill="#f8e8a0" stroke="#917329" stroke-width="2" />
+  <text
+    x="80"
+    y="214"
+    text-anchor="middle"
+    fill="#332616"
+    font-family="Georgia,serif"
+    font-size="9"
+    font-weight="900"
+  >
+    STROTHMANN
+  </text>
+  <path d="M80 230c-15 0-20 16-20 27h40c0-11-5-27-20-27z" fill="url(#korn-liquid)" />
+  <text
+    x="80"
+    y="280"
+    text-anchor="middle"
+    fill="#513b1a"
+    font-family="Impact,sans-serif"
+    font-size="7"
+    font-weight="900"
+  >
+    WEIZENKORN
+  </text>
+  <path d="M53 291h54" stroke="#80651c" stroke-width="2" />
+  <text
+    x="80"
+    y="308"
+    text-anchor="middle"
+    fill="#513b1a"
+    font-family="Impact,sans-serif"
+    font-size="7"
+    font-weight="900"
+  >
+    32% VOL
+  </text>
+  <path d="M30 372h100M31 382h98" stroke="#fff" stroke-opacity=".55" stroke-width="4" />
+</svg>

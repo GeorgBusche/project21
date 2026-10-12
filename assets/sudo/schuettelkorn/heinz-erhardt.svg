@@ -1,0 +1,126 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="35 0 350 345"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">Heinz Erhardt</title>
+  <desc id="desc">
+    Stilisierte Heinz-Erhardt-Clipart mit runder Brille und klassischem dunklem Anzug.
+  </desc>
+  <defs>
+    <linearGradient id="face" x1=".18" y1=".08" x2=".82" y2=".95">
+      <stop offset="0" stop-color="#ffe3ca" />
+      <stop offset="1" stop-color="#e9bca9" />
+    </linearGradient>
+    <linearGradient id="jacket" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#303033" />
+      <stop offset="1" stop-color="#101114" />
+    </linearGradient>
+    <filter id="soft-shadow" x="-.2" y="-.2" width="1.4" height="1.5">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#160e0b" flood-opacity=".35" />
+    </filter>
+  </defs>
+
+  <g filter="url(#soft-shadow)" stroke-linejoin="round">
+    <path
+      fill="url(#jacket)"
+      stroke="#171719"
+      stroke-width="5"
+      d="M67 278c12-37 39-58 83-72l24-35h72l25 35c45 14 72 35 83 72l15 54H51z"
+    />
+    <path fill="#f4f0e9" stroke="#d2cbc2" stroke-width="2" d="m171 198 39 33 39-33 13 134H158z" />
+    <path fill="#29282a" d="m168 196 42 36-25 5-24-30zM252 196l-42 36 25 5 24-30z" />
+    <path fill="#eee9e2" d="m184 200 26 28 26-28-9-9h-34z" />
+    <path fill="#4a4140" stroke="#171719" stroke-width="2" d="m204 226 6 4 6-4 9 89-15 14-15-14z" />
+
+    <path
+      fill="url(#face)"
+      stroke="#604a43"
+      stroke-width="5"
+      d="M131 99c5-49 35-77 79-77 48 0 77 31 79 81l-5 60c-4 48-31 78-74 78-44 0-71-30-75-78z"
+    />
+    <path
+      fill="#29282a"
+      d="M128 112c-7-25 0-54 18-73 14-15 31-23 51-25-19 10-34 24-44 43-9 16-13 35-12 55l-9 9zM223 20c23 5 42 19 54 39 10 16 15 37 12 59l-15-8c0-30-15-59-39-76-4-5-8-10-12-14z"
+    />
+    <path
+      d="M151 74c12-25 29-40 49-47m40 4c12 7 22 17 29 30"
+      fill="none"
+      stroke="#8e7770"
+      stroke-width="4"
+      stroke-linecap="round"
+      opacity=".72"
+    />
+    <path
+      d="M173 89c9-4 18-5 27-4m19 0c9-1 18 0 27 4"
+      fill="none"
+      stroke="#d8a997"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      opacity=".72"
+    />
+    <path
+      fill="#f5d4c4"
+      d="M133 119c-10-2-14 8-10 22 3 11 8 18 14 19zM285 119c10-2 14 8 10 22-3 11-8 18-14 19z"
+    />
+
+    <path
+      d="M154 123c16-12 32-12 48 0M218 123c16-12 32-12 48 0"
+      fill="none"
+      stroke="#56443d"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+    <g fill="#fbf8ef" stroke="#171719" stroke-width="8">
+      <ellipse cx="177" cy="139" rx="30" ry="25" />
+      <ellipse cx="243" cy="139" rx="30" ry="25" />
+    </g>
+    <path
+      d="M207 137c5-5 8-5 13 0"
+      fill="none"
+      stroke="#171719"
+      stroke-width="8"
+      stroke-linecap="round"
+    />
+    <path d="M177 137h1m64 0h1" stroke="#66574c" stroke-width="5" stroke-linecap="round" />
+
+    <path
+      d="M211 137c-2 20-10 37-11 42 5 6 13 8 21 5"
+      fill="none"
+      stroke="#bd8875"
+      stroke-width="5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M182 182c9-7 18-9 29-8 12 0 21 4 29 11"
+      fill="none"
+      stroke="#80584d"
+      stroke-width="4"
+      stroke-linecap="round"
+    />
+    <path
+      d="M188 191c14 14 34 17 48 1-11 5-25 5-48-1z"
+      fill="#fffaf4"
+      stroke="#80584d"
+      stroke-width="3"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M160 169c4 3 8 4 12 3m83 1c4 0 8-2 11-5"
+      fill="none"
+      stroke="#dba394"
+      stroke-width="3"
+      stroke-linecap="round"
+    />
+    <path
+      d="M175 218c20 12 46 13 68-1"
+      fill="none"
+      stroke="#bd8875"
+      stroke-width="3"
+      stroke-linecap="round"
+      opacity=".72"
+    />
+  </g>
+</svg>

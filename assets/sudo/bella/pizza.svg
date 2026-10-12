@@ -1,0 +1,11 @@
+<svg class="bella-pizza" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+  <circle class="bella-pizza__crust" cx="110" cy="110" r="98"/>
+  <circle class="bella-pizza__sauce" cx="110" cy="110" r="83"/>
+  <path class="bella-pizza__slice" d="m110 110 79-25a83 83 0 0 1-31 87z"/>
+  <g class="bella-pizza__toppings">
+    <circle cx="78" cy="67" r="10"/><circle cx="133" cy="57" r="9"/><circle cx="158" cy="105" r="11"/>
+    <circle cx="99" cy="128" r="10"/><circle cx="61" cy="143" r="9"/><circle cx="133" cy="163" r="10"/>
+    <path d="m92 89 10 5m40 26 11-4m-59 63 9-7m-53-63 10 2"/>
+  </g>
+  <path class="bella-pizza__shine" d="M59 63q18-25 45-30"/>
+</svg>

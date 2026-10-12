@@ -1,134 +1,1068 @@
-.bella-text {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: calc(100vw - 2rem);
-  max-height: calc(100vh - 2rem);
-  box-sizing: border-box;
-  font-family: 'Arial Black', Impact, sans-serif;
-  font-size: clamp(2rem, min(22vw, 20vh, (100vw - 2rem) / 5.5), 12rem);
-  font-weight: 900;
-  text-align: center;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
-  text-transform: uppercase;
-  z-index: 9999;
-  opacity: 0;
-  pointer-events: none;
-}
-.text-green {
-  color: #009246;
-  text-shadow:
-    0 0 50px #009246,
-    0 0 20px #ffffff;
-}
-.text-white-italy {
-  color: #ffffff;
-  text-shadow:
-    0 0 50px #ffffff,
-    0 0 30px #009246;
-}
-.text-red {
-  color: #ce2b37;
-  text-shadow:
-    0 0 80px #ce2b37,
-    0 0 30px #ffffff;
-}
-
-/* Brachialer Einschlag mit langer Standzeit */
-.bella-smash {
-  animation: smashHit 1.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
-}
-@keyframes smashHit {
-  0% {
-    transform: translate(-50%, -50%) scale(4) rotate(-20deg);
-    opacity: 0;
-    filter: blur(20px);
-  }
-  10% {
-    transform: translate(-50%, -50%) scale(0.9) rotate(5deg);
-    opacity: 1;
-    filter: blur(0);
-  }
-  15% {
-    transform: translate(-50%, -50%) scale(1.1) rotate(-2deg);
-  }
-  20% {
-    transform: translate(-50%, -50%) scale(1) rotate(0);
-    opacity: 1;
-  }
-  85% {
-    transform: translate(-50%, -50%) scale(1) rotate(0);
-    opacity: 1;
-    filter: blur(0);
-  } /* Steht extrem lange! */
-  100% {
-    transform: translate(-50%, -50%) scale(2) rotate(10deg);
-    opacity: 0;
-    filter: blur(15px);
-  }
-}
-
-/* Italien-Stroboskop (Massiver Rave Overlay) */
-.bella-strobe {
+.bella-piazza {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  mix-blend-mode: overlay;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
   opacity: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 18, 43, 0.28),
+    rgba(46, 24, 55, 0.2) 48%,
+    rgba(223, 91, 57, 0.26)
+  );
+  transition: opacity 550ms ease;
+  will-change: transform, opacity;
 }
 
-/* Explosions-Partikel (Emojis, die ins Gesicht fliegen) */
-.bella-particle {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 100;
-  font-size: clamp(4rem, 12vw, 8rem);
+.bella-piazza::before,
+.bella-piazza::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: '';
   pointer-events: none;
-  animation: explodeOut 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-}
-@keyframes explodeOut {
-  0% {
-    transform: translate(-50%, -50%) scale(0) rotate(0deg);
-    opacity: 1;
-  }
-  20% {
-    transform: translate(calc(-50% + var(--tx) * 0.4), calc(-50% + var(--ty) * 0.4)) scale(2.5)
-      rotate(var(--rot));
-  }
-  100% {
-    transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(calc(var(--rot) * 2));
-    opacity: 0;
-  }
 }
 
-/* Druckwellen-Ring */
-.bella-ring {
-  position: fixed;
-  top: 50%;
+.bella-piazza::before {
+  opacity: 0.38;
+  background:
+    radial-gradient(circle, rgba(255, 244, 211, 0.58) 0 1px, transparent 1.7px) 0 0 / 11px 11px,
+    repeating-conic-gradient(
+      from -20deg at 50% 78%,
+      transparent 0deg 13deg,
+      rgba(255, 226, 176, 0.12) 13.4deg 14deg,
+      transparent 14.4deg 27deg
+    ),
+    radial-gradient(ellipse at 50% 78%, rgba(246, 151, 88, 0.3), transparent 58%);
+  mask-image: linear-gradient(180deg, #000 0 68%, transparent 100%);
+}
+
+.bella-piazza::after {
+  z-index: 7;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(255, 244, 208, 0.72), transparent 66%),
+    linear-gradient(110deg, transparent 37%, rgba(255, 255, 255, 0.12) 50%, transparent 64%);
+}
+
+.bella-piazza.is-visible {
+  opacity: 1;
+}
+
+.bella-piazza.is-first-hit::after {
+  animation: bella-soft-flash 650ms ease-out both;
+}
+
+.bella-piazza.is-second-hit {
+  filter: saturate(1.24) brightness(1.08);
+}
+
+.bella-piazza.is-second-hit::after {
+  animation: bella-soft-flash 600ms ease-out both;
+}
+
+.bella-piazza.is-drop {
+  animation: bella-scene-hit 900ms cubic-bezier(0.14, 0.8, 0.2, 1) both;
+}
+
+.bella-piazza.is-drop::after {
+  animation: bella-drop-flash 850ms ease-out both;
+}
+
+.bella-piazza.is-ending {
+  opacity: 0;
+  transition: opacity 450ms ease;
+}
+
+.bella-piazza__moon {
+  position: absolute;
+  top: 8%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 0;
-  height: 0;
-  border: 30px solid;
+  width: clamp(115px, 35vw, 390px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 231, 179, 0.5);
   border-radius: 50%;
-  pointer-events: none;
-  z-index: 9998;
-  animation: shockwave 0.7s ease-out forwards;
+  background:
+    radial-gradient(circle at 34% 32%, rgba(255, 246, 211, 0.92), rgba(247, 161, 105, 0.62) 68%),
+    rgba(255, 221, 170, 0.3);
+  box-shadow:
+    0 0 0 12px rgba(255, 222, 168, 0.08),
+    0 0 0 32px rgba(255, 222, 168, 0.05),
+    0 0 75px 18px rgba(255, 172, 113, 0.28);
+  opacity: 0.8;
+  transform: translateX(-50%);
 }
-@keyframes shockwave {
+
+.bella-piazza__moon::after {
+  position: absolute;
+  inset: 11%;
+  border: 1px solid rgba(255, 247, 225, 0.24);
+  border-radius: inherit;
+  content: '';
+}
+
+.bella-cloud {
+  position: absolute;
+  top: 21%;
+  z-index: 1;
+  width: clamp(125px, 34vw, 370px);
+  height: clamp(34px, 8vh, 76px);
+  border: 1px solid rgba(255, 235, 218, 0.16);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 32% 64%, rgba(255, 222, 209, 0.32), transparent 54%),
+    radial-gradient(ellipse at 64% 50%, rgba(196, 178, 216, 0.26), transparent 58%);
+  filter: blur(8px);
+  opacity: 0.58;
+  pointer-events: none;
+  animation: bella-cloud-drift 19s linear infinite;
+  will-change: transform;
+}
+
+.bella-cloud--left {
+  left: -42%;
+}
+
+.bella-cloud--right {
+  top: 32%;
+  left: -54%;
+  width: clamp(95px, 26vw, 280px);
+  opacity: 0.42;
+  animation-duration: 27s;
+  animation-delay: -13s;
+}
+
+.bella-searchlight {
+  position: absolute;
+  top: 29%;
+  z-index: 1;
+  width: 38vw;
+  height: 70vh;
+  background: linear-gradient(180deg, rgba(255, 227, 185, 0.22), transparent 80%);
+  clip-path: polygon(45% 0, 55% 0, 100% 100%, 0 100%);
+  filter: blur(15px);
+  opacity: 0.25;
+  transform: rotate(-18deg);
+  transform-origin: 50% 0;
+  animation: bella-searchlight-sweep 7s ease-in-out infinite alternate;
+}
+
+.bella-searchlight--left {
+  left: -10%;
+}
+
+.bella-searchlight--right {
+  right: -10%;
+  animation-delay: -3.5s;
+  animation-direction: alternate-reverse;
+}
+
+.bella-pennants {
+  position: absolute;
+  top: -3%;
+  left: -3%;
+  z-index: 6;
+  display: flex;
+  width: 106%;
+  height: clamp(48px, 13vh, 110px);
+  justify-content: space-around;
+  border-top: 2px solid rgba(255, 236, 204, 0.52);
+  border-radius: 50% 50% 0 0;
+  transform: rotate(-2deg);
+}
+
+.bella-pennants i {
+  width: clamp(20px, 5.2vw, 55px);
+  height: clamp(34px, 7.2vh, 62px);
+  background: linear-gradient(90deg, #087a42 0 33%, #fff6e4 33% 66%, #ce2b37 66%);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.28));
+  transform: rotate(calc((var(--pennant-index, 3) - 3) * 2deg));
+  transform-origin: top center;
+  animation: bella-pennant-sway 2.8s ease-in-out calc(var(--pennant-index, 1) * -140ms) infinite
+    alternate;
+}
+
+.bella-pennants i:nth-child(1) {
+  --pennant-index: 1;
+}
+
+.bella-pennants i:nth-child(2) {
+  --pennant-index: 2;
+}
+
+.bella-pennants i:nth-child(3) {
+  --pennant-index: 3;
+}
+
+.bella-pennants i:nth-child(4) {
+  --pennant-index: 4;
+}
+
+.bella-pennants i:nth-child(5) {
+  --pennant-index: 5;
+}
+
+.bella-pennants i:nth-child(6) {
+  --pennant-index: 6;
+}
+
+.bella-pennants i:nth-child(7) {
+  --pennant-index: 7;
+}
+
+.bella-ribbons {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.bella-ribbons path {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 1450;
+  stroke-dashoffset: 1450;
+  opacity: 0;
+  transition:
+    stroke-dashoffset 900ms cubic-bezier(0.16, 0.72, 0.2, 1),
+    opacity 220ms ease;
+}
+
+.bella-birds {
+  position: absolute;
+  top: 23%;
+  left: -55%;
+  z-index: 3;
+  width: clamp(130px, 33vw, 320px);
+  overflow: visible;
+  fill: none;
+  stroke: rgba(255, 241, 218, 0.76);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.72;
+  filter: drop-shadow(0 0 8px rgba(255, 212, 174, 0.5));
+  pointer-events: none;
+  animation: bella-birds-cross 22s linear -6s infinite;
+}
+
+.bella-ribbons__green {
+  stroke: rgba(24, 190, 105, 0.44);
+}
+
+.bella-ribbons__white {
+  stroke: rgba(255, 250, 230, 0.52);
+  transition-delay: 70ms;
+}
+
+.bella-ribbons__red {
+  stroke: rgba(235, 63, 65, 0.44);
+  transition-delay: 140ms;
+}
+
+.bella-piazza.is-first-hit .bella-ribbons path,
+.bella-piazza.is-second-hit .bella-ribbons path,
+.bella-piazza.is-drop .bella-ribbons path {
+  stroke-dashoffset: 0;
+  opacity: 1;
+}
+
+.bella-piazza.is-drop .bella-ribbons path {
+  animation: bella-ribbon-wave 1.2s ease-in-out 2 alternate;
+}
+
+.bella-fireworks {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bella-piazza.is-drop .bella-fireworks {
+  opacity: 1;
+}
+
+.bella-firework {
+  fill: none;
+  stroke: rgba(255, 229, 170, 0.9);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 360;
+  stroke-dashoffset: 360;
+  transform-box: view-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 8px rgba(255, 188, 97, 0.85));
+}
+
+.bella-piazza.is-drop .bella-firework {
+  animation: bella-firework-burst 1.15s ease-out 2 both;
+}
+
+.bella-firework--right {
+  stroke: rgba(255, 246, 222, 0.92);
+  animation-delay: 180ms !important;
+}
+
+.bella-firework--small {
+  stroke: rgba(241, 96, 81, 0.92);
+  animation-delay: 320ms !important;
+}
+
+.bella-bay {
+  position: absolute;
+  right: -5%;
+  bottom: 9%;
+  left: -5%;
+  z-index: 2;
+  width: 110%;
+  height: 52%;
+  overflow: visible;
+  filter: drop-shadow(0 -10px 19px rgba(36, 22, 36, 0.2));
+  transform-origin: 50% 100%;
+  transition: transform 850ms cubic-bezier(0.14, 0.8, 0.2, 1);
+}
+
+.bella-bay__water {
+  fill: rgba(49, 78, 125, 0.74);
+}
+
+.bella-bay__coast {
+  fill: rgba(222, 106, 84, 0.78);
+}
+
+.bella-bay__mountain {
+  fill: rgba(45, 43, 63, 0.9);
+  stroke: rgba(255, 221, 180, 0.38);
+  stroke-width: 3;
+}
+
+.bella-bay__snow {
+  fill: rgba(255, 234, 209, 0.82);
+}
+
+.bella-bay__town {
+  fill: rgba(30, 27, 43, 0.92);
+}
+
+.bella-bay__windows {
+  fill: #ffd07d;
+  opacity: 0.82;
+  animation: bella-window-twinkle 2.8s ease-in-out infinite alternate;
+}
+
+.bella-bay__waterline {
+  fill: none;
+  stroke: rgba(235, 229, 229, 0.48);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 180 35 75 55;
+  animation: bella-water-glimmer 4.5s ease-in-out infinite alternate;
+}
+
+.bella-bay__wave {
+  fill: none;
+  stroke: rgba(255, 230, 193, 0.44);
+  stroke-linecap: round;
+  stroke-dasharray: 34 24;
+  animation: bella-wave-drift 5.5s linear infinite;
+}
+
+.bella-bay__wave--far {
+  stroke-width: 2;
+  opacity: 0.62;
+}
+
+.bella-bay__wave--near {
+  stroke: rgba(255, 213, 166, 0.38);
+  stroke-width: 3;
+  opacity: 0.48;
+  animation-duration: 7s;
+  animation-direction: reverse;
+}
+
+.bella-bay__ferry {
+  filter: drop-shadow(0 0 7px rgba(255, 190, 127, 0.38));
+  animation: bella-ferry-cross 14s linear -7s infinite;
+}
+
+.bella-bay__ferry-float {
+  animation: bella-ferry-float 1.8s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.bella-bay__ferry-body {
+  fill: #b7554c;
+  stroke: rgba(255, 223, 177, 0.86);
+  stroke-width: 2;
+}
+
+.bella-bay__ferry-cabin {
+  fill: #f2c993;
+  stroke: rgba(42, 37, 52, 0.82);
+  stroke-width: 2;
+}
+
+.bella-bay__ferry-window {
+  fill: #42516d;
+  stroke: rgba(255, 242, 212, 0.72);
+  stroke-width: 1;
+}
+
+.bella-bay__ferry-deck {
+  fill: none;
+  stroke: rgba(255, 244, 218, 0.92);
+  stroke-linecap: round;
+  stroke-width: 2;
+}
+
+.bella-bay__ferry-wake {
+  fill: none;
+  stroke: rgba(255, 230, 193, 0.72);
+  stroke-dasharray: 18 12;
+  stroke-linecap: round;
+  stroke-width: 2;
+  animation: bella-ferry-wake 1.3s linear infinite;
+}
+
+.bella-piazza.is-drop .bella-bay {
+  transform: scale(1.09);
+}
+
+.bella-piazza.is-drop .bella-bay__waterline {
+  animation-duration: 850ms;
+}
+
+.bella-piazza.is-drop .bella-bay__town {
+  animation: bella-town-rumble 850ms cubic-bezier(0.18, 0.76, 0.25, 1) 2;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.bella-piazza.is-drop .bella-bay__mountain {
+  animation: bella-volcano-rumble 800ms ease-in-out 2;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.bella-eruption {
+  position: absolute;
+  top: 1%;
+  left: 50%;
+  z-index: 5;
+  width: clamp(125px, 31vw, 280px);
+  opacity: 0;
+  filter: drop-shadow(0 0 18px rgba(255, 95, 47, 0.72));
+  pointer-events: none;
+  transform: translate3d(-50%, 9vh, 0) scale(0.15);
+  transform-origin: 50% 85%;
+}
+
+.bella-piazza.is-drop .bella-eruption {
+  animation: bella-eruption-burst 1.4s cubic-bezier(0.12, 0.82, 0.2, 1) both;
+}
+
+.bella-eruption__flare {
+  fill: #f26c35;
+  stroke: rgba(255, 210, 122, 0.84);
+  stroke-width: 4;
+}
+
+.bella-eruption__smoke {
+  fill: rgba(57, 39, 61, 0.92);
+  stroke: rgba(255, 216, 174, 0.56);
+  stroke-width: 3;
+}
+
+.bella-eruption__smoke-cut {
+  fill: rgba(236, 119, 80, 0.74);
+}
+
+.bella-eruption__spark {
+  fill: #ffe8a6;
+  stroke: #f27137;
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bella-sparks 500ms ease-in-out infinite alternate;
+}
+
+.bella-eruption__spark:nth-of-type(2) {
+  animation-delay: -240ms;
+}
+
+.bella-eruption__spark:nth-of-type(3) {
+  animation-delay: -390ms;
+}
+
+.bella-pizza {
+  position: absolute;
+  right: clamp(2%, 8vw, 12%);
+  bottom: 20%;
+  z-index: 5;
+  width: clamp(75px, 21vw, 190px);
+  opacity: 0.92;
+  filter: drop-shadow(0 12px 12px rgba(28, 13, 17, 0.36));
+  transform: rotate(-14deg);
+  transform-origin: center;
+  animation: bella-pizza-bob 3.2s ease-in-out infinite;
+  transition: filter 250ms ease;
+}
+
+.bella-piazza.is-first-hit .bella-pizza {
+  animation: bella-pizza-pop 650ms cubic-bezier(0.12, 0.82, 0.2, 1);
+}
+
+.bella-piazza.is-second-hit .bella-pizza {
+  animation: bella-pizza-pop 650ms cubic-bezier(0.12, 0.82, 0.2, 1) reverse;
+}
+
+.bella-piazza.is-drop .bella-pizza {
+  animation: bella-pizza-launch 1.2s cubic-bezier(0.12, 0.82, 0.2, 1) both;
+}
+
+.bella-pizza__crust {
+  fill: #d88737;
+  stroke: #f9cd83;
+  stroke-width: 9;
+}
+
+.bella-pizza__sauce {
+  fill: #c94b39;
+}
+
+.bella-pizza__slice {
+  fill: #f2d58e;
+}
+
+.bella-pizza__toppings {
+  fill: #609054;
+  stroke: #983e35;
+  stroke-width: 5;
+}
+
+.bella-pizza__shine {
+  fill: none;
+  stroke: #fff0c4;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+
+.bella-ground {
+  position: absolute;
+  right: -15%;
+  bottom: -26%;
+  left: -15%;
+  z-index: 3;
+  height: 49%;
+  border-radius: 50% 50% 0 0;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(255, 215, 157, 0.38), transparent 57%),
+    linear-gradient(180deg, rgba(57, 44, 59, 0.82), rgba(23, 20, 32, 0.9) 78%);
+  box-shadow: 0 -14px 48px rgba(255, 194, 128, 0.18);
+}
+
+.bella-lantern {
+  position: absolute;
+  top: 28%;
+  z-index: 3;
+  width: 3px;
+  height: 20%;
+  background: rgba(38, 20, 30, 0.72);
+}
+
+.bella-lantern::after {
+  position: absolute;
+  top: 92%;
+  left: 50%;
+  width: clamp(20px, 5vw, 44px);
+  aspect-ratio: 0.82;
+  border: 2px solid rgba(255, 220, 164, 0.7);
+  border-radius: 35% 35% 45% 45%;
+  background: linear-gradient(180deg, rgba(255, 223, 147, 0.9), rgba(239, 128, 83, 0.75));
+  box-shadow:
+    0 0 18px 7px rgba(255, 181, 94, 0.25),
+    inset 0 2px 4px rgba(255, 248, 206, 0.65);
+  content: '';
+  transform: translateX(-50%);
+  animation: bella-lantern-glow 1.8s ease-in-out infinite alternate;
+}
+
+.bella-lantern--left {
+  left: 13%;
+}
+
+.bella-lantern--right {
+  top: 23%;
+  right: 21%;
+  transform: scale(0.78);
+}
+
+.bella-title {
+  position: fixed;
+  top: 43%;
+  left: 50%;
+  z-index: 10;
+  width: calc(100vw - 2rem);
+  color: #fff3dc;
+  font-family: Impact, 'Arial Black', sans-serif;
+  font-size: clamp(3.6rem, min(22vw, 19vh), 12rem);
+  font-weight: 900;
+  line-height: 0.85;
+  text-align: center;
+  text-wrap: balance;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform, opacity, filter;
+}
+
+.bella-title--green {
+  color: #edffe9;
+  text-shadow:
+    0 5px 0 #087a42,
+    0 12px 0 rgba(25, 16, 28, 0.58),
+    0 0 40px rgba(55, 240, 135, 0.68);
+}
+
+.bella-title--white {
+  color: #fff8e8;
+  text-shadow:
+    0 5px 0 #c94341,
+    0 12px 0 rgba(25, 16, 28, 0.58),
+    0 0 45px rgba(255, 241, 196, 0.85);
+}
+
+.bella-title--red {
+  color: #fff4da;
+  font-size: clamp(4rem, min(25vw, 23vh), 14rem);
+  letter-spacing: 0.025em;
+  text-shadow:
+    0 5px 0 #b33138,
+    0 13px 0 rgba(25, 16, 28, 0.68),
+    0 0 48px rgba(255, 92, 74, 0.76);
+}
+
+.bella-title--red::before,
+.bella-title--red::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: attr(data-label);
+  pointer-events: none;
+  opacity: 0.78;
+  -webkit-text-stroke: 1px rgba(255, 242, 213, 0.58);
+}
+
+.bella-title--red::before {
+  color: rgba(0, 146, 70, 0.86);
+  transform: translate(-0.065em, 0.055em) rotate(-2deg);
+}
+
+.bella-title--red::after {
+  color: rgba(206, 43, 55, 0.88);
+  transform: translate(0.065em, 0.075em) rotate(2deg);
+}
+
+.bella-title--red {
+  animation:
+    bella-title-drop 1.6s cubic-bezier(0.12, 0.82, 0.2, 1) both,
+    bella-title-throb 560ms ease-in-out 1.6s 3 alternate;
+}
+
+.bella-title--hit {
+  animation: bella-title-hit 1.15s cubic-bezier(0.12, 0.82, 0.2, 1) both;
+}
+
+.bella-confetti {
+  position: fixed;
+  top: -8vh;
+  z-index: 9;
+  width: clamp(6px, 1.25vw, 13px);
+  height: clamp(15px, 3vh, 28px);
+  border: 1px solid rgba(255, 249, 230, 0.42);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--confetti-color) 83%, transparent);
+  box-shadow: 0 0 9px rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+  animation: bella-confetti-fall var(--confetti-duration) cubic-bezier(0.2, 0.65, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+.bella-impact {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(255, 240, 197, 0.72), transparent 67%);
+  animation: bella-impact-flash 900ms ease-out both;
+}
+
+@keyframes bella-title-hit {
   0% {
-    width: 0;
-    height: 0;
+    opacity: 0;
+    transform: translate3d(-50%, -50%, 0) scale(2.4) rotate(-7deg);
+    filter: blur(12px);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(0.92) rotate(2deg);
+    filter: blur(0);
+  }
+  72% {
+    transform: translate3d(-50%, -50%, 0) scale(1.08) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes bella-title-drop {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, -130vh, 0) scale(1.5) rotate(-9deg);
+    filter: blur(12px);
+  }
+  46% {
+    opacity: 1;
+    transform: translate3d(-50%, -42%, 0) scale(0.9) rotate(2deg);
+    filter: blur(0);
+  }
+  62% {
+    transform: translate3d(-50%, -52%, 0) scale(1.08) rotate(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes bella-soft-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bella-drop-flash {
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bella-impact-flash {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bella-scene-hit {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  24% {
+    transform: scale(1.055);
+    filter: saturate(1.5) brightness(1.25);
+  }
+  58% {
+    transform: scale(0.99);
+  }
+}
+
+@keyframes bella-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10vh, 0) rotate(0) scale(0.8);
+  }
+  12% {
     opacity: 1;
   }
   100% {
-    width: 130vw;
-    height: 130vw;
     opacity: 0;
-    border-width: 1px;
+    transform: translate3d(var(--confetti-drift), 112vh, 0) rotate(var(--confetti-rotation))
+      scale(0.8);
+  }
+}
+
+@keyframes bella-pizza-bob {
+  50% {
+    transform: translate3d(0, -1.6vh, 0) rotate(-7deg);
+  }
+}
+
+@keyframes bella-pizza-pop {
+  0% {
+    transform: scale(0.7) rotate(-14deg);
+  }
+  70% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  100% {
+    transform: scale(1) rotate(-14deg);
+  }
+}
+
+@keyframes bella-pizza-launch {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(-14deg) scale(1);
+  }
+  45% {
+    transform: translate3d(-9vw, -8vh, 0) rotate(180deg) scale(1.5);
+  }
+  100% {
+    transform: translate3d(-16vw, 105vh, 0) rotate(560deg) scale(0.4);
+  }
+}
+
+@keyframes bella-eruption-burst {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 9vh, 0) scale(0.15) rotate(-12deg);
+  }
+  38% {
+    opacity: 1;
+    transform: translate3d(-50%, -2vh, 0) scale(1.32) rotate(5deg);
+  }
+  62% {
+    transform: translate3d(-50%, 0, 0) scale(0.94) rotate(-2deg);
+  }
+  100% {
+    opacity: 0.88;
+    transform: translate3d(-50%, 0, 0) scale(1) rotate(0);
+  }
+}
+
+@keyframes bella-sparks {
+  to {
+    transform: translateY(-15px) scale(1.45);
+    opacity: 0.5;
+  }
+}
+
+@keyframes bella-ribbon-wave {
+  to {
+    stroke-dashoffset: -90;
+  }
+}
+
+@keyframes bella-pennant-sway {
+  to {
+    transform: rotate(calc((var(--pennant-index, 3) - 3) * 2deg + 7deg));
+  }
+}
+
+@keyframes bella-cloud-drift {
+  to {
+    transform: translate3d(190vw, 2vh, 0) scale(1.25);
+  }
+}
+
+@keyframes bella-searchlight-sweep {
+  to {
+    transform: rotate(17deg) scaleX(1.35);
+    opacity: 0.52;
+  }
+}
+
+@keyframes bella-birds-cross {
+  to {
+    transform: translate3d(220vw, -5vh, 0);
+  }
+}
+
+@keyframes bella-firework-burst {
+  0% {
+    stroke-dashoffset: 360;
+    opacity: 0;
+    transform: scale(0.15) rotate(-15deg);
+  }
+  22% {
+    opacity: 1;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+    transform: scale(1.18) rotate(9deg);
+  }
+  100% {
+    stroke-dashoffset: -50;
+    opacity: 0;
+    transform: scale(1.38) rotate(18deg);
+  }
+}
+
+@keyframes bella-water-glimmer {
+  to {
+    stroke-dashoffset: -210;
+    opacity: 0.62;
+    transform: translateX(2%);
+  }
+}
+
+@keyframes bella-wave-drift {
+  to {
+    stroke-dashoffset: -116;
+    transform: translateX(3%);
+  }
+}
+
+@keyframes bella-ferry-cross {
+  to {
+    transform: translateX(-130vw);
+  }
+}
+
+@keyframes bella-ferry-float {
+  to {
+    transform: translateY(-2px) rotate(-1deg);
+  }
+}
+
+@keyframes bella-ferry-wake {
+  to {
+    stroke-dashoffset: -60;
+    opacity: 0.38;
+  }
+}
+
+@keyframes bella-window-twinkle {
+  to {
+    opacity: 0.48;
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes bella-town-rumble {
+  20%,
+  70% {
+    transform: translateY(5px) skewX(-1deg);
+  }
+  42% {
+    transform: translateY(-4px) skewX(1deg);
+  }
+}
+
+@keyframes bella-volcano-rumble {
+  25%,
+  75% {
+    transform: translateY(3px) scaleX(1.015);
+  }
+  50% {
+    transform: translateY(-4px) scaleX(0.99);
+  }
+}
+
+@keyframes bella-title-throb {
+  to {
+    transform: translate3d(-50%, -50%, 0) scale(1.08) rotate(-1deg);
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes bella-lantern-glow {
+  to {
+    filter: brightness(1.28);
+    box-shadow:
+      0 0 25px 11px rgba(255, 181, 94, 0.38),
+      inset 0 2px 4px rgba(255, 248, 206, 0.8);
+  }
+}
+
+@media (max-width: 480px) {
+  .bella-piazza {
+    background: linear-gradient(
+      180deg,
+      rgba(10, 18, 43, 0.19),
+      rgba(46, 24, 55, 0.17) 48%,
+      rgba(223, 91, 57, 0.22)
+    );
+  }
+
+  .bella-title {
+    top: 42%;
+    font-size: clamp(3.4rem, 22vw, 6rem);
+  }
+
+  .bella-title--red {
+    font-size: clamp(2.8rem, 18vw, 6.7rem);
+  }
+
+  .bella-bay {
+    bottom: 13%;
+    height: 48%;
+  }
+
+  .bella-eruption {
+    top: 4%;
+    width: clamp(120px, 38vw, 190px);
+  }
+
+  .bella-pizza {
+    right: 7%;
+    bottom: 23%;
+    width: clamp(68px, 23vw, 105px);
+  }
+
+  .bella-cloud {
+    top: 18%;
+    height: clamp(30px, 6vh, 48px);
+  }
+
+  .bella-searchlight {
+    top: 30%;
+    width: 52vw;
+    height: 58vh;
+  }
+
+  .bella-birds {
+    top: 22%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bella-pizza,
+  .bella-pennants i,
+  .bella-cloud,
+  .bella-searchlight,
+  .bella-birds,
+  .bella-bay__waterline,
+  .bella-bay__wave,
+  .bella-bay__ferry,
+  .bella-bay__ferry-float,
+  .bella-bay__ferry-wake,
+  .bella-bay__windows,
+  .bella-lantern::after,
+  .bella-eruption__spark {
+    animation: none;
+  }
+
+  .bella-piazza.is-drop .bella-firework {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
   }
 }

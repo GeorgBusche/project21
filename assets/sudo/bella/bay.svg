@@ -1,0 +1,20 @@
+<svg class="bella-bay" viewBox="0 0 1000 470" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <path class="bella-bay__water" d="M0 260Q210 200 405 267T790 243t210 19v188H0z"/>
+  <path class="bella-bay__coast" d="M0 316q125-79 253-26 89 36 191 8 77-21 140-1 86 26 174-28 104-63 242-14v202H0z"/>
+  <path class="bella-bay__mountain" d="m238 255 125-139 37 46 49-79 138 172q-162 57-349 0z"/>
+  <path class="bella-bay__snow" d="m363 116 37 46 49-79 47 59-49-29-30 41-28-29-20 34z"/>
+  <path class="bella-bay__town" d="M0 282h72v-54h45v40h48v-78h52v73h47v-51h51v62h48v-37h54v44h45v-69h54v73h48v-49h49v59h47v-84h50v75h48v-45h48v56h62v159H0z"/>
+  <path class="bella-bay__windows" d="M39 261h8v12h-8zm80 14h8v12h-8zm119-1h8v12h-8zm83-42h8v12h-8zm111 51h8v12h-8zm105-39h8v12h-8zm95 26h8v12h-8zm106-24h8v12h-8zm99 30h8v12h-8z"/>
+  <path class="bella-bay__waterline" d="M0 332q183-22 329 0t319 0 352 0M44 367q115-16 220 0m382-1q153-19 292 0"/>
+  <path class="bella-bay__wave bella-bay__wave--far" d="M24 347q38-8 76 0t76 0m95 13q31-7 62 0t62 0m211-16q37-8 74 0t74 0m84 15q28-6 56 0t56 0"/>
+  <path class="bella-bay__wave bella-bay__wave--near" d="M110 386q46-9 92 0t92 0m145-14q37-8 74 0t74 0m153 19q31-7 62 0t62 0"/>
+  <g class="bella-bay__ferry">
+    <g class="bella-bay__ferry-float">
+      <path class="bella-bay__ferry-wake" d="M990 316q30-8 60 0t60 0m-42 12q22-6 44 0"/>
+      <path class="bella-bay__ferry-body" d="M1010 291q39 14 91 0l-15 21q-43 12-64-2z"/>
+      <path class="bella-bay__ferry-cabin" d="M1035 272h30l17 20h-57z"/>
+      <path class="bella-bay__ferry-window" d="M1041 277h9v9h-9zm16 0h8v9h-8z"/>
+      <path class="bella-bay__ferry-deck" d="M1025 289h77"/>
+    </g>
+  </g>
+</svg>

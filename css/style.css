@@ -571,31 +571,40 @@ body {
 
 .wolle-3d-tilt {
   transform-style: preserve-3d;
-  transform: perspective(800px) rotateX(15deg) scale(0.9);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: perspective(1000px) rotateX(7deg) scale(0.97);
+  transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .wolle-schunkel {
-  animation: schunkelSway 2.5s ease-in-out infinite alternate;
+  animation: schunkelSway 7.6s ease-in-out infinite;
   transform-origin: bottom center;
 }
 .wolle-hyper-schunkel {
-  animation: hyperSway 1.2s ease-in-out infinite alternate;
+  animation: hyperSway 4.4s ease-in-out infinite;
   transform-origin: bottom center;
 }
+/* Start und Ende bei 0, damit das Wackeln weich ein- und ausläuft */
 @keyframes schunkelSway {
-  0% {
-    transform: rotate(-5deg) translateX(-20px);
-  }
+  0%,
   100% {
-    transform: rotate(5deg) translateX(20px);
+    transform: rotate(0deg) translateX(0);
+  }
+  25% {
+    transform: rotate(-1.8deg) translateX(-6px);
+  }
+  75% {
+    transform: rotate(1.8deg) translateX(6px);
   }
 }
 @keyframes hyperSway {
-  0% {
-    transform: perspective(800px) rotateX(10deg) rotateZ(-8deg) translateX(-40px) scale(1.1);
-  }
+  0%,
   100% {
-    transform: perspective(800px) rotateX(10deg) rotateZ(8deg) translateX(40px) scale(1.1);
+    transform: perspective(1000px) rotateX(0deg) rotateZ(0deg) translateX(0) scale(1);
+  }
+  25% {
+    transform: perspective(1000px) rotateX(4deg) rotateZ(-2.6deg) translateX(-11px) scale(1.025);
+  }
+  75% {
+    transform: perspective(1000px) rotateX(4deg) rotateZ(2.6deg) translateX(11px) scale(1.025);
   }
 }
 

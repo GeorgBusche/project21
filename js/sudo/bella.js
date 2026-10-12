@@ -1,124 +1,163 @@
 import { SUDO_CUE_TIMINGS, startSudoTimeline } from './shared/cue-timings.js';
+import { fadeOutAudio } from './shared/utils.js';
+import { OUTRO_MS, startLogoOutro } from './shared/logo-outro.js';
+import bellaLogo from '../../assets/sudo/bella/logo.png';
+import birdsSvg from '../../assets/sudo/bella/birds.svg?raw';
+import ribbonsSvg from '../../assets/sudo/bella/ribbons.svg?raw';
+import baySvg from '../../assets/sudo/bella/bay.svg?raw';
+import eruptionSvg from '../../assets/sudo/bella/eruption.svg?raw';
+import fireworksSvg from '../../assets/sudo/bella/fireworks.svg?raw';
+import pizzaSvg from '../../assets/sudo/bella/pizza.svg?raw';
 
 const root = window.parent.document.getElementById('bodyRoot');
 const appendLine = window.parent.appendLine;
+const playTone = window.parent.playTone;
 const BELLA_CONFIG = Object.assign(
   { duration: 7000, fadeTime: 1500 },
   SUDO_CUE_TIMINGS?.bella || {}
 );
 
-function flashText(text, colorClass) {
-  const el = document.createElement('div');
-  el.className = `bella-text ${colorClass} bella-smash`;
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1600);
+function createPiazza() {
+  const scene = document.createElement('div');
+  scene.className = 'bella-piazza';
+  scene.setAttribute('aria-hidden', 'true');
+  scene.innerHTML = `
+    <div class="bella-piazza__moon"></div>
+    <div class="bella-cloud bella-cloud--left"></div>
+    <div class="bella-cloud bella-cloud--right"></div>
+    <div class="bella-searchlight bella-searchlight--left"></div>
+    <div class="bella-searchlight bella-searchlight--right"></div>
+    <div class="bella-pennants"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    ${birdsSvg}
+    ${ribbonsSvg}
+    ${baySvg}
+    ${eruptionSvg}
+    ${fireworksSvg}
+    ${pizzaSvg}
+    <div class="bella-ground"></div>
+    <div class="bella-lantern bella-lantern--left"></div>
+    <div class="bella-lantern bella-lantern--right"></div>
+  `;
+  document.body.appendChild(scene);
+  return scene;
 }
 
-function createShockwave(colorHex) {
-  const ring = document.createElement('div');
-  ring.className = 'bella-ring';
-  ring.style.borderColor = colorHex;
-  ring.style.boxShadow = `0 0 60px ${colorHex}, inset 0 0 60px ${colorHex}`;
-  document.body.appendChild(ring);
-  setTimeout(() => ring.remove(), 700);
+function createTitle() {
+  const title = document.createElement('div');
+  title.className = 'bella-title';
+  title.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(title);
+  return title;
 }
 
-function explodeEmojis(count) {
-  const emojis = ['🍕', '🚜', '🍺', '🤌', '🔥', '🎉', '🍝', '🍷', '💥', '🇮🇹'];
-  const frag = document.createDocumentFragment();
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div');
-    p.className = 'bella-particle';
-    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+function showTitle(title, text, colorClass, motionClass) {
+  title.className = `bella-title ${colorClass} ${motionClass}`;
+  title.textContent = text;
+  title.dataset.label = text;
+  title.style.animation = 'none';
+  void title.offsetWidth;
+  title.style.animation = '';
+}
 
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 50 + Math.random() * 80;
-    const tx = Math.cos(angle) * distance + 'vw';
-    const ty = Math.sin(angle) * distance + 'vh';
-    const rot = (Math.random() - 0.5) * 1440 + 'deg'; // Rotiert wie verrückt
-
-    p.style.setProperty('--tx', tx);
-    p.style.setProperty('--ty', ty);
-    p.style.setProperty('--rot', rot);
-
-    frag.appendChild(p);
-    setTimeout(() => p.remove(), 1300);
+function spawnFlagConfetti(count, palette = ['#009246', '#fff6dc', '#ce2b37']) {
+  const fragment = document.createDocumentFragment();
+  for (let index = 0; index < count; index++) {
+    const piece = document.createElement('span');
+    const duration = 1100 + Math.random() * 900;
+    piece.className = 'bella-confetti';
+    piece.style.left = `${8 + Math.random() * 84}vw`;
+    piece.style.setProperty('--confetti-color', palette[index % palette.length]);
+    piece.style.setProperty('--confetti-drift', `${(Math.random() - 0.5) * 28}vw`);
+    piece.style.setProperty('--confetti-rotation', `${Math.random() * 720 - 360}deg`);
+    piece.style.setProperty('--confetti-duration', `${duration}ms`);
+    fragment.appendChild(piece);
+    window.setTimeout(() => piece.remove(), duration);
   }
-  document.body.appendChild(frag);
+  document.body.appendChild(fragment);
 }
 
-window.onload = () => {
-  const audioElem = document.getElementById('audioBellaNapoli');
-  startSudoTimeline(
-    audioElem,
-    () => {
-      appendLine(
-        "<span class='text-amber-300 font-bold'>[SUDO] Zünde Dorf-Abriss (Bella Napoli)...</span>"
-      );
+function createImpact() {
+  const impact = document.createElement('div');
+  impact.className = 'bella-impact';
+  impact.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(impact);
+  window.setTimeout(() => impact.remove(), 950);
+}
 
-      // 1. HIT: BELLA! (Grün)
-      setTimeout(() => {
-        flashText('BELLA!', 'text-green');
-        createShockwave('#009246');
-        explodeEmojis(25);
+function initializeBella() {
+  const audio = document.getElementById('audioBellaNapoli');
+
+  startSudoTimeline(
+    audio,
+    () => {
+      if (appendLine) {
+        appendLine(
+          "<span class='text-amber-300 font-bold'>[SUDO] Zünde Dorf-Abriss (Bella Napoli)...</span>"
+        );
+      }
+
+      const scene = createPiazza();
+      const title = createTitle();
+      window.requestAnimationFrame(() => scene.classList.add('is-visible'));
+
+      window.setTimeout(() => {
+        showTitle(title, 'BELLA!', 'bella-title--green', 'bella-title--hit');
+        scene.classList.add('is-first-hit');
+        createImpact();
       }, BELLA_CONFIG.hit1);
 
-      // 2. HIT: BELLA! (Weiß)
-      setTimeout(() => {
-        flashText('BELLA!', 'text-white-italy');
-        createShockwave('#ffffff');
-        explodeEmojis(35);
+      window.setTimeout(() => {
+        showTitle(title, 'BELLA!', 'bella-title--white', 'bella-title--hit');
+        scene.classList.remove('is-first-hit');
+        scene.classList.add('is-second-hit');
+        spawnFlagConfetti(24);
+        createImpact();
       }, BELLA_CONFIG.hit2);
 
-      // 3. DROP: NAPOLI! (Rot + Eskalation)
-      setTimeout(() => {
-        flashText('NAPOLI!', 'text-red');
-        createShockwave('#CE2B37');
-        explodeEmojis(120); // Massive Explosion
-
+      window.setTimeout(() => {
+        showTitle(title, 'NAPOLI!', 'bella-title--red', 'bella-title--drop');
+        scene.classList.remove('is-second-hit');
+        scene.classList.add('is-drop');
         if (root) root.classList.add('cam-speed-shake');
-
-        const strobe = document.createElement('div');
-        strobe.className = 'bella-strobe';
-        document.body.appendChild(strobe);
-
-        let tick = 0;
-        const partyTimer = setInterval(() => {
-          const colors = ['#009246', '#ffffff', '#CE2B37', 'transparent'];
-          strobe.style.backgroundColor = colors[tick % colors.length];
-          strobe.style.opacity = tick % 4 === 3 ? '0' : '0.9'; // Harte Stroboskop-Blitze
-
-          if (tick % 3 === 0) explodeEmojis(15);
-          tick++;
-        }, 90);
-
-        appendLine(
-          "<span class='text-rose-400 font-extrabold text-sm animate-pulse'>🎺 [DROP] NAPOLI! PARTYRAUM ERREICHT MAXIMALEN DURCHSATZ!</span>"
-        );
-
-        setTimeout(
-          () => {
-            if (audioElem && !audioElem.paused) {
-              const fadeInterval = setInterval(() => {
-                if (audioElem.volume > 0.05) audioElem.volume -= 0.05;
-                else {
-                  audioElem.pause();
-                  clearInterval(fadeInterval);
-                }
-              }, BELLA_CONFIG.fadeTime / 20);
-            }
-          },
-          BELLA_CONFIG.duration - BELLA_CONFIG.drop - BELLA_CONFIG.fadeTime
-        );
-
-        setTimeout(() => {
+        window.setTimeout(() => {
           if (root) root.classList.remove('cam-speed-shake');
-          clearInterval(partyTimer);
-          window.parent.postMessage('sudo_finished', '*');
-        }, BELLA_CONFIG.duration - BELLA_CONFIG.drop);
+        }, 750);
+        spawnFlagConfetti(74);
+        window.setTimeout(() => spawnFlagConfetti(34), 280);
+        createImpact();
+        if (playTone) playTone(110, 'sawtooth', 0.35, 0.16);
+
+        if (appendLine) {
+          appendLine(
+            "<span class='text-rose-400 font-extrabold text-sm animate-pulse'>🎺 [DROP] NAPOLI! PARTYRAUM ERREICHT MAXIMALEN DURCHSATZ!</span>"
+          );
+        }
+
+        const finaleTail = Math.max(0, BELLA_CONFIG.duration - BELLA_CONFIG.drop);
+        const fadeDelay = Math.max(0, finaleTail - BELLA_CONFIG.fadeTime);
+        window.setTimeout(() => fadeOutAudio(audio, BELLA_CONFIG.fadeTime), fadeDelay);
+        const outroMs = Math.min(OUTRO_MS, Math.round(finaleTail * 0.7));
+        window.setTimeout(
+          () => startLogoOutro({ logo: bellaLogo, theme: 'tricolor', duration: outroMs }),
+          finaleTail - outroMs
+        );
+        window.setTimeout(() => {
+          scene.classList.add('is-ending');
+          window.setTimeout(() => {
+            if (scene.isConnected) scene.remove();
+            if (title.isConnected) title.remove();
+            if (root) root.classList.remove('cam-speed-shake');
+            window.parent.postMessage('sudo_finished', '*');
+          }, 450);
+        }, finaleTail);
       }, BELLA_CONFIG.drop);
     },
     'Bella Napoli'
   );
-};
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeBella, { once: true });
+} else {
+  initializeBella();
+}
