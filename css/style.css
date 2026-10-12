@@ -1,35 +1,34 @@
 :root {
   --phosphor-green: #22c55e;
   --terminal-glow: rgba(34, 197, 94, 0.45);
+  --game-rot: 0deg;
 }
 
 html, body {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100vw;
-  height: 100dvh;
+  height: 100dvh; /* dvh für moderne mobile Browser */
   margin: 0; padding: 0;
   overflow: hidden;
   overscroll-behavior: none; 
-  touch-action: none; /* Verbietet alle Wisch-Gesten auf dem Hintergrund */
-  background-color: #030706; /* Wichtig für iOS Safari */
+  touch-action: none;
+  background-color: #030706; 
 }
 
-/* Das Basis-Design */
 body {
   font-family: 'Share Tech Mono', monospace;
   color: #4ade80;
   text-shadow: 0 0 6px var(--terminal-glow);
 }
 
-/* Erlaubt das Scrollen AUSSCHLIESSLICH im Terminal! */
 #terminalOutput {
   overflow-y: auto;
   touch-action: pan-y;
-  overscroll-behavior: contain; /* Verhindert, dass das Scrollen auf den Body überspringt */
-  -webkit-overflow-scrolling: touch; /* Für extrem flüssiges iOS Scrollen */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
-/* CRT Scanlines */
+
 .crt-overlay::before {
   content: " ";
   display: block;
@@ -64,7 +63,6 @@ body {
 }
 .radar-sweep { animation: radarSweep 3.5s linear infinite; }
 
-/* Volle Kontrast/Helligkeit-Übersteuerung beim Punch */
 @keyframes screenImpact {
   0% { transform: scale(1.08) translate(-6px, 4px); filter: contrast(160%) brightness(140%); }
   25% { transform: scale(1.04) translate(6px, -4px); }
@@ -73,7 +71,6 @@ body {
 }
 .fx-punch { animation: screenImpact 0.28s cubic-bezier(0.1, 0.9, 0.2, 1); }
 
-/* Heftiges Erdbeben mit Rotation */
 @keyframes heavyDropShake {
   0%, 100% { transform: translate(0, 0); }
   20% { transform: translate(-8px, 6px) rotate(-1deg); }
@@ -88,14 +85,9 @@ body {
   100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; border-width: 1px; }
 }
 .shockwave-ring {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 60vh;
-  height: 60vh;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 9998;
+  position: fixed; top: 50%; left: 50%;
+  width: 60vh; height: 60vh; border-radius: 50%;
+  pointer-events: none; z-index: 9998;
   animation: shockwaveExpand 0.65s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
 }
 
@@ -103,39 +95,38 @@ body {
   0% { transform: translate(-50%, -50%) scale(0.3) rotate(-6deg); opacity: 0; }
   30% { transform: translate(-50%, -50%) scale(1.3) rotate(2deg); opacity: 1; }
   70% { transform: translate(-50%, -50%) scale(1.1) rotate(0deg); opacity: 1; }
-  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; filter: blur(10px); }
 }
 .splash-text {
   position: fixed;
   top: 50%;
   left: 50%;
+  width: 100vw;
+  text-align: center;
+  font-family: 'Arial Black', Impact, sans-serif;
   font-weight: 900;
-  font-size: clamp(4rem, 16vw, 10rem);
-  letter-spacing: 0.12em;
+  font-size: clamp(3rem, 18vw, 12rem);
+  letter-spacing: 0.05em;
   pointer-events: none;
-  z-index: 9999;
-  text-shadow: 0 0 25px rgba(255,255,255,0.95), 0 0 60px currentColor;
+  z-index: 999999; /* Maximaler z-index, damit nichts drüber liegt */
+  text-shadow: 0 0 25px rgba(255,255,255,1), 0 0 60px currentColor;
+  transform-origin: center center;
   animation: textExplosion 0.8s forwards cubic-bezier(0.15, 0.85, 0.35, 1.2);
 }
 
-/* --- DISKOKUGEL MIT VOLLEN SCHATTEN/FILTERN --- */
-.discoball-base {
-  position: fixed;
-  left: 50%;
-  margin-left: -50px;
-  font-size: 100px;
-  z-index: 9997;
-  pointer-events: none;
-}
 
+
+/* Disco */
+.discoball-base {
+  position: fixed; left: 50%; margin-left: -50px;
+  font-size: 100px; z-index: 9997; pointer-events: none;
+}
 @keyframes discoBallDrop {
   0% { top: -200px; transform: scale(0.5) rotate(0deg); }
   70% { top: 12%; transform: scale(1.1) rotate(240deg); }
   100% { top: 12%; transform: scale(1) rotate(360deg); }
 }
-.discoball-intro {
-  animation: discoBallDrop 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
-}
+.discoball-intro { animation: discoBallDrop 1.2s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards; }
 
 @keyframes discoBallWarning {
   0% { top: 12%; transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 15px #f59e0b) brightness(1.2); }
@@ -144,20 +135,16 @@ body {
   75% { top: 12%; transform: scale(1.2) rotate(-10deg); filter: drop-shadow(0 0 50px #ef4444) brightness(2.2); }
   100% { top: 12%; transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 15px #f59e0b) brightness(1.2); }
 }
-.discoball-warning {
-  animation: discoBallWarning 0.15s infinite;
-}
+.discoball-warning { animation: discoBallWarning 0.15s infinite; }
 
 @keyframes discoBallRave {
   0% { top: 12%; transform: scale(1.5) rotate(0deg); filter: drop-shadow(0 0 50px #06b6d4) hue-rotate(0deg) brightness(2.5); }
   50% { top: 12%; transform: scale(1.8) rotate(180deg); filter: drop-shadow(0 0 100px #ec4899) hue-rotate(180deg) brightness(3); }
   100% { top: 12%; transform: scale(1.5) rotate(360deg); filter: drop-shadow(0 0 50px #22c55e) hue-rotate(360deg) brightness(2.5); }
 }
-.discoball-party {
-  animation: discoBallRave 0.4s infinite linear;
-}
+.discoball-party { animation: discoBallRave 0.4s infinite linear; }
 
-/* === ACCESS DENIED GLITCH EFFEKT === */
+/* Glitch */
 @keyframes glitchFlash {
   0% { opacity: 0; filter: invert(0); transform: scale(1.5); }
   10% { opacity: 1; filter: invert(1) hue-rotate(90deg); transform: scale(1) translateX(-10px); }
@@ -167,7 +154,6 @@ body {
   90% { opacity: 0.5; filter: invert(1) hue-rotate(-90deg); transform: scale(1.1); }
   100% { opacity: 0; transform: scale(0.5); }
 }
-
 @keyframes stampIn {
   0% { transform: scale(2) rotate(-15deg); opacity: 0; }
   15% { transform: scale(1) rotate(-10deg); opacity: 1; text-shadow: 0 0 50px #ff0000; }
@@ -175,99 +161,38 @@ body {
   100% { transform: scale(0.8) rotate(-10deg); opacity: 0; }
 }
 
-/* === EASTER EGG & GAME KLASSEN === */
-.egg-flip {
-  transform: rotate(180deg);
-  transition: transform 1.5s ease-in-out;
-}
-
-.egg-drunk {
-  animation: drunkenSway 3s infinite alternate ease-in-out;
-  filter: hue-rotate(25deg) contrast(1.2);
-  transform: rotate(180deg); /* Bleibt auf dem Kopf */
-}
-
-@keyframes drunkenSway {
-  0% { transform: rotate(180deg) translateX(0) skewX(0); }
-  50% { transform: rotate(184deg) translateX(15px) skewX(2deg); }
-  100% { transform: rotate(176deg) translateX(-15px) skewX(-2deg); }
-}
-
-/* Lässt den Button flüssig an neue Orte fliegen */
-.btn-flee {
-  position: fixed !important;
-  z-index: 9999 !important;
-  margin: 0 !important;
-  transition: top 0.25s ease-out, left 0.25s ease-out, right 0.25s ease-out, bottom 0.25s ease-out !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 15px rgba(225,29,72,0.5) !important;
-}
-
-/* === EASTER EGG & GAME KLASSEN === */
-.egg-flip {
-  transform: rotate(180deg);
-  transition: transform 1.5s ease-in-out;
-}
-
-.egg-drunk {
-  animation: drunkenSway 3s infinite alternate ease-in-out;
-  filter: hue-rotate(25deg) contrast(1.2);
-  transform: rotate(180deg);
-}
-
-@keyframes drunkenSway {
-  0% { transform: rotate(180deg) translateX(0) skewX(0); }
-  50% { transform: rotate(184deg) translateX(15px) skewX(2deg); }
-  100% { transform: rotate(176deg) translateX(-15px) skewX(-2deg); }
-}
-
-/* Physik für das Fliehen (Phase 1) */
-.btn-flee {
-  position: fixed !important;
-  margin: 0 !important;
-  /* Sanfte, aber schnelle Flugkurve */
-  transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 20px rgba(225,29,72,0.8) !important;
-}
-
-/* Physik für das Fliehen (Phase 2 - Aggressiv ab Klick 10) */
-.btn-flee-fast {
-  transition: top 0.15s ease-out, left 0.15s ease-out !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 35px rgba(225,29,72,1) !important;
-}
-
-/* Der Plasma-Schweif hinter dem Button */
-.trail-particle {
-  position: fixed;
-  border-radius: 50%;
-  background: #ef4444;
-  pointer-events: none;
-  z-index: 9998;
-  filter: blur(2px);
-  box-shadow: 0 0 10px #f43f5e;
-  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-}
-/* Globale Variable für die Rotation */
-:root {
-  --game-rot: 0deg;
-}
-
-/* === NEU: DIE FLÜSSIGE ROTATION === */
-/* Wir trennen die Drehung vom Rest und geben ihr eine weiche "Feder"-Animation */
+/* Rotation & Drunk */
 #bodyRoot {
   rotate: var(--game-rot);
   transition: rotate 1.2s cubic-bezier(0.68, -0.55, 0.26, 1.55);
 }
+.egg-flip { transform: rotate(180deg); transition: transform 1.5s ease-in-out; }
+.egg-drunk {
+  animation: drunkenSway 3s infinite alternate ease-in-out;
+  filter: hue-rotate(25deg) contrast(1.2);
+}
+@keyframes drunkenSway {
+  0% { transform: translateX(0) skewX(0); }
+  50% { transform: translateX(15px) skewX(2deg); }
+  100% { transform: translateX(-15px) skewX(-2deg); }
+}
 
-/* === DAS FIECH (Neon-Terminal Farbverlauf) === */
+/* Button & Fiech */
+.btn-flee {
+  position: fixed !important; margin: 0 !important;
+  transition: top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 20px rgba(225,29,72,0.8) !important;
+}
+.btn-flee-fast {
+  transition: top 0.15s ease-out, left 0.15s ease-out !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8), 0 0 35px rgba(225,29,72,1) !important;
+}
 .btn-fiech {
-  background: linear-gradient(135deg, #059669, #06b6d4) !important; /* Giftiges Cyber-Grün/Cyan */
-  border: 3px solid #ffffff !important;
-  border-radius: 12px !important;
+  background: linear-gradient(135deg, #059669, #06b6d4) !important;
+  border: 3px solid #ffffff !important; border-radius: 12px !important;
   box-shadow: 0 0 20px #22c55e, inset 0 0 10px rgba(255,255,255,0.5) !important;
   overflow: visible !important; 
 }
-
-/* Die Kulleraugen */
 .btn-fiech .monster-eye {
   position: absolute; top: -16px; width: 22px; height: 22px;
   background: white; border: 3px solid black; border-radius: 50%;
@@ -275,21 +200,16 @@ body {
 }
 .btn-fiech .monster-eye.left { left: 4px; }
 .btn-fiech .monster-eye.right { right: 4px; }
-
-/* Die Pupillen (Schlafen anfangs als Strich) */
 .btn-fiech .monster-eye::after {
   content: ''; position: absolute; width: 6px; height: 2px;
   background: black; border-radius: 2px; top: 8px; left: 5px;
 }
-
-/* Wach-Zustand (Augen auf & wild zitternd) */
 .btn-fiech.awake .monster-eye::after { 
   width: 8px; height: 8px; border-radius: 50%; top: 4px; left: 4px;
   animation: crazyPupil 0.3s infinite alternate; 
 }
 @keyframes crazyPupil { 0% { transform: translate(0, 0); } 100% { transform: translate(3px, 2px); } }
 
-/* Die Strich-Beinchen */
 .btn-fiech .monster-leg {
   position: absolute; bottom: -18px; width: 4px; height: 18px;
   background: black; border-radius: 2px;
@@ -301,26 +221,12 @@ body {
 @keyframes runLeft { 0% { transform: rotate(25deg); } 100% { transform: rotate(-35deg); } }
 @keyframes runRight { 0% { transform: rotate(-35deg); } 100% { transform: rotate(25deg); } }
 
-/* Flug-Physik */
 .flee-slow { transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) !important; }
 .flee-fast { transition: top 0.35s ease-out, left 0.35s ease-out !important; }
 
-/* Der dicke, grelle Plasma-Schweif */
 .trail-particle {
   position: absolute; border-radius: 50%;
   background: #00ffcc; pointer-events: none; z-index: 9997; filter: blur(2px);
   box-shadow: 0 0 15px #00ffcc, 0 0 30px #00aaff, inset 0 0 10px #ffffff;
   transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-/* === GAME EFFEKTE (Bereinigt) === */
-/* Da die Rotation jetzt oben am #bodyRoot hängt, muss der Drunk-Modus nur noch wackeln! */
-.egg-drunk {
-  animation: drunkenSway 3s infinite alternate ease-in-out;
-  filter: hue-rotate(25deg) contrast(1.2);
-}
-@keyframes drunkenSway {
-  0% { transform: translateX(0) skewX(0); }
-  50% { transform: translateX(15px) skewX(2deg); }
-  100% { transform: translateX(-15px) skewX(-2deg); }
 }

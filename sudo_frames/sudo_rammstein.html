@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="color-scheme" content="dark"> <!-- WICHTIG GEGEN WEISSE BLITZER -->
+  <style>
+    /* 1. Echte Transparenz, damit das Terminal im Hintergrund sichtbar bleibt */
+    body, html { 
+      margin: 0; padding: 0; width: 100vw; height: 100vh; 
+      background-color: transparent !important; /* <--- HIER ÄNDERN */
+      overflow: hidden; 
+    }
+    
+    /* CRT Scanlines für den nahtlosen Übergang */
+    body::before {
+      content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+      background-size: 100% 4px; z-index: -1; pointer-events: none; opacity: 0.8;
+    }
+    
+    /* ... restliches CSS ... */
+    body, html { margin: 0; padding: 0; width: 100vw; height: 100vh; background: transparent !important; overflow: hidden; }
+    .ramm-darkness { position: fixed; inset: 0; z-index: 35; pointer-events: none; opacity: 0; background: radial-gradient(circle at center, #2a0808 0%, #000000 70%); transition: opacity 2s ease-in; }
+    .ramm-text { position: fixed; top: 45%; left: 50%; transform: translate(-50%, -50%); width: 100vw; text-align: center; font-size: clamp(6rem, 25vw, 15rem); font-weight: 900; color: #ff3300; text-shadow: 0 0 40px #ff0000, 0 0 10px #ffffff; z-index: 9999; pointer-events: none; font-family: 'Arial Black', Impact, sans-serif; text-transform: uppercase; line-height: 1; }
+    @keyframes rammStomp { 0% { transform: translate(-50%, -50%) scale(4); opacity: 0; filter: blur(20px); } 10% { transform: translate(-50%, -50%) scale(0.9); opacity: 1; filter: blur(0px); } 15% { transform: translate(-50%, -50%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+    
+    /* ORIGINAL TEXT-FIX! */
+    .ramm-sonne-text {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 100vw; text-align: center; font-size: clamp(2rem, 9vw, 7rem);
+      font-family: Arial, Helvetica, sans-serif; font-weight: 900; color: #ff3300; 
+      text-shadow: 0 0 15px #ff6600, 0 0 40px #ff0000; letter-spacing: 0.15em; 
+      z-index: 9999; pointer-events: none; text-transform: uppercase; white-space: nowrap; 
+      animation: sonneRise 1.5s ease-out forwards;
+    }
+    @keyframes sonneRise { 0% { transform: translate(-50%, -40%); opacity: 0; letter-spacing: -5px; } 100% { transform: translate(-50%, -50%); opacity: 1; letter-spacing: 5px; } }
+    
+    .ramm-flamethrower { position: fixed; bottom: 0; left: 0; width: 100%; height: 60vh; background: linear-gradient(to top, #ff0000 0%, #ff8800 40%, transparent 100%); z-index: 9995; pointer-events: none; mix-blend-mode: screen; transform-origin: bottom; animation: fireBlast 1s ease-out forwards; }
+    @keyframes fireBlast { 0% { transform: scaleY(0); opacity: 0; } 10% { transform: scaleY(1.2); opacity: 1; } 100% { transform: scaleY(0.8); opacity: 0; } }
+    .ramm-sun-orb { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50vh; height: 50vh; border-radius: 50%; background: radial-gradient(circle, #ffffff 0%, #ffcc00 20%, #ff3300 60%, transparent 80%); z-index: 9990; pointer-events: none; mix-blend-mode: screen; animation: sunPulse 2s infinite alternate; }
+    @keyframes sunPulse { 0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.5; filter: blur(20px); } 100% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; filter: blur(40px); } }
+    .ramm-ember { position: fixed; bottom: -10px; width: 4px; height: 4px; background-color: #ff6600; border-radius: 50%; box-shadow: 0 0 10px #ff0000, 0 0 20px #ff9900; z-index: 9998; pointer-events: none; animation: emberFloat linear forwards; }
+    @keyframes emberFloat { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-120vh) scale(0); opacity: 0; } }
+  </style>
+</head>
+<body>
+  <audio id="audioRammstein" preload="auto" src="../assets/audio/sonne.mp3"></audio>
+
+  <script>
+    const root = window.parent.document.getElementById('bodyRoot');
+    const appendLine = window.parent.appendLine;
+    const playTone = window.parent.playTone;
+
+    const RAMM_CONFIG = { intro: 100, eins: 6000, sonne1: 7000, zwei: 12500, sonne2: 13500, drei: 18600, stern: 19700, vier: 25000, sonne3: 26000, duration: 30000, fadeTime: 3000 };
+
+    function fadeOutAudioRamm(audio, fadeDuration) {
+      if (!audio || audio.paused) return;
+      const steps = 20; const intervalTime = fadeDuration / steps; const volumeStep = audio.volume / steps;
+      const fadeInterval = setInterval(() => {
+        if (audio.volume > volumeStep) audio.volume -= volumeStep;
+        else { audio.volume = 0; audio.pause(); clearInterval(fadeInterval); }
+      }, intervalTime);
+    }
+
+    function resetRammAnimation(element, animationName) { element.style.animation = 'none'; element.offsetHeight; element.style.animation = animationName; }
+
+    function spawnEmbers() {
+      for (let i = 0; i < 40; i++) {
+        const ember = document.createElement('div'); ember.className = 'ramm-ember'; ember.style.left = `${Math.random() * 100}vw`;
+        const size = 2 + Math.random() * 6; ember.style.width = `${size}px`; ember.style.height = `${size}px`;
+        const dur = 1.5 + Math.random() * 3; ember.style.animationDuration = `${dur}s`; ember.style.animationDelay = `${Math.random() * 0.5}s`;
+        document.body.appendChild(ember); setTimeout(() => { if (ember.parentNode) ember.remove(); }, (dur + 0.5) * 1000);
+      }
+    }
+
+    function firePyrotechnics() {
+      const pyro = document.createElement('div'); pyro.className = 'ramm-flamethrower';
+      document.body.appendChild(pyro); setTimeout(() => { if (pyro.parentNode) pyro.remove(); }, 1200);
+    }
+
+    window.onload = () => {
+      const audioElem = document.getElementById('audioRammstein');
+      if (audioElem) { audioElem.volume = 1; audioElem.play().catch(()=>{}); }
+
+      appendLine("<span class='text-red-500 font-extrabold'>[SUDO] PYRO-PROTOKOLL INITIIERT. ZÄHLVORGANG GESTARTET!</span>");
+
+      const darknessBg = document.createElement('div'); darknessBg.className = 'ramm-darkness'; document.body.appendChild(darknessBg);
+      setInterval(spawnEmbers, 600);
+
+      setTimeout(() => { darknessBg.style.opacity = "1"; if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }, RAMM_CONFIG.intro);
+
+      const mainText = document.createElement('div'); mainText.className = 'ramm-text'; document.body.appendChild(mainText);
+      const sunOrb = document.createElement('div'); sunOrb.className = 'ramm-sun-orb'; sunOrb.style.display = 'none'; document.body.appendChild(sunOrb);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'none'; firePyrotechnics(); spawnEmbers();
+        mainText.style.color = "#ff3300"; mainText.className = 'ramm-text'; mainText.innerHTML = "EINS"; resetRammAnimation(mainText, 'rammStomp 1.2s forwards');
+        root.classList.add('ramm-quake'); setTimeout(() => root.classList.remove('ramm-quake'), 600); if (navigator.vibrate) navigator.vibrate([400, 100, 400]);
+      }, RAMM_CONFIG.eins);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'block'; mainText.className = 'ramm-sonne-text'; mainText.innerHTML = "HIER KOMMT DIE<br>SONNE"; resetRammAnimation(mainText, 'sonneRise 2s forwards');
+        appendLine("<span class='text-orange-500 font-bold'>[WARNUNG] KRITISCHE TEMPERATUR IM PARTYRAUM!</span>");
+      }, RAMM_CONFIG.sonne1);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'none'; firePyrotechnics(); mainText.className = 'ramm-text'; mainText.innerHTML = "ZWEI"; resetRammAnimation(mainText, 'rammStomp 1.2s forwards');
+        root.classList.add('ramm-quake'); setTimeout(() => root.classList.remove('ramm-quake'), 600); if (navigator.vibrate) navigator.vibrate([400, 100, 400]);
+      }, RAMM_CONFIG.zwei);
+
+      setTimeout(() => { sunOrb.style.display = 'block'; mainText.className = 'ramm-sonne-text'; mainText.innerHTML = "HIER KOMMT DIE<br>SONNE"; resetRammAnimation(mainText, 'sonneRise 2s forwards'); }, RAMM_CONFIG.sonne2);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'none'; firePyrotechnics(); mainText.className = 'ramm-text'; mainText.innerHTML = "DREI"; resetRammAnimation(mainText, 'rammStomp 1.2s forwards');
+        root.classList.add('ramm-quake'); setTimeout(() => root.classList.remove('ramm-quake'), 600); if (navigator.vibrate) navigator.vibrate([400, 100, 400]);
+      }, RAMM_CONFIG.drei);
+
+      setTimeout(() => { sunOrb.style.display = 'block'; mainText.className = 'ramm-sonne-text'; mainText.innerHTML = "SIE IST DER<br>HELLSTE STERN!"; resetRammAnimation(mainText, 'sonneRise 2s forwards'); }, RAMM_CONFIG.stern);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'none'; firePyrotechnics(); firePyrotechnics(); spawnEmbers(); spawnEmbers();
+        mainText.className = 'ramm-text'; mainText.innerHTML = "VIER"; resetRammAnimation(mainText, 'rammStomp 1.2s forwards');
+        root.classList.add('ramm-quake'); setTimeout(() => root.classList.remove('ramm-quake'), 1000); if (navigator.vibrate) navigator.vibrate([600, 100, 600, 100, 600]);
+      }, RAMM_CONFIG.vier);
+
+      setTimeout(() => {
+        sunOrb.style.display = 'block'; sunOrb.style.animationDuration = '0.5s';
+        mainText.className = 'ramm-sonne-text'; mainText.innerHTML = "HIER KOMMT DIE<br>SONNE"; resetRammAnimation(mainText, 'sonneRise 2s forwards');
+        setTimeout(() => fadeOutAudioRamm(audioElem, RAMM_CONFIG.fadeTime), (RAMM_CONFIG.duration - RAMM_CONFIG.sonne3) - RAMM_CONFIG.fadeTime);
+        
+        setTimeout(() => { window.parent.postMessage("sudo_finished", "*"); }, RAMM_CONFIG.duration - RAMM_CONFIG.sonne3);
+      }, RAMM_CONFIG.sonne3);
+    };
+  </script>
+</body>
+</html>
