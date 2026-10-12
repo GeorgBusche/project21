@@ -45,13 +45,17 @@
 </head>
 <body>
   <audio id="audioRammstein" preload="auto" src="../assets/audio/sonne.mp3"></audio>
+  <script src="cue-timings.js"></script>
 
   <script>
     const root = window.parent.document.getElementById('bodyRoot');
     const appendLine = window.parent.appendLine;
     const playTone = window.parent.playTone;
 
-    const RAMM_CONFIG = { intro: 100, eins: 6000, sonne1: 7000, zwei: 12500, sonne2: 13500, drei: 18600, stern: 19700, vier: 25000, sonne3: 26000, duration: 30000, fadeTime: 3000 };
+    const RAMM_CONFIG = Object.assign(
+      { intro: 100, duration: 31000, fadeTime: 3000 },
+      window.SUDO_CUE_TIMINGS?.rammstein || {}
+    );
 
     function fadeOutAudioRamm(audio, fadeDuration) {
       if (!audio || audio.paused) return;
@@ -80,7 +84,7 @@
 
     window.onload = () => {
       const audioElem = document.getElementById('audioRammstein');
-      if (audioElem) { audioElem.volume = 1; audioElem.play().catch(()=>{}); }
+      window.startSudoTimeline(audioElem, () => {
 
       appendLine("<span class='text-red-500 font-extrabold'>[SUDO] PYRO-PROTOKOLL INITIIERT. ZÄHLVORGANG GESTARTET!</span>");
 
@@ -130,6 +134,7 @@
         
         setTimeout(() => { window.parent.postMessage("sudo_finished", "*"); }, RAMM_CONFIG.duration - RAMM_CONFIG.sonne3);
       }, RAMM_CONFIG.sonne3);
+      }, 'Rammstein');
     };
   </script>
 </body>

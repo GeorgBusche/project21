@@ -127,22 +127,46 @@ function emergencySkipParty() {
 // --- 5. SUDO ROULETTE LOGIK (IFRAME BASIERT) ---
 let lastSudoParty = null;
 
+if (CONFIG.sudoTestSong !== null) {
+  const testButton = document.getElementById('sudoPartyBtn');
+  if (testButton) {
+    testButton.title = `Testmodus: spielt nur ${CONFIG.sudoTestSong}`;
+    const icon = testButton.querySelector('.cmd-icon');
+    const label = testButton.querySelector('.cmd-text');
+    if (icon) icon.textContent = '🎧';
+    if (label) label.textContent = 'TEST';
+  }
+}
+
 function triggerRandomSudoParty() {
   if (window.isSudoRunning) { showToast("⚠️ System eskaliert bereits!"); return; }
   
+  const sudoModules = {
+    bella: 'sudo_bella.html',
+    wolle: 'sudo_wolle.html',
+    rammstein: 'sudo_rammstein.html',
+    biertornado: 'sudo_biertornado.html',
+    ragecage: 'sudo_ragecage.html',
+    schuettelkorn: 'sudo_schuettelkorn.html'
+  };
+  const testSong = CONFIG.sudoTestSong;
+  if (testSong !== null && !Object.prototype.hasOwnProperty.call(sudoModules, testSong)) {
+    console.error(`Invalid SUDO test song "${testSong}".`);
+    showToast("⚠️ Ungültiger SUDO-Test-Song in js/config.js");
+    return;
+  }
+
   const actionBar = document.getElementById('actionbar');
   const cmdGrid = document.getElementById('commandGrid');
   if (actionBar) actionBar.style.display = 'none'; 
   if (cmdGrid) cmdGrid.style.pointerEvents = 'none'; 
-  
-  const sudoModules = [
-    'sudo_bella.html', 'sudo_wolle.html', 'sudo_rammstein.html', 
-    'sudo_biertornado.html', 'sudo_ragecage.html', 'sudo_schuettelkorn.html'
-  ];
 
-  let available = sudoModules.filter(p => p !== lastSudoParty);
-  if (!available.length) available = sudoModules;
-  lastSudoParty = available[Math.floor(Math.random() * available.length)];
+  if (testSong) {
+    lastSudoParty = sudoModules[testSong];
+  } else {
+    const available = Object.values(sudoModules).filter(p => p !== lastSudoParty);
+    lastSudoParty = available[Math.floor(Math.random() * available.length)];
+  }
   
   window.isSudoRunning = true;
   window.canSkip = false;

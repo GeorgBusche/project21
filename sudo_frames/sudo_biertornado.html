@@ -27,7 +27,8 @@
     .flash-yellow { animation: flashColYellow 0.2s forwards; transform: translateZ(0); } .flash-red { animation: flashColRed 0.2s forwards; transform: translateZ(0); }
     @keyframes flashColYellow { 0% { background: #facc15; opacity: 0.8; } 100% { background: transparent; opacity: 0; } }
     @keyframes flashColRed { 0% { background: #ef4444; opacity: 0.8; } 100% { background: transparent; opacity: 0; } }
-    .tornado-text { position: fixed; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0); width: 100vw; text-align: center; font-size: clamp(5rem, 18vw, 14rem); font-weight: 900; color: #ffffff; text-shadow: 5px 5px 0px #000, -2px -2px 0px #000, 0 0 20px #eab308; z-index: 9999; pointer-events: none; font-family: 'Impact', sans-serif; text-transform: uppercase; font-style: italic; line-height: 0.9; contain: layout paint style; will-change: transform, opacity, color; }
+    .tornado-text { position: fixed; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0); width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); box-sizing: border-box; text-align: center; text-wrap: balance; overflow-wrap: anywhere; font-size: clamp(2rem, min(18vw, 16vh), 12rem); font-weight: 900; color: #ffffff; text-shadow: 5px 5px 0px #000, -2px -2px 0px #000, 0 0 20px #eab308; z-index: 9999; pointer-events: none; font-family: 'Impact', sans-serif; text-transform: uppercase; font-style: italic; line-height: 0.9; contain: layout paint style; will-change: transform, opacity, color; }
+    .text-huge { font-size: clamp(2.5rem, min(22vw, 20vh), 14rem); text-shadow: 7px 7px 0 #000, 0 0 35px currentColor; }
     .text-sternburg-red { color: #dc2626; text-shadow: 5px 5px 0px #000, 0 0 25px #ef4444; } .text-glitch { animation: textGlitch 0.1s infinite; color: #06b6d4; }
     @keyframes textGlitch { 0% { transform: translate3d(-52%, -50%, 0) skewX(10deg); } 50% { transform: translate3d(-48%, -52%, 0) skewX(-15deg); } 100% { transform: translate3d(-50%, -48%, 0) skewX(5deg); } }
     @keyframes smashLeft { 0% { transform: translate3d(-100%, -50%, 0) skewX(30deg); opacity: 0; } 100% { transform: translate3d(-50%, -50%, 0) skewX(0); opacity: 1; } }
@@ -52,17 +53,26 @@
 <body>
   <div id="discoOverlay" class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"></div>
   <audio id="audioTornado" preload="auto" src="../assets/audio/biertornado.mp3"></audio>
+  <script src="cue-timings.js"></script>
 
   <script>
     const root = window.parent.document.getElementById('bodyRoot');
     const appendLine = window.parent.appendLine;
     const playTone = window.parent.playTone;
 
-    const TORNADO_CONFIG = { c1_sturm: 100, c2_ricardo: 600, c3_bier: 1500, c4_tornado: 2100, c5_gib1: 2900, c6_mal1: 3150, c7_bier1: 3400, c8_gib2: 3800, c9_mal2: 4050, c10_bier2: 4300, c11_ladung: 4800, c12_sternburg: 7000, c13_anzug: 8000, c14_meine: 9000, c15_tarnung: 10000, c16_gib3: 10400, c17_mal3: 10650, c18_bier3: 10900, c19_gib4: 11300, c20_mal4: 11550, c21_bier4: 11800, c22_warnung: 12300, c_drop: 12800, duration: 15000, fadeTime: 2500 };
+    const TORNADO_CONFIG = Object.assign(
+      { c_drop: 12800, duration: 15000, fadeTime: 2500 },
+      window.SUDO_CUE_TIMINGS?.biertornado || {}
+    );
 
     function resetTornadoAnimation(element, animationName) { element.style.animation = 'none'; element.offsetHeight; element.style.animation = animationName; }
     function screenFlash(colorClass) { const flash = document.createElement('div'); flash.className = `fixed inset-0 z-50 pointer-events-none ${colorClass}`; document.body.appendChild(flash); setTimeout(() => flash.remove(), 250); }
     function triggerLightning() { const flash = document.createElement('div'); flash.className = 'tornado-lightning'; document.body.appendChild(flash); setTimeout(() => flash.remove(), 400); }
+    function playTornadoSynthFallback() {
+      setTimeout(() => playTone(800, 'sawtooth', 0.5, 0.2), TORNADO_CONFIG.c1_sturm);
+      setTimeout(() => playTone(600, 'sawtooth', 1.0, 0.3), TORNADO_CONFIG.c4_tornado);
+      setTimeout(() => playTone(900, 'square', 0.5, 0.2), TORNADO_CONFIG.c12_sternburg);
+    }
 
     function spawnChaoticWind() {
       const emojis = ['🍺', '🍻', '🌧️', '💨', '🌪️', '🧊', '⭐'];
@@ -97,7 +107,7 @@
 
     window.onload = () => {
       const audioElem = document.getElementById('audioTornado');
-      if (audioElem) { audioElem.volume = 1; audioElem.play().catch(()=>{}); }
+      const startTimeline = () => {
 
       const resetCam = () => { root.className = 'h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20'; };
       appendLine(`<span class='text-yellow-400 font-extrabold'>[WETTERDIENST] STURMTIEF RICARDO NÄHERT SICH!</span>`);
@@ -164,6 +174,9 @@
 
         setTimeout(() => { window.parent.postMessage("sudo_finished", "*"); }, TORNADO_CONFIG.duration - TORNADO_CONFIG.c_drop);
       }, TORNADO_CONFIG.c_drop);
+      };
+
+      window.startSudoTimeline(audioElem, startTimeline, 'Biertornado', playTornadoSynthFallback);
     };
   </script>
 </body>

@@ -19,8 +19,10 @@
     /* Kinetischer Text - Bleibt jetzt lange stehen! */
     .bella-text {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-family: 'Arial Black', Impact, sans-serif; font-size: clamp(5rem, 25vw, 15rem); font-weight: 900;
-      text-transform: uppercase; white-space: nowrap; z-index: 9999;
+      width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); box-sizing: border-box;
+      font-family: 'Arial Black', Impact, sans-serif; font-size: clamp(2rem, min(22vw, 20vh, (100vw - 2rem) / 5.5), 12rem); font-weight: 900;
+      text-align: center; text-wrap: balance; overflow-wrap: anywhere;
+      text-transform: uppercase; z-index: 9999;
       opacity: 0; pointer-events: none;
     }
     .text-green { color: #009246; text-shadow: 0 0 50px #009246, 0 0 20px #ffffff; }
@@ -72,11 +74,15 @@
 <body>
   
   <audio id="audioBellaNapoli" preload="auto" src="../assets/audio/bella_napoli.mp3"></audio>
+  <script src="cue-timings.js"></script>
 
   <script>
     const root = window.parent.document.getElementById('bodyRoot');
     const appendLine = window.parent.appendLine;
-    const BELLA_CONFIG = { hit1: 50, hit2: 1650, drop: 3050, duration: 7000, fadeTime: 1500 };
+    const BELLA_CONFIG = Object.assign(
+      { duration: 7000, fadeTime: 1500 },
+      window.SUDO_CUE_TIMINGS?.bella || {}
+    );
 
     function flashText(text, colorClass) {
       const el = document.createElement('div');
@@ -121,7 +127,7 @@
 
     window.onload = () => {
       const audioElem = document.getElementById('audioBellaNapoli');
-      if (audioElem) { audioElem.volume = 1; audioElem.play().catch(()=>{}); }
+      window.startSudoTimeline(audioElem, () => {
 
       appendLine("<span class='text-amber-300 font-bold'>[SUDO] Zünde Dorf-Abriss (Bella Napoli)...</span>");
 
@@ -181,6 +187,7 @@
         }, BELLA_CONFIG.duration - BELLA_CONFIG.drop);
 
       }, BELLA_CONFIG.drop);
+      }, 'Bella Napoli');
     };
   </script>
 </body>

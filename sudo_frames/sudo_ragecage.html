@@ -23,7 +23,7 @@
     .rage-speedlines { position: fixed; inset: -50vw; z-index: 35; pointer-events: none; opacity: 0; background: repeating-conic-gradient(from 0deg, transparent 0deg 10deg, rgba(255, 255, 255, 0.15) 10deg 20deg); animation: speedlinesSpin 3s linear infinite; transition: opacity 0.2s; }
     .rage-speedlines.hyper { animation: speedlinesSpin 0.5s linear infinite; opacity: 1; background: repeating-conic-gradient(from 0deg, transparent 0deg 10deg, rgba(255, 0, 0, 0.4) 10deg 20deg); }
     @keyframes speedlinesSpin { 0% { transform: rotate(0deg) scale(2); } 100% { transform: rotate(360deg) scale(2); } }
-    .rage-text { position: fixed; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0) skewX(-15deg); width: 100vw; text-align: center; font-size: clamp(6rem, 20vw, 16rem); font-weight: 900; color: #fbbf24; text-shadow: 6px 6px 0px #dc2626, -3px -3px 0px #000, 0 0 50px #ef4444; z-index: 9999; pointer-events: none; font-family: 'Impact', sans-serif; text-transform: uppercase; line-height: 0.9; contain: layout paint style; will-change: transform, opacity; }
+    .rage-text { position: fixed; top: 50%; left: 50%; transform: translate3d(-50%, -50%, 0) skewX(-15deg); width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); box-sizing: border-box; text-align: center; text-wrap: balance; overflow-wrap: anywhere; font-size: clamp(1.5rem, min(20vw, 18vh), 14rem); font-weight: 900; color: #fbbf24; text-shadow: 6px 6px 0px #dc2626, -3px -3px 0px #000, 0 0 50px #ef4444; z-index: 9999; pointer-events: none; font-family: 'Impact', sans-serif; text-transform: uppercase; line-height: 0.9; contain: layout paint style; will-change: transform, opacity; }
     @keyframes smashGasLeft { 0% { transform: translate3d(-100%, -50%, 0) skewX(-30deg) scale(2); opacity: 0; } 100% { transform: translate3d(-50%, -50%, 0) skewX(-15deg) scale(1); opacity: 1; } }
     @keyframes smashGasRight { 0% { transform: translate3d(100%, -50%, 0) skewX(30deg) scale(2); opacity: 0; } 100% { transform: translate3d(-50%, -50%, 0) skewX(-15deg) scale(1); opacity: 1; } }
     @keyframes stompGasCenter { 0% { transform: translate3d(-50%, -50%, 0) skewX(-15deg) scale(4); opacity: 0; } 100% { transform: translate3d(-50%, -50%, 0) skewX(-15deg) scale(1); opacity: 1; } }
@@ -39,13 +39,17 @@
 </head>
 <body>
   <audio id="audioGas" preload="auto" src="../assets/audio/gas.mp3"></audio>
+  <script src="cue-timings.js"></script>
 
   <script>
     const root = window.parent.document.getElementById('bodyRoot');
     const appendLine = window.parent.appendLine;
     const playTone = window.parent.playTone;
 
-    const RAGE_CONFIG = { c1_gas1: 100, c2_gas2: 800, c3_gas3: 1500, c4_gas4: 1900, c5_gas5: 2300, c6_drop: 2700, duration: 8300, fadeTime: 2000 };
+    const RAGE_CONFIG = Object.assign(
+      { c6_drop: 2700, duration: 8300, fadeTime: 2000 },
+      window.SUDO_CUE_TIMINGS?.ragecage || {}
+    );
 
     function resetRageAnimation(element, animationName) { element.style.animation = 'none'; element.offsetHeight; element.style.animation = animationName; }
 
@@ -71,7 +75,7 @@
 
     window.onload = () => {
       const audioElem = document.getElementById('audioGas');
-      if (audioElem) { audioElem.volume = 1; audioElem.play().catch(()=>{}); }
+      window.startSudoTimeline(audioElem, () => {
 
       appendLine(`<span class='text-red-500 font-extrabold'>[RAGECAGE] SYSTEM STAPELT BECHER! BEREITMACHEN!</span>`);
 
@@ -110,6 +114,7 @@
 
         setTimeout(() => { window.parent.postMessage("sudo_finished", "*"); }, RAGE_CONFIG.duration - RAGE_CONFIG.c6_drop);
       }, RAGE_CONFIG.c6_drop);
+      }, 'Ragecage');
     };
   </script>
 </body>
