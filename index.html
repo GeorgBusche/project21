@@ -2,12 +2,12 @@
 <html lang="de" class="h-full bg-neutral-950">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PARTYRAUM KERNEL v21.0 - GEORG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">  <title>PARTYRAUM KERNEL v21.0 - GEORG</title>
   
   <meta property="og:title" content="🚨 KERNEL PANIC: 21.0 Geburtstag Georg" />
   <meta property="og:description" content="Zugriff auf Partyraum Lohhof 49 angefordert. Vollständige Induktion des Pegels. Zusage erforderlich!" />
-  <meta name="theme-color" content="#22c55e" />
+  <meta name="color-scheme" content="dark">
+  <title>PARTYRAUM KERNEL v21.0 - GEORG</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -61,7 +61,7 @@
   <div id="discoOverlay" class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"></div>
   <div id="discoBallElem" class="hidden">🪩</div>
 
-  <!-- Top System Bar (Schlanker gemacht) -->
+  <!-- Top System Bar -->
   <header class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm">
     <div class="flex items-center space-x-2">
       <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"></span>
@@ -69,6 +69,10 @@
     </div>
     
     <div class="flex items-center space-x-1.5">
+      <!-- NEU: Vollbild Button -->
+      <button onclick="toggleFullscreen()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
+        🖵
+      </button>
       <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition">
         <span id="soundIcon">🔊</span>
       </button>

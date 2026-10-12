@@ -10,6 +10,7 @@ body {
   background-color: #030706;
   overflow-x: hidden;
   touch-action: manipulation;
+  overscroll-behavior-y: none; 
 }
 
 /* CRT Scanlines */

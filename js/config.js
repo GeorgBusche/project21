@@ -21,6 +21,17 @@ const CONFIG = {
     mapsUrl: "https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8",
     dresscode: "Schick, verkleidet oder nackt... Mir doch egal!"
   },
+  game: {
+    // AB WANN STARTEN DIE PHASEN? (Anzahl der Klicks)
+    phase2_clicks: 4,      // Das Fiech erwacht und rennt weg
+    phase3_clicks: 7,      // Bildschirm dreht sich + auto-movement
+    phase4_clicks: 11,     // Panik-Modus (wackeln + extrem schnell)
+    phase5_clicks: 15,     // Der Endboss!
+
+    // WIE SCHNELL IST DAS FIECH? (in Millisekunden. Kleiner = Schneller)
+    jumpIntervalSlow: 1100,  // Takt für Phase 3 (Standard: 1100)
+    jumpIntervalFast: 700    // Takt für Phase 4 (Standard: 700)
+  },
   pegelDescriptions: {
     0: "p = 0.0 : Also ich bleibe nüchtern! (Fahrer / Softdrinks)",
     25: "p = √2 : 1-2 Bierchen und dann mal sehen...",

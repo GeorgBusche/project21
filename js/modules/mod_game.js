@@ -59,7 +59,6 @@ function startTrail() {
   }, 40);
 }
 
-// --- 3. Die aktualisierte Klick-Logik ---
 function handleDeclineClick() {
   declineCount++; 
   playBuzzerError(); 
@@ -80,27 +79,27 @@ function handleDeclineClick() {
       <div class="monster-leg left"></div><div class="monster-leg right"></div>
     `;
     return; 
-  } else if (declineCount < 4) {
+  } else if (declineCount < CONFIG.game.phase2_clicks) {
     btn.classList.add('shake-denied'); 
     setTimeout(() => btn.classList.remove('shake-denied'), 350);
   }
   
   appendLine(`<span class='text-rose-400 font-bold'>[ABGELEHNT #${declineCount}] System verweigert die Eingabe.</span>`);
 
-  // === SOFORTIGER SPRUNG BEI JEDEM KLICK (Ab Phase 2) ===
-  if (declineCount >= 4 && declineCount < 7) {
-    moveDeclineButton(); // Springt direkt weg, wenn man ihn anklickt!
+  // === SOFORTIGER SPRUNG BEI JEDEM KLICK ===
+  if (declineCount >= CONFIG.game.phase2_clicks && declineCount < CONFIG.game.phase3_clicks) {
+    moveDeclineButton();
   }
 
-  // === ROTATION BEI JEDEM TREFFER (Ab Phase 3) ===
-  if (declineCount >= 7 && declineCount < 15) {
+  // === ROTATION BEI JEDEM TREFFER ===
+  if (declineCount >= CONFIG.game.phase3_clicks && declineCount < CONFIG.game.phase5_clicks) {
     currentRotation += 180;
     document.documentElement.style.setProperty('--game-rot', `${currentRotation}deg`);
-    moveDeclineButton(); // Sofortiger Sprung bei Treffer
+    moveDeclineButton();
   }
 
-  // === PHASE 2 (Klick 4): Das Fiech erwacht ===
-  if (declineCount === 4) {
+  // === PHASE 2: Das Fiech erwacht ===
+  if (declineCount === CONFIG.game.phase2_clicks) {
     isGameActive = true;
     document.getElementById('declineGhost').style.opacity = '1';
     
@@ -120,20 +119,20 @@ function handleDeclineClick() {
     return;
   }
 
-  // === PHASE 3 (Klick 7): Langsames Auto-Movement & Rotation ===
-  if (declineCount === 7) {
+  // === PHASE 3: Langsames Auto-Movement & Rotation ===
+  if (declineCount === CONFIG.game.phase3_clicks) {
     appendLine("<span class='text-fuchsia-400 font-extrabold text-sm mt-2'>[PHASE 3] GRAVITATIONS-ANOMALIE ENTDECKT!</span>");
     root.classList.add('egg-rotate');
     
     fleeInterval = setInterval(() => {
       moveDeclineButton();
       playTone(500, 'sine', 0.05, 0.01);
-    }, 1100);
+    }, CONFIG.game.jumpIntervalSlow); // Nutzt Config
     return;
   }
 
-  // === PHASE 4 (Klick 11): Panik-Modus (Etwas fairer, aber wilder) ===
-  if (declineCount === 11) {
+  // === PHASE 4: Panik-Modus ===
+  if (declineCount === CONFIG.game.phase4_clicks) {
     appendLine("<span class='text-amber-400 font-extrabold text-sm mt-2'>[PHASE 4] PANIK-MODUS! BILDSCHIRM WIRD INSTABIL!</span>");
     root.classList.add('egg-drunk'); 
     
@@ -144,22 +143,22 @@ function handleDeclineClick() {
     fleeInterval = setInterval(() => {
       moveDeclineButton();
       playTone(800, 'sawtooth', 0.05, 0.02);
-    }, 700); // 700ms ist knackig, aber auf dem Handy machbar
+    }, CONFIG.game.jumpIntervalFast); // Nutzt Config
     return;
   }
 
-  // === PHASE 5 (Klick 15): Der Endboss ===
-  if (declineCount === 15) {
+  // === PHASE 5: Der Endboss ===
+  if (declineCount === CONFIG.game.phase5_clicks) {
     clearInterval(fleeInterval); 
     appendLine("<span class='text-emerald-400 font-extrabold text-sm mt-2'>[PHASE 5] BOSS FIGHT INITIIERT...</span>");
     triggerEastereggSudo();
     return;
   }
 
-  if (declineCount > 15) return;
+  if (declineCount > CONFIG.game.phase5_clicks) return;
 
   // === VOLLBILD-GLITCH (Phase 1) ===
-  if (declineCount < 4) {
+  if (declineCount < CONFIG.game.phase2_clicks) {
     const glitch = document.createElement('div');
     glitch.className = 'fixed inset-0 z-[99999] bg-red-600/30 backdrop-blur-sm pointer-events-none flex items-center justify-center overflow-hidden';
     glitch.style.animation = 'glitchFlash 0.6s both';

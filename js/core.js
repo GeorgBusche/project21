@@ -15,7 +15,21 @@ function getDeviceToken() {
 }
 const myUserToken = getDeviceToken();
 
-function toggleCRT() { document.body.classList.toggle('crt-overlay'); showToast('CRT-Filter umgeschaltet'); playTone(400, 'sine', 0.05); }
+function toggleCRT() { 
+  document.body.classList.toggle('crt-overlay'); 
+  showToast('CRT-Filter umgeschaltet'); 
+  playTone(400, 'sine', 0.05); 
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(err => {
+      showToast("Vollbild wird von deinem Browser nicht unterstützt.");
+    });
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+  }
+}
 function showToast(msg) { const toast = document.getElementById('toastNotification'); toast.textContent = msg; toast.style.opacity = '1'; setTimeout(() => { toast.style.opacity = '0'; }, 2200); }
 function escapeHtml(text) { return text.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]); }
 
