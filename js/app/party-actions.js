@@ -1,10 +1,10 @@
 import { CONFIG } from '../config.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
+import { showRadarMap } from './radar-map.js';
 import { appendLine, escapeHtml, showToast } from './ui.js';
 
 let database;
 let deviceToken;
-let fakeCoordInterval = null;
 
 export function initializePartyBackend() {
   const firebase = window.firebase;
@@ -25,22 +25,11 @@ function getDeviceToken() {
 export function openRadarModal() {
   playTone(500, 'sine', 0.08);
   document.getElementById('radarModal').classList.remove('hidden');
-  clearInterval(fakeCoordInterval);
-  fakeCoordInterval = setInterval(() => {
-    const coordinates = document.getElementById('fakeCoords');
-    if (coordinates) {
-      coordinates.textContent = `0x${Math.floor(Math.random() * 65535)
-        .toString(16)
-        .toUpperCase()
-        .padStart(4, '0')}`;
-    }
-  }, 150);
+  showRadarMap();
 }
 
 export function closeRadarModal() {
   document.getElementById('radarModal').classList.add('hidden');
-  clearInterval(fakeCoordInterval);
-  fakeCoordInterval = null;
 }
 
 export async function copyAddressToClipboard() {

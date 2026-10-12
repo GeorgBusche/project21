@@ -21,7 +21,7 @@ export const CONFIG = {
   // Auf einen Songnamen setzen, um den SUDO-Button vorübergehend darauf zu fixieren.
   // Erlaubt: "bella", "wolle", "rammstein", "biertornado", "ragecage", "schuettelkorn".
   // Zum Testen z.B. "biertornado" eintragen und danach wieder auf null setzen.
-  sudoTestSong: 'rammstein',
+  sudoTestSong: null,
   game: {
     phase2_clicks: 4,
     phase3_clicks: 7,
