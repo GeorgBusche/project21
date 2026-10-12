@@ -1,0 +1,450 @@
+/* 1. Grundsetup & Himmel */
+body,
+html {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: transparent !important;
+}
+
+body::before {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: block;
+  content: ' ';
+  pointer-events: none;
+  opacity: 0.24;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%);
+  background-size: 100% 5px;
+}
+
+.ramm-darkness {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(to bottom, #160214 0%, #4a0606 35%, #0a0101 70%, #000 100%);
+  transition: opacity 3s ease-in;
+}
+
+/* 2. Die Stadion-Bühne */
+.ramm-stage {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  width: 100vw;
+  height: 100dvh;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    linear-gradient(#050505, #000) 35% 100% / 3vw 85vh no-repeat,
+    linear-gradient(#050505, #000) 65% 100% / 3vw 85vh no-repeat,
+    linear-gradient(#080808, #000) 50% 100% / 24vw 80vh no-repeat,
+    repeating-linear-gradient(to bottom, transparent, transparent 6vh, #000 6vh, #000 7vh) 50%
+      100% / 33vw 85vh no-repeat,
+    radial-gradient(circle, transparent 38%, #030303 40%, #050505 52%, transparent 55%) 5% 25vh /
+      28vw 28vw no-repeat,
+    radial-gradient(circle, #020202 30%, transparent 35%) 5% 25vh / 28vw 28vw no-repeat,
+    linear-gradient(#050505, #000) 12% 100% / 8vw 60vh no-repeat,
+    repeating-linear-gradient(to bottom, transparent, transparent 4vh, #000 4vh, #000 4.5vh) 12%
+      100% / 10vw 60vh no-repeat,
+    radial-gradient(circle, transparent 38%, #030303 40%, #050505 52%, transparent 55%) 95% 25vh /
+      28vw 28vw no-repeat,
+    radial-gradient(circle, #020202 30%, transparent 35%) 95% 25vh / 28vw 28vw no-repeat,
+    linear-gradient(#050505, #000) 88% 100% / 8vw 60vh no-repeat,
+    repeating-linear-gradient(to bottom, transparent, transparent 4vh, #000 4vh, #000 4.5vh) 88%
+      100% / 10vw 60vh no-repeat,
+    linear-gradient(to bottom, #080808, #000) 50% 80vh / 100vw 5vh no-repeat,
+    linear-gradient(#050505, #000) 50% 100% / 100vw 15vh no-repeat;
+  filter: drop-shadow(0 -10px 20px rgba(255, 0, 0, 0.2));
+  transition:
+    opacity 2s,
+    filter 0.35s;
+}
+
+.ramm-stage::before {
+  position: absolute;
+  inset: 0;
+  content: '';
+  opacity: 0;
+  background:
+    linear-gradient(112deg, transparent 28%, rgba(255, 88, 28, 0.28) 43%, transparent 58%),
+    linear-gradient(72deg, transparent 39%, rgba(255, 196, 78, 0.24) 49%, transparent 60%),
+    linear-gradient(128deg, transparent 52%, rgba(255, 42, 20, 0.2) 63%, transparent 74%),
+    radial-gradient(ellipse at 50% 85%, rgba(255, 85, 0, 0.22), transparent 58%);
+  transform: scale(1.2);
+  transform-origin: 50% 0;
+  transition: opacity 1s ease;
+}
+
+.ramm-stage--lit::before {
+  opacity: 0.52;
+  animation: stageLights 5s ease-in-out infinite alternate;
+}
+
+.ramm-stage--sunrise::before {
+  opacity: 0.78;
+  background:
+    linear-gradient(102deg, transparent 28%, rgba(255, 92, 20, 0.2) 39%, transparent 48%),
+    linear-gradient(78deg, transparent 40%, rgba(255, 210, 94, 0.26) 49%, transparent 58%),
+    linear-gradient(130deg, transparent 57%, rgba(255, 59, 22, 0.18) 65%, transparent 73%),
+    radial-gradient(ellipse at 50% 88%, rgba(255, 110, 15, 0.22), transparent 58%);
+  animation: stageLights 3.2s ease-in-out infinite alternate;
+}
+
+.ramm-stage--impact {
+  filter: brightness(1.65) saturate(1.5);
+}
+
+@keyframes stageLights {
+  0% {
+    transform: scale(1.2) rotate(-2deg);
+    filter: hue-rotate(-8deg);
+  }
+  100% {
+    transform: scale(1.35) rotate(2deg);
+    filter: hue-rotate(8deg);
+  }
+}
+
+.ramm-stage::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 30vh;
+  content: '';
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+}
+
+/* 3. Typografie & Schockwellen */
+.ramm-text {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  z-index: 9999;
+  width: 100vw;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: clamp(5rem, 24vw, 15rem);
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    -6px 0 0 rgba(255, 0, 0, 0.8),
+    6px 0 0 rgba(0, 255, 255, 0.8),
+    0 0 40px #fff;
+  text-transform: uppercase;
+  pointer-events: none;
+  font-family: 'Arial Black', Impact, sans-serif;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes rammStomp {
+  0% {
+    transform: translate(-50%, -50%) scale(4);
+    opacity: 0;
+    letter-spacing: -20px;
+    filter: blur(10px);
+  }
+  10% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 1;
+    letter-spacing: 0;
+    filter: blur(0);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    filter: drop-shadow(0 0 32px rgba(255, 44, 20, 0.9));
+  }
+}
+
+.ramm-sonne-text {
+  position: fixed;
+  top: 45%;
+  left: 50%;
+  z-index: 9999;
+  width: calc(100vw - 1rem);
+  transform: translate(-50%, -50%);
+  color: #ffcc00;
+  font-size: clamp(1.6rem, 8.8vw, 7rem);
+  font-weight: 900;
+  text-align: center;
+  text-shadow:
+    0 0 14px #fff4c4,
+    0 0 32px #f30,
+    0 0 72px red,
+    0 0 120px #ff0;
+  letter-spacing: clamp(0.06em, 0.65vw, 0.18em);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  font-family: 'Arial Black', sans-serif;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes sonneRise {
+  0% {
+    transform: translate(-50%, -35%) scale(0.8);
+    opacity: 0;
+    letter-spacing: -5px;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    letter-spacing: clamp(0.06em, 0.65vw, 0.18em);
+    filter: drop-shadow(0 0 26px rgba(255, 124, 10, 0.8));
+  }
+}
+
+.ramm-strobe {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #fff;
+  pointer-events: none;
+  opacity: 0;
+}
+
+@keyframes strobeFlash {
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+.ramm-red-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: red;
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.ramm-shockwave {
+  position: fixed;
+  top: 48%;
+  left: 50%;
+  z-index: 9997;
+  width: min(34vmin, 18rem);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.12);
+  border: 3px solid rgba(255, 197, 96, 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 24px rgba(255, 105, 0, 0.8),
+    inset 0 0 24px rgba(255, 105, 0, 0.55);
+  pointer-events: none;
+  animation: shockwaveExpand 0.85s cubic-bezier(0.12, 0.72, 0.22, 1) forwards;
+}
+
+@keyframes shockwaveExpand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.12);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(4.2);
+    opacity: 0;
+  }
+}
+
+@keyframes redFlash {
+  0% {
+    opacity: 1;
+    filter: brightness(2);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 4. Pyrotechnik, Funken & Laser */
+.ramm-flame-pillar {
+  position: fixed;
+  bottom: 0;
+  z-index: 4;
+  width: 18vw;
+  height: 72dvh;
+  transform-origin: bottom center;
+  background: linear-gradient(to top, #fff 0%, #fc0 10%, #f20 40%, transparent 100%);
+  mix-blend-mode: screen;
+  filter: blur(3px) contrast(1.5);
+  pointer-events: none;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes fireBlast {
+  0% {
+    transform: scaleY(0) scaleX(0.5);
+    opacity: 0;
+  }
+  15% {
+    transform: scaleY(1.1) scaleX(1.2);
+    opacity: 1;
+  }
+  40% {
+    transform: scaleY(0.9) scaleX(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scaleY(0.15) scaleX(0.65);
+    opacity: 0;
+  }
+}
+
+.ramm-ember {
+  position: fixed;
+  bottom: -10px;
+  z-index: 9998;
+  border-radius: 50%;
+  background-color: #fa0;
+  box-shadow:
+    0 0 10px red,
+    0 0 20px #ff0;
+  pointer-events: none;
+}
+
+@keyframes emberFloat {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-110vh) translateX(var(--drift)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.ramm-laser {
+  position: fixed;
+  bottom: 15vh;
+  z-index: 3;
+  width: 3px;
+  height: 150vh;
+  transform-origin: bottom center;
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 0.9),
+    rgba(255, 200, 0, 0.5),
+    transparent
+  );
+  box-shadow:
+    0 0 15px #ff0,
+    0 0 30px red;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+@keyframes laserSweep {
+  0% {
+    transform: rotate(-50deg);
+  }
+  100% {
+    transform: rotate(50deg);
+  }
+}
+
+/* 5. Die Sonne */
+.ramm-sun-orb {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  z-index: 3;
+  width: min(82vmin, 90vw);
+  height: min(82vmin, 90vw);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0%,
+    #fff8c8 8%,
+    #fd0 22%,
+    #ff7a00 43%,
+    #f20 58%,
+    rgba(80, 0, 0, 0.4) 72%,
+    rgba(0, 0, 0, 0) 82%
+  );
+  box-shadow:
+    0 0 48px rgba(255, 78, 0, 0.52),
+    0 0 120px rgba(255, 25, 0, 0.38);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+
+.ramm-sun-orb::before,
+.ramm-sun-orb::after {
+  position: absolute;
+  inset: -12%;
+  content: '';
+  border: 1px solid rgba(255, 183, 72, 0.48);
+  border-radius: 50%;
+  box-shadow:
+    0 0 26px rgba(255, 136, 0, 0.36),
+    inset 0 0 26px rgba(255, 93, 0, 0.26);
+  animation: solarCorona 8s linear infinite;
+}
+
+.ramm-sun-orb::after {
+  inset: -24%;
+  border-color: rgba(255, 105, 25, 0.24);
+  animation-direction: reverse;
+  animation-duration: 13s;
+}
+
+@keyframes solarCorona {
+  to {
+    transform: rotate(360deg) scale(1.06);
+  }
+}
+
+@keyframes sunPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5);
+    opacity: 0.2;
+    filter: blur(12px);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0.94;
+    filter: blur(4px) saturate(1.2);
+  }
+}
+
+@keyframes sunGodMode {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(5.5);
+    opacity: 1;
+    background: #fff;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ramm-stage--lit::before,
+  .ramm-stage--sunrise::before,
+  .ramm-sun-orb::before,
+  .ramm-sun-orb::after {
+    animation-duration: 20s;
+  }
+}

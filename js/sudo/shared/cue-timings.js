@@ -1,11 +1,11 @@
 // Cue-Zeiten in Millisekunden ab Musikstart.
 // Einzelne Cue-Zeiten unten anpassen; pro Song lassen sich alle Cues gemeinsam
 // über SUDO_CUE_OFFSETS vor- oder zurückverschieben.
-window.SUDO_CUE_TIMINGS = {
+export const SUDO_CUE_TIMINGS = {
   bella: {
     hit1: 250, // "bella"
     hit2: 2000, // "bella"
-    drop: 3400, // "napoli"
+    drop: 3400 // "napoli"
   },
   wolle: {
     cut1_bronze: 100, // "bronze"
@@ -17,7 +17,7 @@ window.SUDO_CUE_TIMINGS = {
     cut7_bronze2: 7100, // "bronze silber gold"
     cut8_niegewollt2: 8900, // "nie gewollt"
     cut9_nureins: 11000, // "ich will nur eins"
-    cut10_allein2: 12500, // "nur dich allein"
+    cut10_allein2: 12500 // "nur dich allein"
   },
   rammstein: {
     eins: 6500, // "eins"
@@ -27,7 +27,7 @@ window.SUDO_CUE_TIMINGS = {
     drei: 19100, // "drei"
     stern: 20000, // "hellste stern"
     vier: 25500, // "vier"
-    sonne3: 27300, // "hier kommt die sonne"
+    sonne3: 27300 // "hier kommt die sonne"
   },
   biertornado: {
     c1_sturm: 100, // "sturm"
@@ -51,14 +51,14 @@ window.SUDO_CUE_TIMINGS = {
     c19_gib4: 12100, // "gib"
     c20_mal4: 12400, // "mal"
     c21_bier4: 12650, // "bier"
-    c22_warnung: 13800, // "warnung"
+    c22_warnung: 13800 // "warnung"
   },
   ragecage: {
     c1_gas1: 100, // "gas"
     c2_gas2: 800, // "gas"
     c3_gas3: 1500, // "gas"
     c4_gas4: 1900, // "gas"
-    c5_gas5: 2300, // "gas"
+    c5_gas5: 2300 // "gas"
   },
   schuettelkorn: {
     c1_traurig1: 100, // "traurig"
@@ -70,38 +70,40 @@ window.SUDO_CUE_TIMINGS = {
     c7_schuetteln: 11000, // "schuetteln"
     c8_korn3: 12300, // "korn"
     c9_undwenn: 13500, // "und dann"
-    c11_vorn: 16000, // "von vorn"
-  },
+    c11_vorn: 16000 // "von vorn"
+  }
 };
 
 // Positive Werte verschieben die Einblendungen nach hinten, negative nach vorn.
-window.SUDO_CUE_OFFSETS = {
+const SUDO_CUE_OFFSETS = {
   bella: -50,
   wolle: -100,
   rammstein: -250,
   biertornado: -250,
   ragecage: 70,
-  schuettelkorn: 250,
+  schuettelkorn: 250
 };
 
-for (const [song, cues] of Object.entries(window.SUDO_CUE_TIMINGS)) {
-  const offset = window.SUDO_CUE_OFFSETS[song] || 0;
+for (const [song, cues] of Object.entries(SUDO_CUE_TIMINGS)) {
+  const offset = SUDO_CUE_OFFSETS[song] || 0;
   for (const cue of Object.keys(cues)) {
     cues[cue] += offset;
   }
 }
 
-window.startSudoTimeline = (audio, startTimeline, songName, onAudioFailure) => {
+export const startSudoTimeline = (audio, startTimeline, songName, onAudioFailure) => {
   let started = false;
   const startOnce = () => {
     if (started) return;
     started = true;
     startTimeline();
   };
-  const reportFailure = error => {
+  const reportFailure = (error) => {
     console.warn(`${songName} audio could not start; starting its timeline without music.`, error);
     if (typeof window.parent.appendLine === 'function') {
-      window.parent.appendLine(`<span class='text-yellow-400 font-bold'>[AUDIO] ${songName}: Musiktitel konnte nicht starten; Animation läuft ohne Musik.</span>`);
+      window.parent.appendLine(
+        `<span class='text-yellow-400 font-bold'>[AUDIO] ${songName}: Musiktitel konnte nicht starten; Animation läuft ohne Musik.</span>`
+      );
     }
     if (onAudioFailure) onAudioFailure(error);
     startOnce();

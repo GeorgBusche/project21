@@ -1,0 +1,134 @@
+.bella-text {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2rem);
+  box-sizing: border-box;
+  font-family: 'Arial Black', Impact, sans-serif;
+  font-size: clamp(2rem, min(22vw, 20vh, (100vw - 2rem) / 5.5), 12rem);
+  font-weight: 900;
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+}
+.text-green {
+  color: #009246;
+  text-shadow:
+    0 0 50px #009246,
+    0 0 20px #ffffff;
+}
+.text-white-italy {
+  color: #ffffff;
+  text-shadow:
+    0 0 50px #ffffff,
+    0 0 30px #009246;
+}
+.text-red {
+  color: #ce2b37;
+  text-shadow:
+    0 0 80px #ce2b37,
+    0 0 30px #ffffff;
+}
+
+/* Brachialer Einschlag mit langer Standzeit */
+.bella-smash {
+  animation: smashHit 1.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+}
+@keyframes smashHit {
+  0% {
+    transform: translate(-50%, -50%) scale(4) rotate(-20deg);
+    opacity: 0;
+    filter: blur(20px);
+  }
+  10% {
+    transform: translate(-50%, -50%) scale(0.9) rotate(5deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.1) rotate(-2deg);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+    opacity: 1;
+  }
+  85% {
+    transform: translate(-50%, -50%) scale(1) rotate(0);
+    opacity: 1;
+    filter: blur(0);
+  } /* Steht extrem lange! */
+  100% {
+    transform: translate(-50%, -50%) scale(2) rotate(10deg);
+    opacity: 0;
+    filter: blur(15px);
+  }
+}
+
+/* Italien-Stroboskop (Massiver Rave Overlay) */
+.bella-strobe {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0;
+}
+
+/* Explosions-Partikel (Emojis, die ins Gesicht fliegen) */
+.bella-particle {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 100;
+  font-size: clamp(4rem, 12vw, 8rem);
+  pointer-events: none;
+  animation: explodeOut 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes explodeOut {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(calc(-50% + var(--tx) * 0.4), calc(-50% + var(--ty) * 0.4)) scale(2.5)
+      rotate(var(--rot));
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0.8) rotate(calc(var(--rot) * 2));
+    opacity: 0;
+  }
+}
+
+/* Druckwellen-Ring */
+.bella-ring {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border: 30px solid;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  animation: shockwave 0.7s ease-out forwards;
+}
+@keyframes shockwave {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 130vw;
+    height: 130vw;
+    opacity: 0;
+    border-width: 1px;
+  }
+}

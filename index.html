@@ -1,241 +1,516 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de" class="h-full bg-neutral-950">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>PARTYRAUM KERNEL v21.0 - GEORG</title>
-  
-  <meta property="og:title" content="🚨 KERNEL PANIC: 21.0 Geburtstag Georg" />
-  <meta property="og:description" content="Zugriff auf Partyraum Lohhof 49 angefordert. Vollständige Induktion des Pegels. Zusage erforderlich!" />
-  <meta name="color-scheme" content="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>PARTYRAUM KERNEL v21.0 - GEORG</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-  
-  <!-- CSS DIREKT LADEN -->
-  <link rel="stylesheet" href="css/style.css">
+    <meta property="og:title" content="🚨 KERNEL PANIC: 21.0 Geburtstag Georg" />
+    <meta
+      property="og:description"
+      content="Zugriff auf Partyraum Lohhof 49 angefordert. Vollständige Induktion des Pegels. Zusage erforderlich!"
+    />
+    <meta name="color-scheme" content="dark" />
 
-  <!-- FIREBASE (Vorgezogen, damit es sofort bereit ist) -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap"
+      rel="stylesheet"
+    />
 
-  <!-- UNSERE BEREINIGTEN SKRIPTE (defer garantiert die korrekte Reihenfolge!) -->
-  <script defer src="js/config.js"></script>
-  <script defer src="js/main.js"></script>
-  
-  
-</head>
-<body id="bodyRoot" class="h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20">
-  <!-- Fullscreen FX Canvas -->
-  <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
-  <!-- Strobo / Farb-Overlay -->
-  <div id="discoOverlay" class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"></div>
-  <div id="discoBallElem" class="hidden">🪩</div>
+    <!-- CSS DIREKT LADEN -->
+    <link rel="stylesheet" href="css/style.css" />
 
-  <!-- Top System Bar -->
-  <header class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm">
-    <div class="flex items-center space-x-2">
-      <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"></span>
-      <span class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400">GEORG_v21.0</span>
-    </div>
-    
-    <div class="flex items-center space-x-1.5">
-      <button onclick="toggleFullscreen()" class="px-2.5 py-1.5 border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-      </button>
-      
-      <button id="soundToggleBtn" onclick="toggleAudio()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
-        <span id="soundIcon">🔊</span>
-      </button>
-      
-      <button onclick="toggleCRT()" class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center">
-        CRT
-      </button>
-    </div>
-  </header>
+    <!-- FIREBASE (Vorgezogen, damit es sofort bereit ist) -->
+    <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script
+      defer
+      src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"
+    ></script>
 
-  <!-- Main Terminal Frame -->
-  <main class="relative z-10 flex-1 flex flex-col mt-2 mx-2 border border-emerald-700/50 rounded-lg bg-black/95 p-2.5 sm:p-4 overflow-hidden shadow-lg">
-    <div class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600">
-      <span class="truncate pr-2">SERVER: <strong class="text-emerald-400">LOHHOF_49</strong></span>
-      <span class="whitespace-nowrap">STATUS: <span class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span>
-    </div>
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body
+    id="bodyRoot"
+    class="h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20"
+  >
+    <!-- Fullscreen FX Canvas -->
+    <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+    <!-- Strobo / Farb-Overlay -->
+    <div
+      id="discoOverlay"
+      class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"
+    ></div>
+    <div id="discoBallElem" class="hidden">🪩</div>
 
-    <!-- Scrollbares Terminal-Fenster -->
-    <div id="terminalOutput" class="flex-1 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2 relative z-20"></div>
-
-    <!-- Einklappbares System-Befehle Gitter -->
-    <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
-      <div class="flex justify-between items-end mb-1.5">
-        <div class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">⚡ Befehle</div>
-        <button onclick="toggleCommands()" id="cmdToggleBtn" class="text-[9px] text-emerald-500 hover:text-emerald-300 border border-emerald-800/50 rounded px-1.5 py-0.5 bg-emerald-950/20 active:scale-95 transition flex items-center gap-1 leading-none">
-          <span>▼</span> EINKLAPPEN
-        </button>
+    <!-- Top System Bar -->
+    <header
+      class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm"
+    >
+      <div class="flex items-center space-x-2">
+        <span
+          class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"
+        ></span>
+        <span class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400"
+          >GEORG_v21.0</span
+        >
       </div>
 
-      <div id="commandGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 transition-all relative">
-        <button onclick="runCommand('info')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">ℹ️</span><span class="cmd-text">INFOS</span>
+      <div class="flex items-center space-x-1.5">
+        <button
+          onclick="toggleFullscreen()"
+          class="px-2.5 py-1.5 border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+            ></path>
+          </svg>
         </button>
-        <button onclick="openRadarModal()" class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">📡</span><span class="cmd-text">RADAR</span>
+
+        <button
+          id="soundToggleBtn"
+          onclick="toggleAudio()"
+          class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
+        >
+          <span id="soundIcon">🔊</span>
         </button>
-        <button onclick="runCommand('mathe')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">∫</span><span class="cmd-text">MATHE</span>
-        </button>
-        <button onclick="runCommand('shot_roulette')" class="cmd-btn py-2 rounded border border-amber-800 bg-amber-950/30 text-amber-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">🥃</span><span class="cmd-text">ROULETTE</span>
-        </button>
-        <button onclick="showGuestBoard()" class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">👥</span><span class="cmd-text">GÄSTE</span>
-        </button>
-        <button onclick="openMusicModal()" class="cmd-btn py-2 rounded border border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">MUSIK</span>
-        </button>
-        <button onclick="runCommand('geschenke')" class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5">
-          <span class="cmd-icon text-sm">🎁</span><span class="cmd-text">GESCHENKE</span>
-        </button>
-        <button id="sudoPartyBtn" onclick="triggerRandomSudoParty()" class="cmd-btn py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]">
-          <span class="cmd-icon text-sm">🎲</span><span class="cmd-text font-bold">SUDO</span>
+
+        <button
+          onclick="toggleCRT()"
+          class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
+        >
+          CRT
         </button>
       </div>
-    </div>
-  </main>
+    </header>
 
- <!-- Sticky Bottom Action Bar -->
-  <div class="fixed bottom-0 left-0 right-0 p-2 sm:p-3 bg-black/90 border-t border-emerald-900/60 backdrop-blur-md z-40 flex gap-2.5 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.6)]" id="actionbar">
-    <button onclick="openRsvpModal()" class="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2">
-      <span>👍</span> ZUSAGEN
-    </button>
-    <div id="declineWrapper" class="flex-1 relative h-[44px] sm:h-[48px] transition-all duration-300">
-      <div id="declineGhost" class="absolute inset-0 rounded-lg border-2 border-dashed border-rose-900/40 bg-rose-950/20 flex items-center justify-center text-sm shadow-inner opacity-0 transition-opacity duration-300">💨</div>
-      <button id="declineBtn" onclick="handleDeclineClick()" class="absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base z-[60] shadow-md">
-        <span id="declineIcon">❌</span> <span id="declineText">ABSAGEN</span>
-      </button>
-    </div>
-  </div>
+    <!-- Main Terminal Frame -->
+    <main
+      class="relative z-10 flex-1 min-h-0 flex flex-col mt-2 mx-2 border border-emerald-700/50 rounded-lg bg-black/95 p-2.5 sm:p-4 overflow-hidden shadow-lg"
+    >
+      <div
+        class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600"
+      >
+        <span class="truncate pr-2"
+          >SERVER: <strong class="text-emerald-400">LOHHOF_49</strong></span
+        >
+        <span class="whitespace-nowrap"
+          >STATUS: <span class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span
+        >
+      </div>
 
-  <!-- Modal: Zusage (RSVP) -->
-  <div id="rsvpModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
-    <div class="w-full max-w-lg border-2 border-emerald-500 bg-neutral-950 rounded-xl p-4 sm:p-6 shadow-[0_0_35px_rgba(34,197,94,0.3)] max-h-[92vh] overflow-y-auto">
-      <div class="flex justify-between items-center border-b border-emerald-800 pb-2 mb-4">
-        <div>
-          <h2 class="text-base sm:text-lg font-bold text-emerald-300 tracking-wider">[+] ZUSAGE: GEORGS 21. GEBURTSTAG</h2>
-          <p class="text-[11px] text-emerald-600">Registrierung für den Partyraum Lohhof</p>
+      <!-- Scrollbares Terminal-Fenster -->
+      <div
+        id="terminalOutput"
+        class="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2 relative z-20"
+      ></div>
+
+      <!-- Einklappbares System-Befehle Gitter -->
+      <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
+        <div class="flex justify-between items-end mb-1.5">
+          <div class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">
+            ⚡ Befehle
+          </div>
+          <button
+            onclick="toggleCommands()"
+            id="cmdToggleBtn"
+            class="text-[9px] text-emerald-500 hover:text-emerald-300 border border-emerald-800/50 rounded px-1.5 py-0.5 bg-emerald-950/20 active:scale-95 transition flex items-center gap-1 leading-none"
+          >
+            <span>▼</span> EINKLAPPEN
+          </button>
         </div>
-        <button onclick="closeRsvpModal()" class="text-emerald-500 hover:text-emerald-300 text-xl px-2.5 py-0.5 rounded border border-emerald-800 active:scale-95">✕</button>
-      </div>
-      <div class="space-y-4 text-xs sm:text-sm">
-        <div>
-          <label class="block text-emerald-400 font-bold mb-1">01. DEIN NAME / ALIAS <span class="text-rose-400">*</span></label>
-          <input type="text" id="rsvpName" placeholder="Z. B. Dein Name / Spitzname" class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800">
+
+        <div
+          id="commandGrid"
+          class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 transition-all relative"
+        >
+          <button
+            onclick="runCommand('info')"
+            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">ℹ️</span><span class="cmd-text">INFOS</span>
+          </button>
+          <button
+            onclick="openRadarModal()"
+            class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">📡</span><span class="cmd-text">RADAR</span>
+          </button>
+          <button
+            onclick="runCommand('mathe')"
+            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">∫</span><span class="cmd-text">MATHE</span>
+          </button>
+          <button
+            onclick="runCommand('shot_roulette')"
+            class="cmd-btn py-2 rounded border border-amber-800 bg-amber-950/30 text-amber-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">🥃</span><span class="cmd-text">ROULETTE</span>
+          </button>
+          <button
+            onclick="showGuestBoard()"
+            class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">👥</span><span class="cmd-text">GÄSTE</span>
+          </button>
+          <button
+            onclick="openMusicModal()"
+            class="cmd-btn py-2 rounded border border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">MUSIK</span>
+          </button>
+          <button
+            onclick="runCommand('geschenke')"
+            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
+          >
+            <span class="cmd-icon text-sm">🎁</span><span class="cmd-text">GESCHENKE</span>
+          </button>
+          <button
+            id="sudoPartyBtn"
+            onclick="triggerRandomSudoParty()"
+            class="cmd-btn py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]"
+          >
+            <span class="cmd-icon text-sm">🎲</span><span class="cmd-text font-bold">SUDO</span>
+          </button>
         </div>
-        <div class="bg-neutral-900/70 p-3 rounded-lg border border-emerald-800/80">
-          <label class="flex items-center space-x-2.5 cursor-pointer">
-            <input type="checkbox" id="rsvpPlusOneToggle" onchange="togglePlusOneInput()" class="w-4 h-4 rounded bg-neutral-950 border-emerald-600 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer">
-            <span class="text-emerald-300 font-bold text-xs select-none">👥 Bringst du jemanden mit? (+1 Begleitperson)</span>
-          </label>
-          <div id="plusOneContainer" class="mt-2.5 pl-6 hidden">
-            <input type="text" id="rsvpPlusOneName" placeholder="Name deiner Begleitperson" class="w-full px-3 py-1.5 bg-neutral-950 border border-emerald-700 rounded text-emerald-200 text-xs focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800">
+      </div>
+    </main>
+
+    <!-- Sticky Bottom Action Bar -->
+    <div
+      class="fixed bottom-0 left-0 right-0 p-2 sm:p-3 bg-black/90 border-t border-emerald-900/60 backdrop-blur-md z-40 flex gap-2.5 pb-safe shadow-[0_-5px_20px_rgba(0,0,0,0.6)]"
+      id="actionbar"
+    >
+      <button
+        onclick="openRsvpModal()"
+        class="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2"
+      >
+        <span>👍</span> ZUSAGEN
+      </button>
+      <div
+        id="declineWrapper"
+        class="flex-1 relative h-[44px] sm:h-[48px] transition-all duration-300"
+      >
+        <div
+          id="declineGhost"
+          class="absolute inset-0 rounded-lg border-2 border-dashed border-rose-900/40 bg-rose-950/20 flex items-center justify-center text-sm shadow-inner opacity-0 transition-opacity duration-300"
+        >
+          💨
+        </div>
+        <button
+          id="declineBtn"
+          onclick="handleDeclineClick()"
+          class="absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base z-[60] shadow-md"
+        >
+          <span id="declineIcon">❌</span> <span id="declineText">ABSAGEN</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Zusage (RSVP) -->
+    <div
+      id="rsvpModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-lg border-2 border-emerald-500 bg-neutral-950 rounded-xl p-4 sm:p-6 shadow-[0_0_35px_rgba(34,197,94,0.3)] max-h-[92vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-emerald-800 pb-2 mb-4">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-emerald-300 tracking-wider">
+              [+] ZUSAGE: GEORGS 21. GEBURTSTAG
+            </h2>
+            <p class="text-[11px] text-emerald-600">Registrierung für den Partyraum Lohhof</p>
+          </div>
+          <button
+            onclick="closeRsvpModal()"
+            class="text-emerald-500 hover:text-emerald-300 text-xl px-2.5 py-0.5 rounded border border-emerald-800 active:scale-95"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="space-y-4 text-xs sm:text-sm">
+          <div>
+            <label class="block text-emerald-400 font-bold mb-1"
+              >01. DEIN NAME / ALIAS <span class="text-rose-400">*</span></label
+            >
+            <input
+              type="text"
+              id="rsvpName"
+              placeholder="Z. B. Dein Name / Spitzname"
+              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
+            />
+          </div>
+          <div class="bg-neutral-900/70 p-3 rounded-lg border border-emerald-800/80">
+            <label class="flex items-center space-x-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                id="rsvpPlusOneToggle"
+                onchange="togglePlusOneInput()"
+                class="w-4 h-4 rounded bg-neutral-950 border-emerald-600 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
+              />
+              <span class="text-emerald-300 font-bold text-xs select-none"
+                >👥 Bringst du jemanden mit? (+1 Begleitperson)</span
+              >
+            </label>
+            <div id="plusOneContainer" class="mt-2.5 pl-6 hidden">
+              <input
+                type="text"
+                id="rsvpPlusOneName"
+                placeholder="Name deiner Begleitperson"
+                class="w-full px-3 py-1.5 bg-neutral-950 border border-emerald-700 rounded text-emerald-200 text-xs focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
+              />
+            </div>
+          </div>
+          <div>
+            <label class="block text-emerald-400 font-bold mb-1"
+              >02. BEVORZUGTER KRAFTSTOFF-TREIBER</label
+            >
+            <select
+              id="rsvpDrink"
+              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none"
+            >
+              <option value="Kühles Pils">🍺 Kühles Pils</option>
+              <option value="Cola-Korn / die 50/50 Mischen">
+                🥃 Cola-Korn / die 50/50 Mischen
+              </option>
+              <option value="SCHÜTTELKORN!!!">🎊 SCHÜTTELKORN!!!</option>
+              <option value="Omas Guter ;)">🥶 Omas Guter ;)</option>
+              <option value="Wein / Sekt">🍷 Wein / Sekt</option>
+              <option value="Fahrer-Modus (0,0 Promille & Softdrinks)">
+                🚗 Fahrer-Modus (0,0 Promille & Softdrinks)
+              </option>
+              <option value="Bring mein eigenes Zeug mit">🎒 Bring mein eigenes Zeug mit</option>
+            </select>
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-emerald-400 font-bold">03. ZIEL-PEGEL (MATHE-METRIK)</label>
+              <span
+                id="pegelValueBadge"
+                class="text-xs px-2 py-0.5 rounded bg-emerald-950 border border-emerald-600 text-emerald-300 font-bold"
+                >Pegel: 75%</span
+              >
+            </div>
+            <input
+              type="range"
+              id="rsvpPegel"
+              min="0"
+              max="100"
+              value="75"
+              step="25"
+              class="w-full accent-emerald-500 cursor-pointer"
+              oninput="updatePegelDisplay(this.value)"
+            />
+            <div
+              id="pegelDescription"
+              class="mt-1 text-[11px] text-cyan-300 font-mono italic bg-cyan-950/30 p-2 rounded border border-cyan-900/50"
+            >
+              p = π² : Lass mal ne Runde Meiern!
+            </div>
+          </div>
+          <div>
+            <label class="block text-emerald-400 font-bold mb-1"
+              >04. MITBRINGSEL / GAG (OPTIONAL)</label
+            >
+            <input
+              type="text"
+              id="rsvpGift"
+              placeholder="Z. B. 'Kiste Bier', 'Mische', 'Gute Laune'"
+              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
+            />
+          </div>
+          <div>
+            <label class="block text-emerald-400 font-bold mb-1">05. SONG-WUNSCH / ANMERKUNG</label>
+            <input
+              type="text"
+              id="rsvpSong"
+              placeholder="Z. B. 'Bella Napoli'"
+              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
+            />
+          </div>
+          <div class="pt-2">
+            <button
+              onclick="dispatchRsvpWhatsApp()"
+              class="w-full py-3.5 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.6)] active:scale-95 transition"
+            >
+              <span>📲 ZUSAGE PER WHATSAPP SENDEN</span>
+            </button>
           </div>
         </div>
-        <div>
-          <label class="block text-emerald-400 font-bold mb-1">02. BEVORZUGTER KRAFTSTOFF-TREIBER</label>
-          <select id="rsvpDrink" class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none">
-            <option value="Kühles Pils">🍺 Kühles Pils</option>
-            <option value="Cola-Korn / die 50/50 Mischen">🥃 Cola-Korn / die 50/50 Mischen</option>
-            <option value="SCHÜTTELKORN!!!">🎊 SCHÜTTELKORN!!!</option>
-            <option value="Omas Guter ;)">🥶 Omas Guter ;)</option>
-            <option value="Wein / Sekt">🍷 Wein / Sekt</option>
-            <option value="Fahrer-Modus (0,0 Promille & Softdrinks)">🚗 Fahrer-Modus (0,0 Promille & Softdrinks)</option>
-            <option value="Bring mein eigenes Zeug mit">🎒 Bring mein eigenes Zeug mit</option>
-          </select>
-        </div>
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <label class="text-emerald-400 font-bold">03. ZIEL-PEGEL (MATHE-METRIK)</label>
-            <span id="pegelValueBadge" class="text-xs px-2 py-0.5 rounded bg-emerald-950 border border-emerald-600 text-emerald-300 font-bold">Pegel: 75%</span>
+      </div>
+    </div>
+
+    <!-- Modal: Cyber-Radar Lohhof 49 -->
+    <div
+      id="radarModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-cyan-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(6,182,212,0.4)]"
+      >
+        <div class="flex justify-between items-center border-b border-cyan-800 pb-2 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <h2 class="text-sm sm:text-base font-bold text-cyan-300 tracking-wider">
+              [HUD] TAKTISCHE KARTE
+            </h2>
           </div>
-          <input type="range" id="rsvpPegel" min="0" max="100" value="75" step="25" class="w-full accent-emerald-500 cursor-pointer" oninput="updatePegelDisplay(this.value)">
-          <div id="pegelDescription" class="mt-1 text-[11px] text-cyan-300 font-mono italic bg-cyan-950/30 p-2 rounded border border-cyan-900/50">p = π² : Lass mal ne Runde Meiern!</div>
+          <button
+            onclick="closeRadarModal()"
+            class="text-cyan-500 hover:text-cyan-300 text-xl px-2 py-0.5 rounded border border-cyan-800 active:scale-95"
+          >
+            ✕
+          </button>
         </div>
-        <div>
-          <label class="block text-emerald-400 font-bold mb-1">04. MITBRINGSEL / GAG (OPTIONAL)</label>
-          <input type="text" id="rsvpGift" placeholder="Z. B. 'Kiste Bier', 'Mische', 'Gute Laune'" class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800">
+        <div
+          class="relative w-full h-64 mx-auto rounded-lg border-2 border-cyan-700 bg-neutral-950 overflow-hidden shadow-[inset_0_0_30px_rgba(6,182,212,0.5)]"
+        >
+          <iframe
+            style="
+              position: absolute;
+              width: calc(100% + 120px);
+              height: calc(100% + 120px);
+              top: -60px;
+              left: -60px;
+              filter: grayscale(100%) invert(100%) sepia(100%) hue-rotate(130deg) saturate(250%)
+                contrast(1.1) brightness(1.4);
+              pointer-events: none;
+            "
+            src="https://maps.google.com/maps?q=Lohhof%2049,%2031600%20Uchte&t=m&z=17&ie=UTF8&iwloc=&output=embed"
+            frameborder="0"
+            scrolling="no"
+          ></iframe>
+          <div
+            class="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.25)_1px,transparent_1px)] [background-size:25px_25px] pointer-events-none"
+          ></div>
+          <div
+            class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-80 z-20"
+          >
+            <div class="w-full h-[1px] bg-cyan-400/60 absolute"></div>
+            <div class="h-full w-[1px] bg-cyan-400/60 absolute"></div>
+            <div class="w-16 h-16 border-2 border-cyan-300/80 rounded-full absolute"></div>
+            <div class="w-32 h-32 border border-cyan-500/50 rounded-full absolute"></div>
+          </div>
+          <div
+            class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-30"
+          >
+            <span class="absolute w-8 h-8 bg-rose-500 rounded-full animate-ping opacity-60"></span>
+            <span
+              class="relative w-3 h-3 bg-rose-500 border border-white rounded-full shadow-[0_0_15px_#f43f5e]"
+            ></span>
+          </div>
+          <div
+            class="absolute top-1/2 left-1/2 z-10 pointer-events-none mix-blend-screen overflow-visible"
+          >
+            <div
+              class="radar-sweep absolute w-[800px] h-[800px] -ml-[400px] -mt-[400px] rounded-full"
+              style="
+                background: conic-gradient(
+                  from 0deg at 50% 50%,
+                  transparent 0deg,
+                  transparent 270deg,
+                  rgba(6, 182, 212, 0.15) 320deg,
+                  rgba(6, 182, 212, 0.8) 358deg,
+                  rgba(255, 255, 255, 1) 360deg
+                );
+              "
+            ></div>
+          </div>
+          <div
+            class="absolute top-2 left-2 text-[10px] text-cyan-300 font-mono bg-black/70 px-1.5 py-0.5 rounded border border-cyan-800/80 z-30 shadow-md"
+          >
+            SAT-LINK: <strong class="text-emerald-400">ESTABLISHED</strong>
+          </div>
+          <div
+            class="absolute top-2 right-2 text-[9px] text-cyan-400 font-mono text-right z-30 bg-black/60 px-1.5 py-0.5 rounded border border-cyan-900/50"
+          >
+            <span id="fakeCoords" class="text-rose-300">0x00F8A</span>
+          </div>
         </div>
-        <div>
-          <label class="block text-emerald-400 font-bold mb-1">05. SONG-WUNSCH / ANMERKUNG</label>
-          <input type="text" id="rsvpSong" placeholder="Z. B. 'Bella Napoli'" class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800">
+        <div
+          class="bg-neutral-900/90 p-2.5 rounded border border-cyan-800/80 text-xs font-mono text-cyan-200 space-y-1 my-3"
+        >
+          <div>📍 <strong>Zielgebiet:</strong> Partyraum Lohhof 49, Uchte</div>
         </div>
-        <div class="pt-2">
-          <button onclick="dispatchRsvpWhatsApp()" class="w-full py-3.5 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.6)] active:scale-95 transition">
-            <span>📲 ZUSAGE PER WHATSAPP SENDEN</span>
+        <div class="space-y-2">
+          <a
+            href="https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8"
+            target="_blank"
+            class="w-full py-2.5 px-3 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.6)] active:scale-95 transition"
+            >🗺️ IN GOOGLE MAPS ÖFFNEN</a
+          >
+          <button
+            onclick="copyAddressToClipboard()"
+            class="w-full py-2 px-3 rounded border border-cyan-700 bg-cyan-950/50 hover:bg-cyan-900 text-cyan-300 font-bold text-xs transition active:scale-95"
+          >
+            📋 ADRESSE KOPIEREN
           </button>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal: Cyber-Radar Lohhof 49 -->
-  <div id="radarModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
-    <div class="w-full max-w-md border-2 border-cyan-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(6,182,212,0.4)]">
-      <div class="flex justify-between items-center border-b border-cyan-800 pb-2 mb-3">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-          <h2 class="text-sm sm:text-base font-bold text-cyan-300 tracking-wider">[HUD] TAKTISCHE KARTE</h2>
+    <!-- Modal: Musik-Radar -->
+    <div
+      id="musicModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[90vh] flex flex-col"
+      >
+        <div class="flex justify-between items-center border-b border-fuchsia-800/80 pb-2 mb-3">
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
+              [PLAYLIST] LIVE VOTING
+            </h2>
+          </div>
+          <button
+            onclick="closeMusicModal()"
+            class="text-fuchsia-400 hover:text-fuchsia-200 text-xl px-2 py-0.5 rounded border border-fuchsia-800 active:scale-95"
+          >
+            ✕
+          </button>
         </div>
-        <button onclick="closeRadarModal()" class="text-cyan-500 hover:text-cyan-300 text-xl px-2 py-0.5 rounded border border-cyan-800 active:scale-95">✕</button>
-      </div>
-      <div class="relative w-full h-64 mx-auto rounded-lg border-2 border-cyan-700 bg-neutral-950 overflow-hidden shadow-[inset_0_0_30px_rgba(6,182,212,0.5)]">
-        <iframe style="position: absolute; width: calc(100% + 120px); height: calc(100% + 120px); top: -60px; left: -60px; filter: grayscale(100%) invert(100%) sepia(100%) hue-rotate(130deg) saturate(250%) contrast(1.1) brightness(1.4); pointer-events: none;" src="https://maps.google.com/maps?q=Lohhof%2049,%2031600%20Uchte&t=m&z=17&ie=UTF8&iwloc=&output=embed" frameborder="0" scrolling="no"></iframe>
-        <div class="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.25)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.25)_1px,transparent_1px)] [background-size:25px_25px] pointer-events-none"></div>
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-80 z-20">
-           <div class="w-full h-[1px] bg-cyan-400/60 absolute"></div><div class="h-full w-[1px] bg-cyan-400/60 absolute"></div>
-           <div class="w-16 h-16 border-2 border-cyan-300/80 rounded-full absolute"></div>
-           <div class="w-32 h-32 border border-cyan-500/50 rounded-full absolute"></div>
+        <div class="flex gap-2 mb-3">
+          <input
+            type="text"
+            id="newSongInput"
+            placeholder="Artist - Trackname..."
+            class="flex-1 px-3 py-2 bg-neutral-900 border border-fuchsia-800 rounded text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-fuchsia-400"
+          />
+          <button
+            onclick="submitSongProposal()"
+            class="px-3 py-2 rounded bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold text-xs active:scale-95 transition"
+          >
+            + DROP
+          </button>
         </div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center z-30">
-            <span class="absolute w-8 h-8 bg-rose-500 rounded-full animate-ping opacity-60"></span>
-            <span class="relative w-3 h-3 bg-rose-500 border border-white rounded-full shadow-[0_0_15px_#f43f5e]"></span>
-        </div>
-        <div class="absolute top-1/2 left-1/2 z-10 pointer-events-none mix-blend-screen overflow-visible">
-          <div class="radar-sweep absolute w-[800px] h-[800px] -ml-[400px] -mt-[400px] rounded-full" style="background: conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(6,182,212,0.15) 320deg, rgba(6,182,212,0.8) 358deg, rgba(255,255,255,1) 360deg);"></div>
-        </div>
-        <div class="absolute top-2 left-2 text-[10px] text-cyan-300 font-mono bg-black/70 px-1.5 py-0.5 rounded border border-cyan-800/80 z-30 shadow-md">SAT-LINK: <strong class="text-emerald-400">ESTABLISHED</strong></div>
-        <div class="absolute top-2 right-2 text-[9px] text-cyan-400 font-mono text-right z-30 bg-black/60 px-1.5 py-0.5 rounded border border-cyan-900/50"><span id="fakeCoords" class="text-rose-300">0x00F8A</span></div>
-      </div>
-      <div class="bg-neutral-900/90 p-2.5 rounded border border-cyan-800/80 text-xs font-mono text-cyan-200 space-y-1 my-3">
-        <div>📍 <strong>Zielgebiet:</strong> Partyraum Lohhof 49, Uchte</div>
-      </div>
-      <div class="space-y-2">
-        <a href="https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8" target="_blank" class="w-full py-2.5 px-3 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.6)] active:scale-95 transition">🗺️ IN GOOGLE MAPS ÖFFNEN</a>
-        <button onclick="copyAddressToClipboard()" class="w-full py-2 px-3 rounded border border-cyan-700 bg-cyan-950/50 hover:bg-cyan-900 text-cyan-300 font-bold text-xs transition active:scale-95">📋 ADRESSE KOPIEREN</button>
+        <div id="songListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal: Musik-Radar -->
-  <div id="musicModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden">
-    <div class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[90vh] flex flex-col">
-      <div class="flex justify-between items-center border-b border-fuchsia-800/80 pb-2 mb-3">
-        <div>
-          <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">[PLAYLIST] LIVE VOTING</h2>
-        </div>
-        <button onclick="closeMusicModal()" class="text-fuchsia-400 hover:text-fuchsia-200 text-xl px-2 py-0.5 rounded border border-fuchsia-800 active:scale-95">✕</button>
-      </div>
-      <div class="flex gap-2 mb-3">
-        <input type="text" id="newSongInput" placeholder="Artist - Trackname..." class="flex-1 px-3 py-2 bg-neutral-900 border border-fuchsia-800 rounded text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-fuchsia-400">
-        <button onclick="submitSongProposal()" class="px-3 py-2 rounded bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold text-xs active:scale-95 transition">+ DROP</button>
-      </div>
-      <div id="songListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+    <!-- Toast Notification -->
+    <div
+      id="toastNotification"
+      class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-neutral-900 border border-emerald-500 text-emerald-300 text-xs rounded-lg shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none text-center"
+    >
+      Meldung
     </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="toastNotification" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-[100] px-4 py-2 bg-neutral-900 border border-emerald-500 text-emerald-300 text-xs rounded-lg shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none text-center">Meldung</div>
-
- 
-</body>
+  </body>
 </html>
