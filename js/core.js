@@ -36,8 +36,14 @@ function escapeHtml(text) { return text.replace(/[&<>"']/g, m => ({ '&': '&amp;'
 const outputElem = document.getElementById('terminalOutput');
 function appendLine(html, delay = 0) {
   setTimeout(() => {
-    const line = document.createElement('div'); line.innerHTML = html;
-    outputElem.appendChild(line); outputElem.scrollTop = outputElem.scrollHeight;
+    // Sucht das Element frisch. Wenn es nicht da ist (Ladeverzögerung), passiert kein Absturz!
+    const out = document.getElementById('terminalOutput');
+    if (!out) return; 
+    
+    const line = document.createElement('div'); 
+    line.innerHTML = html;
+    out.appendChild(line); 
+    out.scrollTop = out.scrollHeight;
     playTone(1300 + Math.random() * 300, 'sine', 0.015, 0.02);
   }, delay);
 }
@@ -73,7 +79,7 @@ document.addEventListener('click', e => { if (isSudoRunning && canSkip) emergenc
 document.addEventListener('touchstart', e => { if (isSudoRunning && canSkip) emergencySkipParty(); }, { passive: true });
 
 function emergencySkipParty() {
-  // 1. Alle Timer radikal beenden (Killt auch den UI-Wächter)
+  // 1. Alle Timer radikal beenden
   const maxTimeout = window.setTimeout(() => {}, 0);
   for (let i = 0; i < maxTimeout; i++) window.clearTimeout(i);
   const maxInterval = window.setInterval(() => {}, 0);
@@ -88,36 +94,49 @@ function emergencySkipParty() {
 
   // 4. Body aufräumen
   const root = document.getElementById('bodyRoot');
-  root.classList.remove('fx-earthquake', 'korn-sad-mode', 'brause-mode', 'brause-mode-green', 'wolle-3d-tilt', 'wolle-schunkel', 'wolle-hyper-schunkel', 'ramm-quake');
-  root.style.transform = 'none'; 
-  
-  // 5. DEN SCHWARZEN BILDSCHIRM FIXEN
+  if (root) {
+    root.classList.remove('fx-earthquake', 'korn-sad-mode', 'brause-mode', 'brause-mode-green', 'wolle-3d-tilt', 'wolle-schunkel', 'wolle-hyper-schunkel', 'ramm-quake');
+    root.style.transform = 'none'; 
+  }
+
+  // 5. DEN SCHWARZEN BILDSCHIRM ZERSTÖREN
   const disco = document.getElementById('discoOverlay');
   if (disco) {
     disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
     disco.style.opacity = '0';
     disco.style.backgroundColor = 'transparent';
   }
-  
   const discoBall = document.getElementById('discoBallElem');
   if (discoBall) discoBall.className = "hidden";
 
   // 6. Canvas leeren
-  particles = []; lasers = []; if (fxAnimFrame) cancelAnimationFrame(fxAnimFrame); fxAnimFrame = null;
-  if(canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  // 7. NEU: UI MANUELL WIEDERHERSTELLEN
+  particles = []; lasers = []; 
+  if (fxAnimFrame) cancelAnimationFrame(fxAnimFrame); fxAnimFrame = null;
+  if (typeof ctx !== 'undefined' && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 7. UI WIEDER EINSCHALTEN (Ganz wichtig!)
   const actionBar = document.getElementById('actionbar');
   const cmdGrid = document.getElementById('commandGrid');
   if (actionBar) actionBar.style.display = 'flex';
   if (cmdGrid) cmdGrid.style.pointerEvents = 'auto';
 
-  // 8. System entriegeln
   isSudoRunning = false; canSkip = false; playTone(150, 'sawtooth', 0.2);
 }
 
+/* =====================================================================
+   🎲 SUDO ROULETTE & UI-SPERRE
+   ===================================================================== */
 function triggerRandomSudoParty() {
   if (isSudoRunning) { showToast("⚠️ System eskaliert bereits!"); return; }
+  
+  // 1. UI HART SPERREN UND AUSBLENDEN
+  const actionBar = document.getElementById('actionbar');
+  const cmdGrid = document.getElementById('commandGrid');
+  
+  if (actionBar) actionBar.style.display = 'none'; // Leiste unten verschwindet
+  if (cmdGrid) cmdGrid.style.pointerEvents = 'none'; // Gitter wird unklickbar
+  
+  // 2. Sudo Modul wählen
   const sudoModules = [triggerBellaNapoli, triggerWollePetry, triggerRammstein, triggerBiertornado, triggerRagecage, triggerSchuettelkorn];
   let available = sudoModules.filter(p => p !== lastSudoParty);
   if (!available.length) available = sudoModules;
@@ -127,4 +146,13 @@ function triggerRandomSudoParty() {
   
   canSkip = false; 
   setTimeout(() => { canSkip = true; }, 1000);
+
+  // 3. UI-WÄCHTER (Blendet alles wieder ein, wenn die Party regulär vorbei ist)
+  const sudoWatcher = setInterval(() => {
+    if (!isSudoRunning) {
+      if (actionBar) actionBar.style.display = 'flex';
+      if (cmdGrid) cmdGrid.style.pointerEvents = 'auto';
+      clearInterval(sudoWatcher);
+    }
+  }, 500);
 }

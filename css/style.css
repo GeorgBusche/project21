@@ -5,14 +5,14 @@
 
 html, body {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   width: 100vw;
   height: 100dvh;
-  margin: 0;
-  padding: 0;
+  margin: 0; padding: 0;
   overflow: hidden;
   overscroll-behavior: none; 
   touch-action: none; /* Verbietet alle Wisch-Gesten auf dem Hintergrund */
+  background-color: #030706; /* Wichtig für iOS Safari */
 }
 
 /* Das Basis-Design */
@@ -20,13 +20,14 @@ body {
   font-family: 'Share Tech Mono', monospace;
   color: #4ade80;
   text-shadow: 0 0 6px var(--terminal-glow);
-  background-color: #030706;
 }
 
 /* Erlaubt das Scrollen AUSSCHLIESSLICH im Terminal! */
 #terminalOutput {
+  overflow-y: auto;
   touch-action: pan-y;
   overscroll-behavior: contain; /* Verhindert, dass das Scrollen auf den Body überspringt */
+  -webkit-overflow-scrolling: touch; /* Für extrem flüssiges iOS Scrollen */
 }
 /* CRT Scanlines */
 .crt-overlay::before {
