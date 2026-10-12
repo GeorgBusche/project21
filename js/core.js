@@ -73,7 +73,7 @@ document.addEventListener('click', e => { if (isSudoRunning && canSkip) emergenc
 document.addEventListener('touchstart', e => { if (isSudoRunning && canSkip) emergencySkipParty(); }, { passive: true });
 
 function emergencySkipParty() {
-  // 1. Alle Timer radikal beenden
+  // 1. Alle Timer radikal beenden (Killt auch den UI-Wächter)
   const maxTimeout = window.setTimeout(() => {}, 0);
   for (let i = 0; i < maxTimeout; i++) window.clearTimeout(i);
   const maxInterval = window.setInterval(() => {}, 0);
@@ -89,9 +89,9 @@ function emergencySkipParty() {
   // 4. Body aufräumen
   const root = document.getElementById('bodyRoot');
   root.classList.remove('fx-earthquake', 'korn-sad-mode', 'brause-mode', 'brause-mode-green', 'wolle-3d-tilt', 'wolle-schunkel', 'wolle-hyper-schunkel', 'ramm-quake');
-  root.style.transform = 'none'; // Wichtig, falls Rammstein die Seite gedreht hat
+  root.style.transform = 'none'; 
   
-  // 5. DEN SCHWARZEN BILDSCHIRM FIXEN (Disco Overlay hart zurücksetzen)
+  // 5. DEN SCHWARZEN BILDSCHIRM FIXEN
   const disco = document.getElementById('discoOverlay');
   if (disco) {
     disco.className = "fixed inset-0 pointer-events-none z-40 opacity-0";
@@ -106,7 +106,13 @@ function emergencySkipParty() {
   particles = []; lasers = []; if (fxAnimFrame) cancelAnimationFrame(fxAnimFrame); fxAnimFrame = null;
   if(canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  // 7. System entriegeln
+  // 7. NEU: UI MANUELL WIEDERHERSTELLEN
+  const actionBar = document.getElementById('actionbar');
+  const cmdGrid = document.getElementById('commandGrid');
+  if (actionBar) actionBar.style.display = 'flex';
+  if (cmdGrid) cmdGrid.style.pointerEvents = 'auto';
+
+  // 8. System entriegeln
   isSudoRunning = false; canSkip = false; playTone(150, 'sawtooth', 0.2);
 }
 
