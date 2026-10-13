@@ -1,9 +1,22 @@
+:root,
 body,
 html {
+  color-scheme: only dark;
+  forced-color-adjust: none !important;
+  -webkit-forced-color-adjust: none !important;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: transparent !important;
+  background-color: #03050d !important;
+}
+
+*,
+*::before,
+*::after,
+svg,
+svg * {
+  forced-color-adjust: none !important;
+  -webkit-forced-color-adjust: none !important;
 }
 
 body::before {

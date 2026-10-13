@@ -13,7 +13,8 @@
       property="og:description"
       content="Zugriff auf Partyraum Lohhof 49 angefordert. Vollständige Induktion des Pegels. Zusage erforderlich!"
     />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="only dark" />
+    <meta name="supported-color-schemes" content="dark" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -51,13 +52,19 @@
     <header
       class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm"
     >
-      <div class="flex items-center space-x-2">
+      <div
+        class="flex items-center space-x-2 cursor-pointer select-none group"
+        onclick="openAdminModal()"
+        title="👑 Georg Admin-Cockpit (Klicken für PIN-Login)"
+      >
         <span
           class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#22c55e]"
         ></span>
-        <span class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400"
-          >GEORG_v21.0</span
+        <span
+          class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400 group-hover:text-emerald-300 transition flex items-center gap-1"
         >
+          GEORG_v21.0 <span class="text-[9px] text-emerald-700 font-mono">🔒</span>
+        </span>
       </div>
 
       <div class="flex items-center space-x-1.5">
@@ -247,20 +254,15 @@
           </button>
         </div>
 
-        <!-- Banner: Bereits angemeldet (Bearbeiten) -->
+        <!-- Banner: Bereits angemeldet -->
         <div
           id="rsvpExistingBanner"
-          class="hidden mb-2.5 p-2 rounded-lg bg-cyan-950/70 border border-cyan-500/80 text-cyan-200 text-[11px] font-mono flex items-center justify-between gap-2 shadow-inner"
+          class="hidden mb-2.5 p-2 rounded-lg bg-cyan-950/70 border border-cyan-500/80 text-cyan-200 text-[11px] font-mono flex items-center gap-2 shadow-inner"
         >
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span class="text-sm">✏️</span>
-            <div class="truncate">
-              Du bearbeitest deine Zusage als <strong id="rsvpExistingName" class="text-white">Gast</strong>.
-            </div>
+          <span class="text-sm">✏️</span>
+          <div class="truncate">
+            Du bearbeitest deine Zusage als <strong id="rsvpExistingName" class="text-white">Gast</strong>.
           </div>
-          <span class="text-[9px] text-cyan-400 border border-cyan-700/60 rounded px-1.5 py-0.5 bg-black/40 flex-shrink-0">
-            Bearbeiten
-          </span>
         </div>
 
         <div class="space-y-2.5 text-xs">
@@ -932,6 +934,226 @@
           >
             Zurück zur Gästeliste
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Georg Root / Admin Cockpit -->
+    <div
+      id="adminModal"
+      class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-lg border-2 border-emerald-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_40px_rgba(34,197,94,0.35)] max-h-[92vh] flex flex-col"
+      >
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center border-b border-emerald-800/80 pb-2 mb-3 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-emerald-400 font-mono text-sm">👑</span>
+            <div>
+              <h2 class="text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
+                [ROOT] GEORG ADMIN-COCKPIT
+              </h2>
+              <p class="text-[10px] text-neutral-400">Verwaltung, Exporte & Party-Kontrolle</p>
+            </div>
+          </div>
+          <button
+            onclick="closeAdminModal()"
+            class="text-emerald-400 hover:text-emerald-200 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- 1. PIN VIEW (Falls noch nicht eingeloggt) -->
+        <div id="adminPinView" class="space-y-4 py-4 text-center">
+          <div class="text-3xl">🔒</div>
+          <div>
+            <div class="text-xs sm:text-sm font-bold text-emerald-300 font-mono">
+              ROOT-AUTHENTIFIZIERUNG ERFORDERLICH
+            </div>
+            <div class="text-[11px] text-neutral-400 mt-1">
+              Bitte gib deinen Master-PIN ein (Standard: 2121):
+            </div>
+          </div>
+
+          <!-- PIN Anzeige Feld -->
+          <div class="flex justify-center">
+            <input
+              type="password"
+              id="adminPinInput"
+              maxlength="6"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              placeholder="••••"
+              class="w-36 text-center text-xl tracking-[0.5em] py-2 px-3 bg-neutral-900 border-2 border-emerald-600 rounded-lg text-emerald-300 focus:outline-none focus:border-emerald-400 font-mono"
+              onkeydown="if(event.key==='Enter') verifyAdminPin()"
+            />
+          </div>
+
+          <!-- PIN Pad (1-9, C, 0, OK) -->
+          <div class="max-w-[220px] mx-auto grid grid-cols-3 gap-2 font-mono text-sm">
+            <button onclick="adminAppendPin('1')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">1</button>
+            <button onclick="adminAppendPin('2')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">2</button>
+            <button onclick="adminAppendPin('3')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">3</button>
+            <button onclick="adminAppendPin('4')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">4</button>
+            <button onclick="adminAppendPin('5')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">5</button>
+            <button onclick="adminAppendPin('6')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">6</button>
+            <button onclick="adminAppendPin('7')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">7</button>
+            <button onclick="adminAppendPin('8')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">8</button>
+            <button onclick="adminAppendPin('9')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">9</button>
+            <button onclick="adminClearPin()" class="py-2.5 rounded bg-rose-950/40 border border-rose-800 text-rose-300 hover:bg-rose-900 active:scale-95 transition">C</button>
+            <button onclick="adminAppendPin('0')" class="py-2.5 rounded bg-neutral-900 border border-emerald-800 text-emerald-200 hover:bg-neutral-800 active:scale-95 transition">0</button>
+            <button onclick="verifyAdminPin()" class="py-2.5 rounded bg-emerald-600 text-black font-bold hover:bg-emerald-500 active:scale-95 transition">✓</button>
+          </div>
+        </div>
+
+        <!-- 2. DASHBOARD VIEW (Nach erfolgreichem Login) -->
+        <div id="adminDashboardView" class="hidden flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+          <!-- Live Status Bar -->
+          <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/80 flex items-center justify-between font-mono">
+            <span class="text-emerald-400 font-bold">STATUS:</span>
+            <span id="adminHeaderStats" class="text-neutral-300 text-[11px] truncate">Lade Daten...</span>
+          </div>
+
+          <!-- BEREICH 1: EXPORTE & EINKAUFSPLANER -->
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <span>📥</span> 1. LISTEN EXPORTIEREN & EINKAUF
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onclick="adminExportGuestsCsv()"
+                class="p-2 rounded bg-neutral-900 border border-cyan-800 hover:border-cyan-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
+              >
+                <span class="text-lg">📊</span>
+                <div class="min-w-0">
+                  <div class="font-bold text-white text-xs">Gästeliste (Excel CSV)</div>
+                  <div class="text-[10px] text-neutral-400">Download mit Semikolon & UTF-8</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onclick="adminCopyGuestsText()"
+                class="p-2 rounded bg-neutral-900 border border-cyan-800 hover:border-cyan-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
+              >
+                <span class="text-lg">📋</span>
+                <div class="min-w-0">
+                  <div class="font-bold text-white text-xs">Gästeliste für WhatsApp</div>
+                  <div class="text-[10px] text-neutral-400">Formatierten Text in Zwischenablage</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onclick="adminShowDrinkCalculator()"
+                class="p-2 rounded bg-neutral-900 border border-amber-800 hover:border-amber-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
+              >
+                <span class="text-lg">🛒</span>
+                <div class="min-w-0">
+                  <div class="font-bold text-amber-300 text-xs">Getränke- & Einkaufsrechner</div>
+                  <div class="text-[10px] text-neutral-400">Kisten Bier, Korn, Cola & Softdrinks</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onclick="adminExportPlaylist()"
+                class="p-2 rounded bg-neutral-900 border border-fuchsia-800 hover:border-fuchsia-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
+              >
+                <span class="text-lg">🎵</span>
+                <div class="min-w-0">
+                  <div class="font-bold text-fuchsia-300 text-xs">Party-Playlist (Textdatei)</div>
+                  <div class="text-[10px] text-neutral-400">Top-Votes zum Abtippen/Import</div>
+                </div>
+              </button>
+            </div>
+
+            <!-- Kalkulationsergebnis -->
+            <div id="adminDrinkCalcResult" class="hidden mt-2"></div>
+          </div>
+
+          <!-- BEREICH 2: LIVE-ANKÜNDIGUNG (BANNER) -->
+          <div class="space-y-1.5 p-2.5 rounded-lg bg-neutral-900 border border-emerald-900/60 font-mono">
+            <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>📢</span> 2. LIVE-ANKÜNDIGUNG IM TERMINAL SCHALTEN
+            </div>
+            <p class="text-[10px] text-neutral-400">
+              Erscheint als leuchtendes Banner oben im Terminal für alle Besucher:
+            </p>
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="adminAnnouncementInput"
+                placeholder="Z. B. '🚨 Wichtig: Parken bitte hinten auf der Wiese!'"
+                class="flex-1 px-2.5 py-1.5 bg-neutral-950 border border-emerald-700 rounded text-emerald-200 text-xs focus:outline-none focus:border-emerald-400 placeholder:text-neutral-600"
+              />
+              <button
+                type="button"
+                onclick="adminSaveAnnouncement()"
+                class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-black font-bold text-xs active:scale-95 transition whitespace-nowrap"
+              >
+                Speichern 📢
+              </button>
+            </div>
+          </div>
+
+          <!-- BEREICH 3: DATEN SICHERN & LÖSCHEN (GEFAHRENZONE) -->
+          <div class="space-y-2 p-2.5 rounded-lg bg-rose-950/20 border border-rose-900/60 font-mono">
+            <div class="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚠️</span> 3. DATENBANK-VERWALTUNG & GEFAHRENZONE
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onclick="adminDownloadFullBackup()"
+                class="px-3 py-1.5 rounded bg-neutral-900 border border-neutral-700 hover:border-emerald-400 text-emerald-300 text-xs font-bold active:scale-95 transition flex items-center gap-1.5"
+              >
+                <span>💾</span> Vollständiges Backup herunterladen (.json)
+              </button>
+
+              <label
+                class="px-3 py-1.5 rounded bg-neutral-900 border border-neutral-700 hover:border-cyan-400 text-cyan-300 text-xs font-bold active:scale-95 transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>📤</span> Backup wiederherstellen
+                <input
+                  type="file"
+                  accept=".json"
+                  class="hidden"
+                  onchange="adminHandleRestoreUpload(event)"
+                />
+              </label>
+            </div>
+
+            <div class="pt-2 border-t border-rose-900/40 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <button
+                type="button"
+                onclick="adminClearRsvpsConfirm()"
+                class="py-2 px-2 rounded bg-neutral-900 border border-rose-800 text-rose-300 hover:bg-rose-950 active:scale-95 transition font-bold text-center"
+              >
+                🗑️ Gästeliste leeren
+              </button>
+
+              <button
+                type="button"
+                onclick="adminClearSongsConfirm()"
+                class="py-2 px-2 rounded bg-neutral-900 border border-rose-800 text-rose-300 hover:bg-rose-950 active:scale-95 transition font-bold text-center"
+              >
+                🗑️ Playlist leeren
+              </button>
+
+              <button
+                type="button"
+                onclick="adminClearAllConfirm()"
+                class="py-2 px-2 rounded bg-rose-900/60 border border-rose-600 text-white hover:bg-rose-800 active:scale-95 transition font-extrabold text-center shadow-[0_0_10px_rgba(244,63,94,0.3)]"
+              >
+                💥 ALLES RESETTEN
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -6,6 +6,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "export": "node scripts/export.js",
+    "clear-db": "node scripts/clear-db.js",
+    "backup": "node scripts/backup.js",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

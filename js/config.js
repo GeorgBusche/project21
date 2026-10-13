@@ -16,7 +16,8 @@ export const CONFIG = {
     time: 'Ab 19:30 Uhr bis zum Systemabsturz',
     location: 'Partyraum Lohhof 49, 31600 Uchte',
     mapsUrl: 'https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8',
-    dresscode: 'Schick, verkleidet oder nackt... Mir doch egal!'
+    dresscode: 'Schick, verkleidet oder nackt... Mir doch egal!',
+    adminPin: '2121'
   },
   // Auf einen Songnamen setzen, um den SUDO-Button vorübergehend darauf zu fixieren.
   // Erlaubt: "bella", "wolle", "rammstein", "biertornado", "ragecage", "schuettelkorn".

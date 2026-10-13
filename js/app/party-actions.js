@@ -1071,8 +1071,9 @@ export function dispatchRsvpWhatsApp() {
   showToast(wasExisting ? '✓ Zusage aktualisiert! 🔄' : '✓ Zusage erfolgreich gespeichert! 👍');
   playSuccessChime();
   closeRsvpModal();
+  const cleanPhone = CONFIG.party.phone.replace(/\D/g, '');
   window.open(
-    `https://wa.me/${CONFIG.party.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`,
+    `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`,
     '_blank'
   );
 }

@@ -67,5 +67,9 @@ export function runCommand(command) {
         "<div class='bg-emerald-950/40 p-3 rounded border border-emerald-600 text-xs text-emerald-200'>🎁 Bringt einfach gute Laune mit!</div>"
       );
       break;
+    case 'admin':
+    case 'root':
+      if (window.openAdminModal) window.openAdminModal();
+      break;
   }
 }

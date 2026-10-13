@@ -1,4 +1,23 @@
 import { CONFIG } from './config.js';
+import {
+  adminAppendPin,
+  adminClearAllConfirm,
+  adminClearPin,
+  adminClearRsvpsConfirm,
+  adminClearSongsConfirm,
+  adminCopyDrinkPlan,
+  adminCopyGuestsText,
+  adminDownloadFullBackup,
+  adminExportGuestsCsv,
+  adminExportPlaylist,
+  adminHandleRestoreUpload,
+  adminSaveAnnouncement,
+  adminShowDrinkCalculator,
+  closeAdminModal,
+  initializeAdmin,
+  openAdminModal,
+  verifyAdminPin
+} from './app/admin.js';
 import { playBuzzerError, playSuccessChime, playTone, toggleAudio } from './app/audio.js';
 import { initializeCommands, runCommand, toggleCommands } from './app/commands.js';
 import { handleDeclineClick } from './app/decline-game.js';
@@ -88,6 +107,22 @@ Object.assign(window, {
   selectRsvpSong,
   setGuestFilter,
   showGuestBoard,
+  adminAppendPin,
+  adminClearAllConfirm,
+  adminClearPin,
+  adminClearRsvpsConfirm,
+  adminClearSongsConfirm,
+  adminCopyDrinkPlan,
+  adminCopyGuestsText,
+  adminDownloadFullBackup,
+  adminExportGuestsCsv,
+  adminExportPlaylist,
+  adminHandleRestoreUpload,
+  adminSaveAnnouncement,
+  adminShowDrinkCalculator,
+  closeAdminModal,
+  openAdminModal,
+  verifyAdminPin,
   showToast,
   stopAudioPreview,
   submitSongProposal,
@@ -106,11 +141,25 @@ Object.assign(window, {
   updatePegelDisplay
 });
 
+function checkBrowserCompatibility() {
+  const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+  if (isSamsung && !sessionStorage.getItem('samsung_browser_hint_shown')) {
+    sessionStorage.setItem('samsung_browser_hint_shown', '1');
+    setTimeout(() => {
+      appendLine(
+        "<span class='text-amber-400'>[HINWEIS] Samsung Internet erkannt: Falls Farben unnatürlich wirken, deaktiviere 'Dunkelmodus für Webseiten' in den Browser-Einstellungen.</span>"
+      );
+    }, 2800);
+  }
+}
+
 function initializeApp() {
   initializePartyBackend();
+  initializeAdmin();
   initializeSudo();
   initializeCommands();
   startBootSequence();
+  checkBrowserCompatibility();
 }
 
 if (document.readyState === 'loading') {
