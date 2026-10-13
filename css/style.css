@@ -565,7 +565,8 @@ body.sudo-running #terminalOutput {
 }
 
 .ramm-quake {
-  animation: rammHeavyShake 0.1s infinite;
+  animation: rammHeavyShake var(--ramm-quake-duration, 0.1s)
+    var(--ramm-quake-iterations, infinite);
   transform-origin: center;
   will-change: transform;
   backface-visibility: hidden;
@@ -576,13 +577,13 @@ body.sudo-running #terminalOutput {
     transform: translate3d(0, 0, 0) rotate(0deg);
   }
   25% {
-    transform: translate3d(-10px, 8px, 0) rotate(-1deg);
+    transform: var(--ramm-quake-25, translate3d(-10px, 8px, 0) rotate(-1deg));
   }
   50% {
-    transform: translate3d(10px, -8px, 0) rotate(1deg);
+    transform: var(--ramm-quake-50, translate3d(10px, -8px, 0) rotate(1deg));
   }
   75% {
-    transform: translate3d(-8px, -6px, 0) rotate(0deg);
+    transform: var(--ramm-quake-75, translate3d(-8px, -6px, 0) rotate(0deg));
   }
 }
 

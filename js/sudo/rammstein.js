@@ -14,6 +14,7 @@ const RAMM_CONFIG = Object.assign(
 const isMobile =
   typeof window !== 'undefined' &&
   (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+const activeEmbers = new Set();
 
 function createStage() {
   const stage = document.createElement('div');
@@ -27,6 +28,8 @@ function createStage() {
 function spawnEmbers(amount, dust = false) {
   const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.45)) : amount;
   for (let i = 0; i < scaledAmount; i++) {
+    if (activeEmbers.size >= (isMobile ? 36 : 100)) break;
+
     const ember = document.createElement('div');
     ember.className = 'ramm-ember';
     ember.style.left = `${Math.random() * 100}vw`;
@@ -42,7 +45,11 @@ function spawnEmbers(amount, dust = false) {
     const duration = dust ? 2.5 + Math.random() * 3 : 1 + Math.random() * 2.5;
     ember.style.animation = `emberFloat ${duration}s ease-in forwards`;
     document.body.appendChild(ember);
-    setTimeout(() => ember.remove(), duration * 1000);
+    activeEmbers.add(ember);
+    setTimeout(() => {
+      activeEmbers.delete(ember);
+      ember.remove();
+    }, duration * 1000);
   }
 }
 
@@ -65,52 +72,181 @@ function firePillars(count = 3) {
   spawnEmbers(Math.min(16, 4 + count));
 }
 
-function triggerShockwave(soft = false) {
-  if (!soft) {
-    const strobe = document.createElement('div');
-    strobe.className = 'ramm-strobe';
-    strobe.style.animation = 'strobeFlash 0.3s ease-out forwards';
-    document.body.appendChild(strobe);
-    setTimeout(() => strobe.remove(), 300);
+const IMPACT_LEVELS = {
+  1: {
+    strobe: 0.2,
+    redFlash: 0.12,
+    waveScale: 2.2,
+    waveOpacity: 0.5,
+    secondaryWave: 0,
+    jetRise: 1.05,
+    jetSustain: 0.65,
+    quake: 'translate3d(-2px, 2px, 0) rotate(-0.15deg)',
+    quakeDuration: '150ms',
+    quakeIterations: '2',
+    quakeLifetime: 300
+  },
+  2: {
+    strobe: 0.36,
+    redFlash: 0.2,
+    waveScale: 2.8,
+    waveOpacity: 0.68,
+    secondaryWave: 0.22,
+    jetRise: 1.45,
+    jetSustain: 0.95,
+    quake: 'translate3d(-4px, 3px, 0) rotate(-0.35deg)',
+    quakeDuration: '125ms',
+    quakeIterations: '4',
+    quakeLifetime: 520
+  },
+  3: {
+    strobe: 0.58,
+    redFlash: 0.32,
+    waveScale: 3.5,
+    waveOpacity: 0.82,
+    secondaryWave: 0.48,
+    jetRise: 1.9,
+    jetSustain: 1.35,
+    quake: 'translate3d(-7px, 5px, 0) rotate(-0.7deg)',
+    quakeDuration: '105ms',
+    quakeIterations: '6',
+    quakeLifetime: 650
+  },
+  4: {
+    strobe: 0.76,
+    redFlash: 0.44,
+    waveScale: 4.2,
+    waveOpacity: 0.95,
+    secondaryWave: 0.72,
+    tertiaryWave: 0.42,
+    jetRise: 2.35,
+    jetSustain: 1.8,
+    quake: 'translate3d(-10px, 8px, 0) rotate(-1deg)',
+    quakeDuration: '90ms',
+    quakeIterations: '8',
+    quakeLifetime: 800
   }
+};
+
+function triggerShockwave(level) {
+  const impact = IMPACT_LEVELS[level];
+  const strobe = document.createElement('div');
+  strobe.className = 'ramm-strobe';
+  strobe.style.setProperty('--impact-opacity', impact.strobe);
+  strobe.style.animation = 'strobeFlash 0.3s ease-out forwards';
+  document.body.appendChild(strobe);
+  setTimeout(() => strobe.remove(), 300);
 
   const redFlash = document.createElement('div');
   redFlash.className = 'ramm-red-flash';
+  redFlash.style.setProperty('--impact-opacity', impact.redFlash);
   redFlash.style.animation = 'redFlash 0.8s ease-out forwards';
   document.body.appendChild(redFlash);
   setTimeout(() => redFlash.remove(), 800);
 
   const shockwave = document.createElement('div');
   shockwave.className = 'ramm-shockwave';
+  shockwave.style.setProperty('--impact-scale', impact.waveScale);
+  shockwave.style.setProperty('--impact-opacity', impact.waveOpacity);
   document.body.appendChild(shockwave);
   setTimeout(() => shockwave.remove(), 900);
 
-  if (root && !soft) {
+  if (impact.secondaryWave > 0) {
+    const secondaryShockwave = document.createElement('div');
+    secondaryShockwave.className = 'ramm-shockwave ramm-shockwave--secondary';
+    secondaryShockwave.style.setProperty('--impact-opacity', impact.secondaryWave);
+    secondaryShockwave.style.setProperty('--impact-scale', impact.waveScale + 0.35);
+    document.body.appendChild(secondaryShockwave);
+    setTimeout(() => secondaryShockwave.remove(), 1200);
+  }
+
+  if (impact.tertiaryWave > 0) {
+    const tertiaryShockwave = document.createElement('div');
+    tertiaryShockwave.className = 'ramm-shockwave ramm-shockwave--tertiary';
+    tertiaryShockwave.style.setProperty('--impact-opacity', impact.tertiaryWave);
+    tertiaryShockwave.style.setProperty('--impact-scale', impact.waveScale + 0.7);
+    document.body.appendChild(tertiaryShockwave);
+    setTimeout(() => tertiaryShockwave.remove(), 1450);
+  }
+
+  if (root) {
+    root.style.setProperty('--ramm-quake-25', impact.quake);
+    root.style.setProperty(
+      '--ramm-quake-50',
+      'translate3d(0, 0, 0) rotate(0deg)'
+    );
+    root.style.setProperty(
+      '--ramm-quake-75',
+      'translate3d(0, 0, 0) rotate(0deg)'
+    );
+    root.style.setProperty('--ramm-quake-duration', impact.quakeDuration);
+    root.style.setProperty('--ramm-quake-iterations', impact.quakeIterations);
     root.classList.add('ramm-quake');
-    setTimeout(() => root.classList.remove('ramm-quake'), 800);
+    setTimeout(() => {
+      root.classList.remove('ramm-quake');
+      root.style.removeProperty('--ramm-quake-25');
+      root.style.removeProperty('--ramm-quake-50');
+      root.style.removeProperty('--ramm-quake-75');
+      root.style.removeProperty('--ramm-quake-duration');
+      root.style.removeProperty('--ramm-quake-iterations');
+    }, impact.quakeLifetime);
   }
 
   if (playTone) playTone(40, 'sawtooth', 0.8, 0.3);
 }
 
 let afterglowTimer = null;
+let sunbeamTimer = null;
 
-function showImpact(stage, textElement, text, soft = false) {
+function showImpact(stage, textElement, text, level) {
+  const impact = IMPACT_LEVELS[level];
+  stage.classList.remove('ramm-stage--charge');
+  stage.style.removeProperty('--charge-duration');
+  stage.style.removeProperty('--charge-intensity');
   // Sonnen-Glühen und Bewegung klingen nach der Zahl langsam aus statt abrupt zu enden
   clearTimeout(afterglowTimer);
-  afterglowTimer = setTimeout(() => stage.classList.remove('ramm-stage--sunrise'), 2400);
+  afterglowTimer = setTimeout(
+    () =>
+      stage.classList.remove(
+        'ramm-stage--sunrise',
+        'ramm-stage--sunbeams',
+        'ramm-stage--crowd-wave'
+      ),
+    2400
+  );
+  stage.style.setProperty('--impact-jet-rise', impact.jetRise);
+  stage.style.setProperty('--impact-jet-sustain', impact.jetSustain);
   stage.classList.add('ramm-stage--impact');
-  setTimeout(() => stage.classList.remove('ramm-stage--impact'), 500);
+  spawnEmbers(2 + level * 3);
+  setTimeout(() => {
+    stage.classList.remove('ramm-stage--impact');
+    stage.style.removeProperty('--impact-jet-rise');
+    stage.style.removeProperty('--impact-jet-sustain');
+  }, isMobile ? 850 : 750);
 
   textElement.className = 'ramm-text';
   textElement.textContent = text;
   resetAnim(textElement, 'rammStomp 1.3s cubic-bezier(0.16, 0.8, 0.24, 1) forwards');
-  triggerShockwave(soft);
+  triggerShockwave(level);
 }
 
 function showSunrise(stage, sunOrb, textElement, text, duration = 2.5) {
-  clearTimeout(afterglowTimer);  stage.classList.remove('ramm-stage--impact');
+  clearTimeout(afterglowTimer);
+  clearTimeout(sunbeamTimer);
+  stage.classList.remove('ramm-stage--impact', 'ramm-stage--charge');
+  stage.style.removeProperty('--charge-duration');
+  stage.style.removeProperty('--charge-intensity');
   stage.classList.add('ramm-stage--sunrise');
+  stage.classList.remove('ramm-stage--crowd-wave');
+  if (text.includes('HIER KOMMT')) {
+    stage.classList.add('ramm-stage--sunbeams');
+    requestAnimationFrame(() => stage.classList.add('ramm-stage--crowd-wave'));
+    sunbeamTimer = setTimeout(() => {
+      stage.classList.remove('ramm-stage--sunbeams', 'ramm-stage--crowd-wave');
+    }, duration * 1000);
+  } else {
+    stage.classList.remove('ramm-stage--sunbeams');
+  }
   resetAnim(sunOrb, `sunPulse ${duration}s cubic-bezier(0.16, 0.72, 0.24, 1) forwards`);
 
   textElement.className = 'ramm-sonne-text';
@@ -132,6 +268,13 @@ function tint(color, ms = 1600) {
 
 function cameraPunch(stage) {
   resetAnim(stage, 'rammPunch 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)');
+}
+
+function chargeUp(stage, level) {
+  const duration = 980 - level * 150;
+  stage.style.setProperty('--charge-duration', `${duration}ms`);
+  stage.style.setProperty('--charge-intensity', String(0.45 + level * 0.12));
+  stage.classList.add('ramm-stage--charge');
 }
 
 function strobeBurst(times = 3, gap = 140) {
@@ -185,7 +328,10 @@ function initializeRammstein() {
 
       // Intro: viele Partikel steigen von unten auf, danach taucht die Bühne dunkel auf
       const introEnd = Math.max(RAMM_CONFIG.eins - 400, 3000);
-      const dustInterval = setInterval(() => spawnEmbers(isMobile ? 1 : 3, true), isMobile ? 320 : 140);
+      const dustInterval = setInterval(
+        () => spawnEmbers(isMobile ? 4 : 3, true),
+        isMobile ? 220 : 140
+      );
       const emberInterval = setInterval(() => spawnEmbers(1), isMobile ? 1200 : 650);
       setTimeout(() => clearInterval(dustInterval), introEnd);
       setTimeout(() => stage.classList.add('ramm-stage--emerge'), 1600);
@@ -207,6 +353,13 @@ function initializeRammstein() {
       const mainText = document.createElement('div');
       mainText.className = 'ramm-text';
       document.body.appendChild(mainText);
+
+      [RAMM_CONFIG.eins, RAMM_CONFIG.zwei, RAMM_CONFIG.drei, RAMM_CONFIG.vier].forEach(
+        (cue, index) => {
+          const level = index + 1;
+          setTimeout(() => chargeUp(stage, level), Math.max(0, cue - (980 - level * 150)));
+        }
+      );
 
       // Zwischenaktionen: Flammenwerfer sitzen auf den Wortakzenten, dazwischen Farbwechsel/Laser/Strobo
       const GOLD = 'rgba(255, 150, 20, 0.34)';
@@ -235,7 +388,7 @@ function initializeRammstein() {
         sunOrb.style.animation = 'none';
         sunOrb.style.opacity = '0';
         firePillars(2);
-        showImpact(stage, mainText, 'EINS');
+        showImpact(stage, mainText, 'EINS', 1);
         if (appendLine) appendLine("<span class='text-red-500 font-bold'>[1] IGNITION.</span>");
       }, RAMM_CONFIG.eins);
 
@@ -247,8 +400,8 @@ function initializeRammstein() {
       setTimeout(() => {
         sunOrb.style.animation = 'none';
         sunOrb.style.opacity = '0';
-        firePillars(2);
-        showImpact(stage, mainText, 'ZWEI', true);
+        firePillars(3);
+        showImpact(stage, mainText, 'ZWEI', 2);
         if (appendLine)
           appendLine("<span class='text-red-500 font-bold'>[2] TEMPERATURE RISING.</span>");
       }, RAMM_CONFIG.zwei);
@@ -261,7 +414,7 @@ function initializeRammstein() {
         sunOrb.style.animation = 'none';
         sunOrb.style.opacity = '0';
         firePillars(3);
-        showImpact(stage, mainText, 'DREI');
+        showImpact(stage, mainText, 'DREI', 3);
         if (appendLine)
           appendLine("<span class='text-orange-500 font-bold'>[3] CRITICAL HEAT WARNING.</span>");
       }, RAMM_CONFIG.drei);
@@ -273,10 +426,10 @@ function initializeRammstein() {
       setTimeout(() => {
         sunOrb.style.animation = 'none';
         sunOrb.style.opacity = '0';
-        firePillars(2);
+        firePillars(4);
         spawnEmbers(16);
         stage.classList.add('ramm-stage--finale');
-        showImpact(stage, mainText, 'VIER');
+        showImpact(stage, mainText, 'VIER', 4);
 
         for (let i = 0; i < 4; i++) {
           const laser = document.createElement('div');

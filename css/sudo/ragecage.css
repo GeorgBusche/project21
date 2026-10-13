@@ -990,3 +990,29 @@ body {
     animation: none;
   }
 }
+
+@media (max-width: 767px), (pointer: coarse) {
+  .rage-grain,
+  .rage-speedlines,
+  .rage-hazard {
+    display: none;
+  }
+
+  .rage-arena__floor,
+  .rage-arena__crowd,
+  .rage-lights,
+  .is-chaos .rage-cage,
+  .is-finale .rage-cage,
+  .rage-arena.is-chaos .rage-stack {
+    filter: none;
+  }
+
+  .is-chaos .rage-cage,
+  .is-finale .rage-cage {
+    animation-duration: 650ms;
+  }
+
+  .is-chaos .rage-lights__beam {
+    animation-duration: 8s;
+  }
+}

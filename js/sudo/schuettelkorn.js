@@ -100,7 +100,7 @@ function createEffect(className, duration) {
 }
 
 function spawnBubbles(amount, palette = 'citrus') {
-  const scaledAmount = isMobile ? Math.max(6, Math.round(amount * 0.4)) : amount;
+  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.25)) : amount;
   const colors = {
     citrus: ['#e9f45a', '#9fe04c', '#fff3a6'],
     berry: ['#ff73bd', '#8f4eff', '#f8a8ff'],

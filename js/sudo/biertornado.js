@@ -71,7 +71,7 @@ function triggerSwallowTransition(storm, vortex, onReveal) {
 }
 
 function spawnSuction(amount, round) {
-  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
+  const scaledAmount = isMobile ? Math.max(2, Math.round(amount * 0.25)) : amount;
   const items = ['🍺', '🍻', '🥫', '🧊', '⭐'];
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight * 0.48;
@@ -264,7 +264,7 @@ function createVortex() {
 }
 
 function spawnDebris(amount, round = 0) {
-  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
+  const scaledAmount = isMobile ? Math.max(2, Math.round(amount * 0.25)) : amount;
   const items = ['🍺', '🍻', '🍺', '🍺', '🧊', '⭐'];
 
   for (let index = 0; index < scaledAmount; index++) {
@@ -284,7 +284,7 @@ function spawnDebris(amount, round = 0) {
 }
 
 function spawnFoamBurst(amount) {
-  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
+  const scaledAmount = isMobile ? Math.max(2, Math.round(amount * 0.25)) : amount;
   for (let index = 0; index < scaledAmount; index++) {
     const drop = document.createElement('span');
     drop.className = 'tornado-foam-drop';

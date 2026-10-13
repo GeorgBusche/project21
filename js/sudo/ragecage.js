@@ -151,7 +151,7 @@ function showCue(text, entrance, index) {
 }
 
 function addParticle(className, content, lifetime, vars) {
-  if (sceneFinished || particles.size >= 110) return;
+  if (sceneFinished || particles.size >= (isMobile ? 36 : 110)) return;
   const particle = makeElement('span', className, arena);
   particle.textContent = content;
   particle.setAttribute('aria-hidden', 'true');
@@ -164,7 +164,7 @@ function addParticle(className, content, lifetime, vars) {
 }
 
 function spawnBalls(amount) {
-  const scaledAmount = isMobile ? Math.max(2, Math.round(amount * 0.45)) : amount;
+  const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.25)) : amount;
   for (let index = 0; index < scaledAmount; index++) {
     const bounce = 0.4 + Math.random() * 0.35;
     addParticle('rage-ball', '', 3000, {
@@ -178,7 +178,7 @@ function spawnBalls(amount) {
 }
 
 function spawnFlyingCups(amount) {
-  const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.45)) : amount;
+  const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.25)) : amount;
   for (let index = 0; index < scaledAmount; index++) {
     const flight = 0.55 + Math.random() * 0.6;
     addParticle('rage-flying-cup', '🥤', flight * 1000, {
@@ -318,17 +318,20 @@ function startChaos() {
   if (!reducedMotion) {
     flash = createChaosOverlays();
     spawnBalls(14);
-    repeat(() => spawnBalls(5), 200);
-    repeat(() => spawnFlyingCups(3), 400);
+    repeat(() => spawnBalls(5), isMobile ? 500 : 200);
+    repeat(() => spawnFlyingCups(3), isMobile ? 900 : 400);
   }
 
   let beat = 0;
   schedule(() => {
-    repeat(() => {
-      statusLabel.textContent = calls[beat % calls.length];
-      runBeat(beat, { reducedMotion, flash });
-      beat++;
-    }, 450);
+    repeat(
+      () => {
+        statusLabel.textContent = calls[beat % calls.length];
+        runBeat(beat, { reducedMotion, flash });
+        beat++;
+      },
+      isMobile ? 650 : 450
+    );
   }, 700);
 
   schedule(

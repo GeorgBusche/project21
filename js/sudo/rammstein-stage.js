@@ -163,6 +163,33 @@ function jets() {
     .join('');
 }
 
+function sunbeams() {
+  return [235, 300, 365, 535, 600, 665]
+    .map((x, index) => {
+      const lean = (x - 450) * 0.42;
+      const delay = (index % 3) * 110;
+      return `
+        <g class="rs-sunbeam-wrap" style="--beam-delay:${delay}ms" transform="translate(${x} 516)">
+          <path d="M-3 0L${lean - 66} -500H${lean + 66}L3 0Z" class="rs-sunbeam"/>
+          <path d="M-1 0L${lean - 15} -470H${lean + 15}L1 0Z" class="rs-sunbeam-core"/>
+        </g>`;
+    })
+    .join('');
+}
+
+function sunlamps() {
+  return [235, 300, 365, 535, 600, 665]
+    .map(
+      (x) => `
+        <g transform="translate(${x} 516)">
+          <rect x="-9" y="-3" width="18" height="6" rx="1.5" class="rs-sunlamp"/>
+          <rect x="-5" y="-4" width="10" height="2" rx="1" class="rs-sunlamp-lens"/>
+          <path d="M-7 4H7" class="rs-sunlamp-foot"/>
+        </g>`
+    )
+    .join('');
+}
+
 function figures() {
   return [352, 398, 447, 493, 546]
     .map(
@@ -207,10 +234,21 @@ export function buildRammsteinStage() {
           <stop offset="0" stop-color="#ff3a1e" stop-opacity=".75"/>
           <stop offset="1" stop-color="#ff3a1e" stop-opacity="0"/>
         </radialGradient>
+        <linearGradient id="rs-sunbeam-grad" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0" stop-color="#fff4c2" stop-opacity=".92"/>
+          <stop offset=".2" stop-color="#ffd56b" stop-opacity=".48"/>
+          <stop offset="1" stop-color="#ffb84d" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="rs-sunbeam-core-grad" x1="0" x2="0" y1="1" y2="0">
+          <stop offset="0" stop-color="#fff" stop-opacity=".92"/>
+          <stop offset=".3" stop-color="#fff0b0" stop-opacity=".42"/>
+          <stop offset="1" stop-color="#fff4d2" stop-opacity="0"/>
+        </linearGradient>
         <symbol id="rs-logo" viewBox="206 77 615 615">${LOGO_PATHS}</symbol>
       </defs>
 
       <ellipse class="rs-ground-glow" cx="450" cy="540" rx="430" ry="70" fill="url(#rs-ground-glow)"/>
+      <g class="rs-sunbeams">${sunbeams()}</g>
 
       <g class="rs-smoke">
         <ellipse cx="330" cy="62" rx="26" ry="17"/>
@@ -256,6 +294,7 @@ export function buildRammsteinStage() {
         <ellipse cx="447" cy="514" rx="13" ry="5" class="rs-drums"/>
       </g>
 
+      <g class="rs-sunlamps">${sunlamps()}</g>
       <g class="rs-jets">${jets()}</g>
 
       ${crowd()}

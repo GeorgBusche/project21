@@ -38,7 +38,7 @@ function showCue(
 }
 
 function spawnFallingItems(icons, count, duration, className) {
-  const scaledCount = isMobile ? Math.max(2, Math.round(count * 0.45)) : count;
+  const scaledCount = isMobile ? Math.max(1, Math.round(count * 0.25)) : count;
   for (let i = 0; i < scaledCount; i++) {
     const item = document.createElement('div');
     const itemDuration = duration + Math.random() * 1.4;
