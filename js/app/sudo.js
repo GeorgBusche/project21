@@ -56,6 +56,7 @@ export function emergencySkipParty() {
 
   const root = document.getElementById('bodyRoot');
   if (root) {
+    root.classList.remove('sudo-running');
     root.className =
       'h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20 overflow-hidden';
     root.style.transform = 'none';
@@ -104,6 +105,9 @@ export function triggerRandomSudoParty() {
     window.canSkip = true;
   }, 1000);
 
+  const root = document.getElementById('bodyRoot');
+  if (root) root.classList.add('sudo-running');
+
   const frame = document.createElement('iframe');
   frame.id = 'sudoIframe';
   frame.src = `sudo_frames/${lastSudoParty}`;
@@ -111,6 +115,9 @@ export function triggerRandomSudoParty() {
   frame.allowTransparency = true;
   frame.setAttribute('allowtransparency', 'true');
   frame.style.backgroundColor = 'transparent';
+  frame.style.willChange = 'transform';
+  frame.style.transform = 'translateZ(0)';
+  frame.style.contain = 'strict';
   frame.allow = 'autoplay';
   document.body.appendChild(frame);
 }

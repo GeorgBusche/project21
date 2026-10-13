@@ -11,6 +11,10 @@ const RAMM_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.rammstein || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 function createStage() {
   const stage = document.createElement('div');
   stage.className = 'ramm-stage';
@@ -21,7 +25,8 @@ function createStage() {
 }
 
 function spawnEmbers(amount, dust = false) {
-  for (let i = 0; i < amount; i++) {
+  const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.45)) : amount;
+  for (let i = 0; i < scaledAmount; i++) {
     const ember = document.createElement('div');
     ember.className = 'ramm-ember';
     ember.style.left = `${Math.random() * 100}vw`;
@@ -180,8 +185,8 @@ function initializeRammstein() {
 
       // Intro: viele Partikel steigen von unten auf, danach taucht die Bühne dunkel auf
       const introEnd = Math.max(RAMM_CONFIG.eins - 400, 3000);
-      const dustInterval = setInterval(() => spawnEmbers(3, true), 140);
-      const emberInterval = setInterval(() => spawnEmbers(1), 650);
+      const dustInterval = setInterval(() => spawnEmbers(isMobile ? 1 : 3, true), isMobile ? 320 : 140);
+      const emberInterval = setInterval(() => spawnEmbers(1), isMobile ? 1200 : 650);
       setTimeout(() => clearInterval(dustInterval), introEnd);
       setTimeout(() => stage.classList.add('ramm-stage--emerge'), 1600);
       setTimeout(() => {

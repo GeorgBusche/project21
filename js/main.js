@@ -141,25 +141,12 @@ Object.assign(window, {
   updatePegelDisplay
 });
 
-function checkBrowserCompatibility() {
-  const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
-  if (isSamsung && !sessionStorage.getItem('samsung_browser_hint_shown')) {
-    sessionStorage.setItem('samsung_browser_hint_shown', '1');
-    setTimeout(() => {
-      appendLine(
-        "<span class='text-amber-400'>[HINWEIS] Samsung Internet erkannt: Falls Farben unnatürlich wirken, deaktiviere 'Dunkelmodus für Webseiten' in den Browser-Einstellungen.</span>"
-      );
-    }, 2800);
-  }
-}
-
 function initializeApp() {
   initializePartyBackend();
   initializeAdmin();
   initializeSudo();
   initializeCommands();
   startBootSequence();
-  checkBrowserCompatibility();
 }
 
 if (document.readyState === 'loading') {

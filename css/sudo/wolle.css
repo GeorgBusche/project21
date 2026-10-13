@@ -1210,35 +1210,30 @@ body {
 
 @keyframes medalSlam {
   0% {
-    transform: translate(-50%, -50%) scale(2.4) rotate(-8deg);
+    transform: translate3d(-50%, -50%, 0) scale(2.4) rotate(-8deg);
     opacity: 0;
-    filter: blur(8px);
   }
   65% {
-    transform: translate(-50%, -50%) scale(0.92) rotate(2deg);
+    transform: translate3d(-50%, -50%, 0) scale(0.92) rotate(2deg);
     opacity: 1;
-    filter: blur(0);
   }
   82% {
-    transform: translate(-50%, -50%) scale(1.06) rotate(-1deg);
+    transform: translate3d(-50%, -50%, 0) scale(1.06) rotate(-1deg);
   }
   100% {
-    transform: translate(-50%, -50%) scale(1) rotate(0);
+    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);
     opacity: 1;
-    filter: drop-shadow(0 0 28px currentColor);
   }
 }
 
 @keyframes stageReveal {
   from {
-    transform: translate(-50%, -44%) scale(0.65);
+    transform: translate3d(-50%, -44%, 0) scale(0.65);
     opacity: 0;
-    filter: blur(12px);
   }
   to {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
     opacity: 1;
-    filter: blur(0);
   }
 }
 

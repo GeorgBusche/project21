@@ -20,6 +20,10 @@ const WOLLE_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.wolle || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 function showCue(
   element,
   text,
@@ -34,7 +38,8 @@ function showCue(
 }
 
 function spawnFallingItems(icons, count, duration, className) {
-  for (let i = 0; i < count; i++) {
+  const scaledCount = isMobile ? Math.max(2, Math.round(count * 0.45)) : count;
+  for (let i = 0; i < scaledCount; i++) {
     const item = document.createElement('div');
     const itemDuration = duration + Math.random() * 1.4;
     item.className = className;

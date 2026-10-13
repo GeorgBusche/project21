@@ -5,9 +5,7 @@
 @source "../sudo_frames";
 
 :root {
-  color-scheme: only dark;
-  forced-color-adjust: none;
-  -webkit-forced-color-adjust: none;
+  color-scheme: dark;
   --phosphor-green: #22c55e;
   --terminal-glow: rgba(34, 197, 94, 0.45);
   --game-rot: 0deg;
@@ -15,9 +13,7 @@
 
 html,
 body {
-  color-scheme: only dark;
-  forced-color-adjust: none;
-  -webkit-forced-color-adjust: none;
+  color-scheme: dark;
   position: fixed;
   top: 0;
   left: 0;
@@ -29,16 +25,6 @@ body {
   overscroll-behavior: none;
   touch-action: none;
   background-color: #030706;
-}
-
-/* Verhindert Invertierung/Farbverfälschung durch Force-Dark-Mode in Browsern wie Samsung Internet */
-*,
-*::before,
-*::after,
-svg,
-svg * {
-  forced-color-adjust: none;
-  -webkit-forced-color-adjust: none;
 }
 
 body {
@@ -538,6 +524,17 @@ body {
   transform: perspective(800px) scale(0.9) translate3d(0, 0, -50px);
   transition: 0.1s;
 }
+body.sudo-running {
+  contain: paint;
+}
+body.sudo-running .crt-overlay::before,
+body.sudo-running::before {
+  display: none !important;
+}
+body.sudo-running #terminalOutput {
+  visibility: hidden !important;
+}
+
 .cam-tilt-left {
   transform: perspective(800px) rotateZ(-6deg) rotateY(-15deg) scale(1.1);
   transition: 0.1s;
@@ -548,6 +545,8 @@ body {
 }
 .cam-speed-shake {
   animation: speedShake 0.1s infinite linear;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 @keyframes speedShake {
   0%,
@@ -568,20 +567,22 @@ body {
 .ramm-quake {
   animation: rammHeavyShake 0.1s infinite;
   transform-origin: center;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 @keyframes rammHeavyShake {
   0%,
   100% {
-    transform: translate(0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg);
   }
   25% {
-    transform: translate(-10px, 8px) rotate(-1deg);
+    transform: translate3d(-10px, 8px, 0) rotate(-1deg);
   }
   50% {
-    transform: translate(10px, -8px) rotate(1deg);
+    transform: translate3d(10px, -8px, 0) rotate(1deg);
   }
   75% {
-    transform: translate(-8px, -6px) rotate(0deg);
+    transform: translate3d(-8px, -6px, 0) rotate(0deg);
   }
 }
 
@@ -589,38 +590,44 @@ body {
   transform-style: preserve-3d;
   transform: perspective(1000px) rotateX(7deg) scale(0.97);
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .wolle-schunkel {
   animation: schunkelSway 7.6s ease-in-out infinite;
   transform-origin: bottom center;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .wolle-hyper-schunkel {
   animation: hyperSway 4.4s ease-in-out infinite;
   transform-origin: bottom center;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 /* Start und Ende bei 0, damit das Wackeln weich ein- und ausläuft */
 @keyframes schunkelSway {
   0%,
   100% {
-    transform: rotate(0deg) translateX(0);
+    transform: translate3d(0, 0, 0) rotate(0deg);
   }
   25% {
-    transform: rotate(-1.8deg) translateX(-6px);
+    transform: translate3d(-6px, 0, 0) rotate(-1.8deg);
   }
   75% {
-    transform: rotate(1.8deg) translateX(6px);
+    transform: translate3d(6px, 0, 0) rotate(1.8deg);
   }
 }
 @keyframes hyperSway {
   0%,
   100% {
-    transform: perspective(1000px) rotateX(0deg) rotateZ(0deg) translateX(0) scale(1);
+    transform: perspective(1000px) translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg) scale(1);
   }
   25% {
-    transform: perspective(1000px) rotateX(4deg) rotateZ(-2.6deg) translateX(-11px) scale(1.025);
+    transform: perspective(1000px) translate3d(-11px, 0, 0) rotateX(4deg) rotateZ(-2.6deg) scale(1.025);
   }
   75% {
-    transform: perspective(1000px) rotateX(4deg) rotateZ(2.6deg) translateX(11px) scale(1.025);
+    transform: perspective(1000px) translate3d(11px, 0, 0) rotateX(4deg) rotateZ(2.6deg) scale(1.025);
   }
 }
 

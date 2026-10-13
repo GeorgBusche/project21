@@ -399,12 +399,10 @@
   0% {
     opacity: 0;
     transform: translate3d(-50%, -120vh, 0) scale(1.7) rotate(-8deg);
-    filter: blur(12px);
   }
   64% {
     opacity: 1;
     transform: translate3d(-50%, -46%, 0) scale(0.92) rotate(2deg);
-    filter: blur(0);
   }
   100% {
     transform: translate3d(-50%, -50%, 0) scale(1);
@@ -415,12 +413,10 @@
   from {
     opacity: 0;
     transform: translate3d(-50%, -35%, 0);
-    filter: blur(8px);
   }
   to {
     opacity: 1;
     transform: translate3d(-50%, -50%, 0);
-    filter: blur(0);
   }
 }
 
@@ -511,12 +507,10 @@
   0% {
     opacity: 0;
     transform: translate3d(-50%, -50%, 0) scale(2) rotate(12deg);
-    filter: blur(10px);
   }
   65% {
     opacity: 1;
     transform: translate3d(-50%, -50%, 0) scale(0.92) rotate(-2deg);
-    filter: blur(0);
   }
   100% {
     transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);

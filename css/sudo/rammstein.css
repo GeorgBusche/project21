@@ -1,22 +1,9 @@
-:root,
 body,
 html {
-  color-scheme: only dark;
-  forced-color-adjust: none !important;
-  -webkit-forced-color-adjust: none !important;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background-color: #03050d !important;
-}
-
-*,
-*::before,
-*::after,
-svg,
-svg * {
-  forced-color-adjust: none !important;
-  -webkit-forced-color-adjust: none !important;
+  background-color: transparent !important;
 }
 
 body::before {
@@ -60,6 +47,9 @@ body::before {
   pointer-events: none;
   opacity: 0;
   contain: strict;
+  will-change: opacity, transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   transition: opacity 1.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -148,7 +138,9 @@ body::before {
   height: auto;
   aspect-ratio: 900 / 598;
   overflow: visible;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .ramm-stage__structure.is-portrait {
@@ -556,7 +548,7 @@ body::before {
   left: 50%;
   z-index: 9999;
   width: 100vw;
-  transform: translate(-50%, -50%);
+  transform: translate3d(-50%, -50%, 0);
   color: #fff;
   font-size: clamp(5rem, 24vw, 15rem);
   font-weight: 900;
@@ -565,33 +557,31 @@ body::before {
   text-shadow:
     -6px 0 0 rgba(255, 0, 0, 0.8),
     6px 0 0 rgba(0, 255, 255, 0.8),
-    0 0 40px #fff;
+    0 0 35px #fff;
   text-transform: uppercase;
   pointer-events: none;
   font-family: 'Arial Black', Impact, sans-serif;
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 @keyframes rammStomp {
   0% {
-    transform: translate(-50%, -50%) scale(4);
+    transform: translate3d(-50%, -50%, 0) scale(3.5);
     opacity: 0;
-    letter-spacing: -20px;
-    filter: blur(10px);
+    letter-spacing: -10px;
   }
-  10% {
-    transform: translate(-50%, -50%) scale(0.9);
+  12% {
+    transform: translate3d(-50%, -50%, 0) scale(0.92);
     opacity: 1;
     letter-spacing: 0;
-    filter: blur(0);
   }
-  20% {
-    transform: translate(-50%, -50%) scale(1.1);
+  22% {
+    transform: translate3d(-50%, -50%, 0) scale(1.08);
   }
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
     opacity: 1;
-    filter: drop-shadow(0 0 32px rgba(255, 44, 20, 0.9));
   }
 }
 
@@ -601,31 +591,31 @@ body::before {
   left: 50%;
   z-index: 9999;
   width: calc(100vw - 1rem);
-  transform: translate(-50%, -50%);
+  transform: translate3d(-50%, -50%, 0);
   color: #ffcc00;
   font-size: clamp(1.6rem, 8.8vw, 7rem);
   font-weight: 900;
   text-align: center;
   text-shadow:
-    0 0 14px #fff4c4,
-    0 0 32px #f30,
-    0 0 72px red,
-    0 0 120px #ff0;
+    0 0 12px #fff4c4,
+    0 0 28px #f30,
+    0 0 60px #ff0;
   letter-spacing: clamp(0.06em, 0.65vw, 0.18em);
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
   font-family: 'Arial Black', sans-serif;
   will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 @keyframes sonneRise {
   0% {
-    transform: translate(-50%, -35%) scale(0.8);
+    transform: translate3d(-50%, -35%, 0) scale(0.85);
     opacity: 0;
   }
   100% {
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
     opacity: 1;
   }
 }
@@ -655,10 +645,10 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: red;
-  mix-blend-mode: color-dodge;
+  background: rgba(255, 30, 20, 0.82);
   pointer-events: none;
   opacity: 0;
+  will-change: opacity;
 }
 
 .ramm-shockwave {
@@ -668,23 +658,22 @@ body::before {
   z-index: 9997;
   width: min(34vmin, 18rem);
   aspect-ratio: 1;
-  transform: translate(-50%, -50%) scale(0.12);
-  border: 3px solid rgba(255, 197, 96, 0.9);
+  transform: translate3d(-50%, -50%, 0) scale(0.12);
+  border: 3px solid rgba(255, 197, 96, 0.95);
   border-radius: 50%;
-  box-shadow:
-    0 0 24px rgba(255, 105, 0, 0.8),
-    inset 0 0 24px rgba(255, 105, 0, 0.55);
+  box-shadow: 0 0 16px rgba(255, 110, 0, 0.85);
   pointer-events: none;
   animation: shockwaveExpand 0.85s cubic-bezier(0.12, 0.72, 0.22, 1) forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes shockwaveExpand {
   0% {
-    transform: translate(-50%, -50%) scale(0.12);
+    transform: translate3d(-50%, -50%, 0) scale(0.12);
     opacity: 0.95;
   }
   100% {
-    transform: translate(-50%, -50%) scale(4.2);
+    transform: translate3d(-50%, -50%, 0) scale(4.2);
     opacity: 0;
   }
 }
@@ -692,7 +681,6 @@ body::before {
 @keyframes redFlash {
   0% {
     opacity: 1;
-    filter: brightness(2);
   }
   100% {
     opacity: 0;
@@ -786,17 +774,19 @@ body::before {
   z-index: 9998;
   border-radius: 50%;
   background-color: #fa0;
-  box-shadow: 0 0 8px red;
+  box-shadow: 0 0 6px #f50;
   pointer-events: none;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 @keyframes emberFloat {
   0% {
-    transform: translateY(0) translateX(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
     opacity: 1;
   }
   100% {
-    transform: translateY(-110vh) translateX(var(--drift)) scale(0.2);
+    transform: translate3d(var(--drift), -110vh, 0) scale(0.2);
     opacity: 0;
   }
 }

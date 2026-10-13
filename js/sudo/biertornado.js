@@ -14,6 +14,10 @@ const TORNADO_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.biertornado || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 function createEffect(className, duration) {
   const effect = document.createElement('div');
   effect.className = className;
@@ -67,11 +71,12 @@ function triggerSwallowTransition(storm, vortex, onReveal) {
 }
 
 function spawnSuction(amount, round) {
+  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
   const items = ['🍺', '🍻', '🥫', '🧊', '⭐'];
   const centerX = window.innerWidth / 2;
   const centerY = window.innerHeight * 0.48;
 
-  for (let index = 0; index < amount; index++) {
+  for (let index = 0; index < scaledAmount; index++) {
     const x = Math.random() * window.innerWidth;
     const y = Math.random() * window.innerHeight;
     const debris = document.createElement('span');
@@ -259,9 +264,10 @@ function createVortex() {
 }
 
 function spawnDebris(amount, round = 0) {
+  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
   const items = ['🍺', '🍻', '🍺', '🍺', '🧊', '⭐'];
 
-  for (let index = 0; index < amount; index++) {
+  for (let index = 0; index < scaledAmount; index++) {
     const debris = document.createElement('span');
     debris.className = 'tornado-debris';
     debris.textContent = items[Math.floor(Math.random() * items.length)];
@@ -278,7 +284,8 @@ function spawnDebris(amount, round = 0) {
 }
 
 function spawnFoamBurst(amount) {
-  for (let index = 0; index < amount; index++) {
+  const scaledAmount = isMobile ? Math.max(3, Math.round(amount * 0.45)) : amount;
+  for (let index = 0; index < scaledAmount; index++) {
     const drop = document.createElement('span');
     drop.className = 'tornado-foam-drop';
     drop.style.left = `${38 + Math.random() * 24}vw`;

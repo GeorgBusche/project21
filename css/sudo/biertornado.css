@@ -185,7 +185,6 @@
   to {
     transform: translate3d(-50%, -46%, 0) scale(1.12);
     opacity: 0;
-    filter: blur(8px);
   }
 }
 
@@ -965,12 +964,10 @@
   from {
     transform: translate3d(-50%, -50%, 0) scale(2.5) rotate(8deg);
     opacity: 0;
-    filter: blur(10px);
   }
   to {
     transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);
     opacity: 1;
-    filter: blur(0);
   }
 }
 
@@ -978,7 +975,6 @@
   0% {
     transform: translate3d(-50%, -50%, 0) scale(1.5);
     opacity: 0;
-    filter: blur(8px);
   }
   40% {
     transform: translate3d(-48%, -51%, 0) scale(0.96);

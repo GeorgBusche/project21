@@ -10,6 +10,10 @@ const KORN_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.schuettelkorn || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 function createIllustration(source, className, description) {
   const wrapper = document.createElement('div');
   wrapper.className = className;
@@ -96,13 +100,14 @@ function createEffect(className, duration) {
 }
 
 function spawnBubbles(amount, palette = 'citrus') {
+  const scaledAmount = isMobile ? Math.max(6, Math.round(amount * 0.4)) : amount;
   const colors = {
     citrus: ['#e9f45a', '#9fe04c', '#fff3a6'],
     berry: ['#ff73bd', '#8f4eff', '#f8a8ff'],
     rainbow: ['#fd4b67', '#ffb545', '#fff25d', '#6fe890', '#6ddcff', '#cb7aff']
   }[palette];
 
-  for (let index = 0; index < amount; index++) {
+  for (let index = 0; index < scaledAmount; index++) {
     const bubble = document.createElement('span');
     const size = 8 + Math.random() * 30;
     const duration = 550 + Math.random() * 950;

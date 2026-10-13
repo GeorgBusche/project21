@@ -8,6 +8,10 @@ const RAGE_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.ragecage || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 const timers = new Set();
 const animationFrames = new Set();
 const particles = new Set();
@@ -160,7 +164,8 @@ function addParticle(className, content, lifetime, vars) {
 }
 
 function spawnBalls(amount) {
-  for (let index = 0; index < amount; index++) {
+  const scaledAmount = isMobile ? Math.max(2, Math.round(amount * 0.45)) : amount;
+  for (let index = 0; index < scaledAmount; index++) {
     const bounce = 0.4 + Math.random() * 0.35;
     addParticle('rage-ball', '', 3000, {
       '--particle-x': `${Math.random() * 100}%`,
@@ -173,7 +178,8 @@ function spawnBalls(amount) {
 }
 
 function spawnFlyingCups(amount) {
-  for (let index = 0; index < amount; index++) {
+  const scaledAmount = isMobile ? Math.max(1, Math.round(amount * 0.45)) : amount;
+  for (let index = 0; index < scaledAmount; index++) {
     const flight = 0.55 + Math.random() * 0.6;
     addParticle('rage-flying-cup', '🥤', flight * 1000, {
       '--particle-y': `${Math.random() * 100}%`,

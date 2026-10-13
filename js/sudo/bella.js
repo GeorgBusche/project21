@@ -17,6 +17,10 @@ const BELLA_CONFIG = Object.assign(
   SUDO_CUE_TIMINGS?.bella || {}
 );
 
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.innerWidth < 768 || /Android|iPhone|iPad/i.test(navigator.userAgent));
+
 function createPiazza() {
   const scene = document.createElement('div');
   scene.className = 'bella-piazza';
@@ -60,8 +64,9 @@ function showTitle(title, text, colorClass, motionClass) {
 }
 
 function spawnFlagConfetti(count, palette = ['#009246', '#fff6dc', '#ce2b37']) {
+  const scaledCount = isMobile ? Math.max(8, Math.round(count * 0.4)) : count;
   const fragment = document.createDocumentFragment();
-  for (let index = 0; index < count; index++) {
+  for (let index = 0; index < scaledCount; index++) {
     const piece = document.createElement('span');
     const duration = 1100 + Math.random() * 900;
     piece.className = 'bella-confetti';

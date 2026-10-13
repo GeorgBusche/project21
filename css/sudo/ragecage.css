@@ -726,34 +726,30 @@ body {
 @keyframes rage-cue-center {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(3.2) rotate(-5deg);
-    filter: blur(12px);
+    transform: translate3d(-50%, -50%, 0) scale(3.2) rotate(-5deg);
   }
   65% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(0.88) rotate(1deg);
-    filter: blur(0);
+    transform: translate3d(-50%, -50%, 0) scale(0.88) rotate(1deg);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1) rotate(0);
+    transform: translate3d(-50%, -50%, 0) scale(1) rotate(0);
   }
 }
 
 @keyframes rage-final-slam {
   0% {
     opacity: 0;
-    transform: translate(-50%, 70%) scale(1.8);
-    filter: blur(10px);
+    transform: translate3d(-50%, 70%, 0) scale(1.8);
   }
   65% {
     opacity: 1;
-    transform: translate(-50%, -54%) scale(0.92);
-    filter: blur(0);
+    transform: translate3d(-50%, -54%, 0) scale(0.92);
   }
   100% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate3d(-50%, -50%, 0) scale(1);
   }
 }
 
