@@ -198,10 +198,11 @@
       id="actionbar"
     >
       <button
+        id="bottomRsvpBtn"
         onclick="openRsvpModal()"
         class="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2"
       >
-        <span>👍</span> ZUSAGEN
+        <span id="bottomRsvpBtnIcon">👍</span> <span id="bottomRsvpBtnText">ZUSAGEN</span>
       </button>
       <div
         id="declineWrapper"
@@ -226,87 +227,215 @@
     <!-- Modal: Zusage (RSVP) -->
     <div
       id="rsvpModal"
-      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 hidden"
     >
       <div
-        class="w-full max-w-lg border-2 border-emerald-500 bg-neutral-950 rounded-xl p-4 sm:p-6 shadow-[0_0_35px_rgba(34,197,94,0.3)] max-h-[92vh] overflow-y-auto"
+        class="w-full max-w-lg border-2 border-emerald-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(34,197,94,0.3)] max-h-[96vh] overflow-y-auto"
       >
-        <div class="flex justify-between items-center border-b border-emerald-800 pb-2 mb-4">
+        <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2.5">
           <div>
-            <h2 class="text-base sm:text-lg font-bold text-emerald-300 tracking-wider">
+            <h2 class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">
               [+] ZUSAGE: GEORGS 21. GEBURTSTAG
             </h2>
-            <p class="text-[11px] text-emerald-600">Registrierung für den Partyraum Lohhof</p>
+            <p class="text-[10px] text-emerald-600">Registrierung für den Partyraum Lohhof 49</p>
           </div>
           <button
             onclick="closeRsvpModal()"
-            class="text-emerald-500 hover:text-emerald-300 text-xl px-2.5 py-0.5 rounded border border-emerald-800 active:scale-95"
+            class="text-emerald-500 hover:text-emerald-300 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95"
           >
             ✕
           </button>
         </div>
-        <div class="space-y-4 text-xs sm:text-sm">
+
+        <!-- Banner: Bereits angemeldet (Bearbeiten) -->
+        <div
+          id="rsvpExistingBanner"
+          class="hidden mb-2.5 p-2 rounded-lg bg-cyan-950/70 border border-cyan-500/80 text-cyan-200 text-[11px] font-mono flex items-center justify-between gap-2 shadow-inner"
+        >
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-sm">✏️</span>
+            <div class="truncate">
+              Du bearbeitest deine Zusage als <strong id="rsvpExistingName" class="text-white">Gast</strong>.
+            </div>
+          </div>
+          <span class="text-[9px] text-cyan-400 border border-cyan-700/60 rounded px-1.5 py-0.5 bg-black/40 flex-shrink-0">
+            Bearbeiten
+          </span>
+        </div>
+
+        <div class="space-y-2.5 text-xs">
+          <!-- 01 Name -->
           <div>
-            <label class="block text-emerald-400 font-bold mb-1"
-              >01. DEIN NAME / ALIAS <span class="text-rose-400">*</span></label
-            >
+            <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+              01. DEIN NAME / ALIAS <span class="text-rose-400">*</span>
+            </label>
             <input
               type="text"
               id="rsvpName"
               placeholder="Z. B. Dein Name / Spitzname"
-              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
+              class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs sm:text-sm"
             />
           </div>
-          <div class="bg-neutral-900/70 p-3 rounded-lg border border-emerald-800/80">
-            <label class="flex items-center space-x-2.5 cursor-pointer">
-              <input
-                type="checkbox"
-                id="rsvpPlusOneToggle"
-                onchange="togglePlusOneInput()"
-                class="w-4 h-4 rounded bg-neutral-950 border-emerald-600 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
-              />
-              <span class="text-emerald-300 font-bold text-xs select-none"
-                >👥 Bringst du jemanden mit? (+1 Begleitperson)</span
+
+          <!-- 02. Kraftstoff & Profil-Icon/Foto nebeneinander -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+                02. BEVORZUGTER KRAFTSTOFF
+              </label>
+              <select
+                id="rsvpDrink"
+                class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none text-xs sm:text-sm"
               >
-            </label>
-            <div id="plusOneContainer" class="mt-2.5 pl-6 hidden">
-              <input
-                type="text"
-                id="rsvpPlusOneName"
-                placeholder="Name deiner Begleitperson"
-                class="w-full px-3 py-1.5 bg-neutral-950 border border-emerald-700 rounded text-emerald-200 text-xs focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
-              />
+                <option value="Kühles Pils">🍺 Kühles Pils</option>
+                <option value="Cola-Korn / die 50/50 Mischen">
+                  🥃 Cola-Korn / 50/50 Mischen
+                </option>
+                <option value="SCHÜTTELKORN!!!">🎊 SCHÜTTELKORN!!!</option>
+                <option value="Omas Guter ;)">🥶 Omas Guter ;)</option>
+                <option value="Wein / Sekt">🍷 Wein / Sekt</option>
+                <option value="Fahrer-Modus (0,0 Promille & Softdrinks)">
+                  🚗 Fahrer-Modus (0,0 Promille)
+                </option>
+                <option value="Bring mein eigenes Zeug mit">🎒 Bring eigenes Zeug mit</option>
+              </select>
+            </div>
+
+            <!-- Avatar / Icon / Foto Auswahl -->
+            <div>
+              <div class="flex justify-between items-center mb-0.5">
+                <label class="text-emerald-400 font-bold text-[11px]">
+                  03. DEIN AVATAR / ICON
+                </label>
+                <label
+                  for="rsvpPhotoUpload"
+                  class="text-[10px] text-emerald-300 hover:text-emerald-200 cursor-pointer underline flex items-center gap-1 font-mono"
+                  title="Eigenes Foto oder Selfie aufnehmen/hochladen"
+                >
+                  <span>📷</span> Foto hochladen
+                </label>
+                <input
+                  type="file"
+                  id="rsvpPhotoUpload"
+                  accept="image/*"
+                  class="hidden"
+                  onchange="handleAvatarPhotoUpload(event)"
+                />
+              </div>
+
+              <!-- Schnellauswahl Chips + Vorschau -->
+              <div class="flex items-center gap-1.5">
+                <!-- Aktiver Avatar Preview Kreis -->
+                <div
+                  id="rsvpAvatarPreview"
+                  class="w-8 h-8 rounded-full border border-emerald-500 bg-neutral-900 flex items-center justify-center text-base flex-shrink-0 shadow-sm overflow-hidden"
+                >
+                  😎
+                </div>
+
+                <!-- 6 beliebte Emoji-Avatare -->
+                <div class="flex items-center gap-1 flex-1 overflow-x-auto py-0.5" id="rsvpAvatarPicker">
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('😎')"
+                    data-avatar="😎"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-emerald-700 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    😎
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('🍻')"
+                    data-avatar="🍻"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    🍻
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('👑')"
+                    data-avatar="👑"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    👑
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('⚡')"
+                    data-avatar="⚡"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    ⚡
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('🤪')"
+                    data-avatar="🤪"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    🤪
+                  </button>
+                  <button
+                    type="button"
+                    onclick="selectAvatarPreset('🚗')"
+                    data-avatar="🚗"
+                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
+                  >
+                    🚗
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="block text-emerald-400 font-bold mb-1"
-              >02. BEVORZUGTER KRAFTSTOFF-TREIBER</label
-            >
-            <select
-              id="rsvpDrink"
-              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none"
-            >
-              <option value="Kühles Pils">🍺 Kühles Pils</option>
-              <option value="Cola-Korn / die 50/50 Mischen">
-                🥃 Cola-Korn / die 50/50 Mischen
-              </option>
-              <option value="SCHÜTTELKORN!!!">🎊 SCHÜTTELKORN!!!</option>
-              <option value="Omas Guter ;)">🥶 Omas Guter ;)</option>
-              <option value="Wein / Sekt">🍷 Wein / Sekt</option>
-              <option value="Fahrer-Modus (0,0 Promille & Softdrinks)">
-                🚗 Fahrer-Modus (0,0 Promille & Softdrinks)
-              </option>
-              <option value="Bring mein eigenes Zeug mit">🎒 Bring mein eigenes Zeug mit</option>
-            </select>
+
+          <!-- Kompakte Leiste: +1 Begleitperson & Schlafplatz -->
+          <div
+            class="flex flex-wrap items-center justify-between gap-1.5 py-1 px-2 rounded bg-neutral-900/60 border border-emerald-900/60 text-[11px]"
+          >
+            <div class="flex items-center gap-1.5">
+              <label class="flex items-center space-x-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="rsvpPlusOneToggle"
+                  onchange="togglePlusOneInput()"
+                  class="w-3.5 h-3.5 rounded bg-neutral-950 border-emerald-600 text-emerald-500 focus:ring-0 accent-emerald-500 cursor-pointer"
+                />
+                <span id="plusOneToggleLabel" class="text-emerald-300 font-semibold select-none">
+                  👥 +1 Begleitung?
+                </span>
+              </label>
+              <div id="plusOneContainer" class="hidden flex items-center">
+                <input
+                  type="text"
+                  id="rsvpPlusOneName"
+                  placeholder="Name der Begleitung"
+                  oninput="handlePlusOneInput(this.value)"
+                  class="px-2 py-0.5 bg-neutral-950 border border-emerald-600 rounded text-emerald-200 text-[11px] focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 w-36 sm:w-44 transition-all"
+                />
+              </div>
+            </div>
           </div>
+
+          <!-- 04. Ziel-Pegel (frei von Mathe, feine Abstufungen & Würfel-Button) -->
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="text-emerald-400 font-bold">03. ZIEL-PEGEL (MATHE-METRIK)</label>
+              <div class="flex items-center gap-1.5">
+                <label class="text-emerald-400 font-bold text-[11px]">04. ZIEL-PEGEL</label>
+                <button
+                  type="button"
+                  onclick="rollRandomPegel()"
+                  class="text-[10px] px-1.5 py-0.5 border border-emerald-800/80 rounded bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 active:scale-95 transition flex items-center gap-1 font-mono"
+                  title="Zufälligen Pegel würfeln"
+                >
+                  <span>🎲</span> Würfeln
+                </button>
+              </div>
               <span
                 id="pegelValueBadge"
-                class="text-xs px-2 py-0.5 rounded bg-emerald-950 border border-emerald-600 text-emerald-300 font-bold"
-                >Pegel: 75%</span
+                class="text-[11px] px-2 py-0.5 rounded font-mono font-bold border border-cyan-600 bg-cyan-950/80 text-cyan-300 transition-all"
               >
+                Pegel: 75%
+              </span>
             </div>
             <input
               type="range"
@@ -314,30 +443,21 @@
               min="0"
               max="100"
               value="75"
-              step="25"
-              class="w-full accent-emerald-500 cursor-pointer"
+              step="1"
+              class="w-full accent-emerald-500 cursor-pointer h-1.5"
               oninput="updatePegelDisplay(this.value)"
             />
             <div
               id="pegelDescription"
-              class="mt-1 text-[11px] text-cyan-300 font-mono italic bg-cyan-950/30 p-2 rounded border border-cyan-900/50"
+              class="mt-1 text-[11px] text-cyan-300 font-mono italic bg-cyan-950/30 px-2 py-1 rounded border border-cyan-900/50"
             >
-              p = π² : Lass mal ne Runde Meiern!
+              Pegel stabil! Wo is der DJ? Lass mal Meiern! 🪩
             </div>
           </div>
+
+          <!-- 05. Was muss in die Party-Playlist (Songwunsch) -->
           <div>
-            <label class="block text-emerald-400 font-bold mb-1"
-              >04. MITBRINGSEL / GAG (OPTIONAL)</label
-            >
-            <input
-              type="text"
-              id="rsvpGift"
-              placeholder="Z. B. 'Kiste Bier', 'Mische', 'Gute Laune'"
-              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
-            />
-          </div>
-          <div>
-            <label class="block text-emerald-400 font-bold mb-1">
+            <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
               05. WAS MUSS IN DIE PARTY-PLAYLIST? (DEIN SONGWUNSCH)
             </label>
             <div class="relative">
@@ -345,27 +465,40 @@
                 <input
                   type="text"
                   id="rsvpSongSearchInput"
-                  placeholder="Song oder Künstler suchen (z. B. Bella Napoli, Rammstein)..."
+                  placeholder="Song oder Künstler suchen (z. B. Bella Napoli, Finch, Rammstein)..."
                   autocomplete="off"
-                  class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs sm:text-sm"
+                  class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs"
                 />
                 <div
                   id="rsvpSongSearchResults"
-                  class="hidden absolute left-0 right-0 top-full mt-1 bg-neutral-950 border border-emerald-600 rounded-lg shadow-2xl z-50 max-h-56 overflow-y-auto divide-y divide-neutral-800"
+                  class="hidden absolute left-0 right-0 top-full mt-1 bg-neutral-950 border border-emerald-600 rounded-lg shadow-2xl z-50 max-h-48 overflow-y-auto divide-y divide-neutral-800"
                 ></div>
               </div>
               <div id="rsvpSelectedSongContainer" class="hidden"></div>
             </div>
-            <p class="text-[10px] text-emerald-600/90 mt-1 font-mono">
-              💡 Wird direkt mit Zusage in die Playlist gevotet!
-            </p>
           </div>
-          <div class="pt-2">
+
+          <!-- 06. Falls du mir was sagen willst (Extrawünsche / Anmerkungen) -->
+          <div>
+            <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+              06. FALLS DU MIR WAS SAGEN WILLST (ANMERKUNG / EXTRAWÜNSCHE) 💬
+            </label>
+            <input
+              type="text"
+              id="rsvpNote"
+              placeholder="Z. B. 'Freu mich riesig', 'Bring Mische mit', 'Fahrgemeinschaft'..."
+              class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs"
+            />
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-1">
             <button
+              id="rsvpSubmitBtn"
               onclick="dispatchRsvpWhatsApp()"
-              class="w-full py-3.5 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.6)] active:scale-95 transition"
+              class="w-full py-2.5 sm:py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-extrabold text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.6)] active:scale-95 transition"
             >
-              <span>📲 ZUSAGE PER WHATSAPP SENDEN</span>
+              <span id="rsvpSubmitBtnText">📲 ZUSAGE PER WHATSAPP SENDEN</span>
             </button>
           </div>
         </div>
@@ -548,6 +681,258 @@
 
         <!-- Scrollbare Playlist Rangliste -->
         <div id="songListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
+      </div>
+    </div>
+
+    <!-- Modal: Gästeliste & Gästebuch -->
+    <div
+      id="guestModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 hidden"
+    >
+      <div
+        class="w-full max-w-xl border-2 border-cyan-500 bg-neutral-950 rounded-xl p-3 sm:p-3.5 shadow-[0_0_35px_rgba(6,182,212,0.35)] max-h-[92vh] flex flex-col"
+      >
+        <!-- Modal Header (kompakt) -->
+        <div class="flex justify-between items-center border-b border-cyan-800/80 pb-1.5 mb-2 flex-shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <h2 class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider truncate">
+              GÄSTELISTE & GÄSTEBUCH 👥
+            </h2>
+            <span id="guestHeaderBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-bold flex-shrink-0">
+              0 Gäste
+            </span>
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+            <button
+              type="button"
+              onclick="toggleGuestStatsModal()"
+              id="guestStatsOpenBtn"
+              class="px-2 py-0.5 rounded border border-cyan-500/80 bg-cyan-950/70 hover:bg-cyan-900 text-cyan-200 text-[11px] font-mono font-bold flex items-center gap-1 active:scale-95 transition shadow-sm"
+              title="Party-Statistiken & Hitlisten öffnen"
+            >
+              <span>📊</span>
+              <span class="hidden xs:inline">Stats</span>
+            </button>
+            <button
+              onclick="closeGuestModal()"
+              class="text-cyan-400 hover:text-cyan-200 text-lg px-2 py-0.5 rounded border border-cyan-800 active:scale-95 transition leading-none"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Suchleiste & Controls (immer sichtbar) -->
+        <div class="space-y-1.5 mb-2 flex-shrink-0">
+          <div class="relative">
+            <div
+              class="flex items-center bg-neutral-900 border border-cyan-700/80 rounded-lg overflow-hidden focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400"
+            >
+              <span class="pl-2.5 text-neutral-400 text-xs">🔍</span>
+              <input
+                type="text"
+                id="guestSearchInput"
+                placeholder="Gast, Begleitung, Getränk oder Notiz suchen..."
+                class="w-full px-2.5 py-1.5 bg-transparent text-xs text-white placeholder-neutral-500 focus:outline-none"
+              />
+              <button
+                id="guestSearchClearBtn"
+                onclick="clearGuestSearch()"
+                class="pr-2.5 text-neutral-500 hover:text-white text-xs hidden"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter-Pills & Sortierung (dauerhaft sichtbar und getrennt) -->
+        <div class="flex flex-wrap items-center justify-between gap-1.5 text-[11px] mb-2 flex-shrink-0">
+          <div class="flex flex-wrap gap-1" id="guestFilterChips">
+            <button
+              onclick="setGuestFilter('all')"
+              data-filter="all"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-cyan-600 bg-cyan-500 text-black font-bold active:scale-95 transition"
+            >
+              Alle
+            </button>
+            <button
+              onclick="setGuestFilter('beer')"
+              data-filter="beer"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition"
+            >
+              🍺 Bier
+            </button>
+            <button
+              onclick="setGuestFilter('korn')"
+              data-filter="korn"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition"
+            >
+              🥃 Korn/Mische
+            </button>
+            <button
+              onclick="setGuestFilter('driver')"
+              data-filter="driver"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition"
+            >
+              🚗 0,0‰
+            </button>
+            <button
+              onclick="setGuestFilter('notes')"
+              data-filter="notes"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition"
+            >
+              💬 Sprüche
+            </button>
+            <button
+              onclick="setGuestFilter('plusone')"
+              data-filter="plusone"
+              class="guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition"
+            >
+              👥 +1
+            </button>
+          </div>
+
+          <!-- Sortierung Dropdown (bleibt immer fest da) -->
+          <div class="flex items-center gap-1 text-[10px] font-mono text-neutral-400 ml-auto">
+            <span>Sort:</span>
+            <select
+              id="guestSortSelect"
+              onchange="changeGuestSort(this.value)"
+              class="bg-neutral-900 border border-cyan-800 text-cyan-300 rounded px-1.5 py-0.5 focus:outline-none"
+            >
+              <option value="newest">⏱️ Neueste</option>
+              <option value="pegel_desc">🔥 Höchster Pegel</option>
+              <option value="name_asc">🔤 Name A-Z</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Scrollbare Gästeliste & Gästebuch -->
+        <div id="guestListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px]"></div>
+
+        <!-- Footer: Eigenen Status anzeigen / Zusage bearbeiten -->
+        <div class="pt-2 mt-2 border-t border-cyan-900/60 flex items-center justify-between text-xs flex-shrink-0">
+          <div id="guestUserStatus" class="text-[11px] text-neutral-400 truncate min-w-0 pr-2">
+            Noch nicht angemeldet?
+          </div>
+          <button
+            onclick="closeGuestModal(); openRsvpModal();"
+            id="guestModalRsvpBtn"
+            class="px-3 py-1 rounded bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-black font-bold text-xs flex-shrink-0 active:scale-95 transition shadow-sm"
+          >
+            ✏️ Zusage anpassen
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Party-Statistiken Dashboard (Aufschlüsselung der Stats) -->
+    <div
+      id="guestStatsModal"
+      class="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-3 hidden"
+    >
+      <div
+        class="w-full max-w-lg border-2 border-cyan-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(6,182,212,0.4)] max-h-[90vh] flex flex-col"
+      >
+        <div class="flex justify-between items-center border-b border-cyan-800/80 pb-2 mb-2.5 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📊</span>
+            <div>
+              <h2 class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider">
+                PARTY-RADAR & STATISTIKEN
+              </h2>
+              <p class="text-[10px] text-neutral-400">Live-Auswertung aller Anmeldungen</p>
+            </div>
+          </div>
+          <button
+            onclick="closeGuestStatsModal()"
+            class="text-cyan-400 hover:text-cyan-200 text-lg px-2 py-0.5 rounded border border-cyan-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- 4 interaktive Kacheln -->
+        <div class="grid grid-cols-2 gap-2 mb-2.5 flex-shrink-0 font-mono text-xs">
+          <button
+            type="button"
+            onclick="toggleStatDetail('guests')"
+            id="statBox_guests"
+            class="p-2 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-900/60 hover:border-cyan-400 text-left transition active:scale-95 flex flex-col justify-between"
+          >
+            <div class="text-[10px] text-neutral-400 font-sans uppercase flex justify-between">
+              <span>Gäste Gesamt</span>
+              <span class="text-cyan-400">👥</span>
+            </div>
+            <div id="statTotalGuests" class="text-cyan-300 font-bold text-base mt-1">0</div>
+            <div id="statTotalGuestsSub" class="text-[10px] text-cyan-500/90 truncate">0 Zusagen</div>
+          </button>
+
+          <button
+            type="button"
+            onclick="toggleStatDetail('pegel')"
+            id="statBox_pegel"
+            class="p-2 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-900/60 hover:border-emerald-400 text-left transition active:scale-95 flex flex-col justify-between"
+          >
+            <div class="text-[10px] text-neutral-400 font-sans uppercase flex justify-between">
+              <span>Ø Ziel-Pegel</span>
+              <span class="text-emerald-400">📈</span>
+            </div>
+            <div id="statAvgPegel" class="text-emerald-300 font-bold text-base mt-1">0%</div>
+            <div id="statAvgPegelSub" class="text-[10px] text-emerald-500/90 truncate">Barometer</div>
+          </button>
+
+          <button
+            type="button"
+            onclick="toggleStatDetail('drinks')"
+            id="statBox_drinks"
+            class="p-2 rounded-lg bg-amber-950/40 hover:bg-amber-900/60 border border-amber-900/60 hover:border-amber-400 text-left transition active:scale-95 flex flex-col justify-between"
+          >
+            <div class="text-[10px] text-neutral-400 font-sans uppercase flex justify-between">
+              <span>Top Kraftstoff</span>
+              <span class="text-amber-400">⛽</span>
+            </div>
+            <div id="statTopDrink" class="text-amber-300 font-bold text-sm truncate mt-1">Pils</div>
+            <div id="statTopDrinkSub" class="text-[10px] text-amber-500/90 truncate">Hitliste</div>
+          </button>
+
+          <button
+            type="button"
+            onclick="toggleStatDetail('quotes')"
+            id="statBox_quotes"
+            class="p-2 rounded-lg bg-fuchsia-950/40 hover:bg-fuchsia-900/60 border border-fuchsia-900/60 hover:border-fuchsia-400 text-left transition active:scale-95 flex flex-col justify-between"
+          >
+            <div class="text-[10px] text-neutral-400 font-sans uppercase flex justify-between">
+              <span>Gästebuch</span>
+              <span class="text-fuchsia-400">💬</span>
+            </div>
+            <div id="statNotesCount" class="text-fuchsia-300 font-bold text-base mt-1">0 Sprüche</div>
+            <div id="statNotesCountSub" class="text-[10px] text-fuchsia-500/90 truncate">Alle Zitate</div>
+          </button>
+        </div>
+
+        <!-- Detail-Panel für aufgeschlüsselte Ansicht -->
+        <div class="flex-1 overflow-y-auto min-h-[180px] p-2.5 rounded-lg bg-neutral-900/90 border border-cyan-800/80 font-mono text-xs space-y-2">
+          <div class="flex justify-between items-center pb-1 border-b border-cyan-900/60">
+            <span id="guestStatDetailTitle" class="font-bold text-cyan-300 text-xs">
+              Klicke oben auf eine Kachel für Details
+            </span>
+          </div>
+          <div id="guestStatDetailContent" class="space-y-1.5 text-neutral-300">
+            Wähle eine Statistik aus, um die genaue Aufschlüsselung aller Gäste, Pegel-Stufen oder Lieblingsgetränke zu sehen.
+          </div>
+        </div>
+
+        <div class="pt-2 mt-2 border-t border-cyan-900/60 flex justify-end flex-shrink-0">
+          <button
+            onclick="closeGuestStatsModal()"
+            class="px-3 py-1.5 rounded bg-neutral-800 hover:bg-neutral-700 text-cyan-300 font-bold text-xs active:scale-95 transition border border-neutral-700"
+          >
+            Zurück zur Gästeliste
+          </button>
+        </div>
       </div>
     </div>
 

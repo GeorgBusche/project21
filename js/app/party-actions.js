@@ -6,14 +6,22 @@ import { appendLine, escapeHtml, showToast } from './ui.js';
 let database;
 let deviceToken;
 let cachedSongs = {};
+let cachedRsvps = {};
 let selectedRsvpSong = null;
 let currentPreviewAudio = null;
 let currentPreviewTrackId = null;
 const searchCache = new Map();
 let rsvpSearchTimeout = null;
 let musicSearchTimeout = null;
+let guestSearchTimeout = null;
 let latestMusicSearchResults = [];
 let latestRsvpSearchResults = [];
+let currentGuestFilter = 'all';
+let currentGuestSort = 'newest';
+let currentGuestSearchQuery = '';
+let guestStatsAndFiltersOpen = false;
+let activeStatDetail = null;
+let selectedAvatar = { type: 'emoji', value: '😎' };
 
 export function initializePartyBackend() {
   const firebase = window.firebase;
@@ -24,6 +32,31 @@ export function initializePartyBackend() {
   // Songs frühzeitig im Hintergrund synchronisieren
   listenToMusicUpdates();
   setupMusicSearchListeners();
+
+  // RSVPs synchronisieren & Suchleiste initialisieren
+  listenToRsvpUpdates();
+  setupGuestSearchListeners();
+
+  // Zusage-Button im Actionbar auf aktuellen Status synchronisieren
+  updateBottomRsvpButton();
+}
+
+function getSavedLocalRsvp() {
+  try {
+    const raw = localStorage.getItem('party_rsvp_data');
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function listenToRsvpUpdates() {
+  database.ref('rsvps').on('value', (snapshot) => {
+    cachedRsvps = snapshot.val() || {};
+    renderGuestListModal();
+    updateGuestModalFooter();
+    updateBottomRsvpButton();
+  });
 }
 
 function getDeviceToken() {
@@ -541,7 +574,141 @@ function renderMusicSearchResults(results) {
 export function openRsvpModal() {
   playTone(587, 'sine', 0.08);
   document.getElementById('rsvpModal').classList.remove('hidden');
-  updatePegelDisplay(document.getElementById('rsvpPegel').value);
+
+  // Prüfen ob Gast auf diesem Gerät bereits angemeldet ist
+  const existing = cachedRsvps[deviceToken] || getSavedLocalRsvp();
+  const banner = document.getElementById('rsvpExistingBanner');
+  const bannerName = document.getElementById('rsvpExistingName');
+  const submitText = document.getElementById('rsvpSubmitBtnText');
+
+  if (existing && existing.name) {
+    if (banner) banner.classList.remove('hidden');
+    if (bannerName) bannerName.textContent = existing.name;
+    if (submitText) submitText.textContent = '🔄 ZUSAGE AKTUALISIEREN (WHATSAPP)';
+
+    const nameInput = document.getElementById('rsvpName');
+    if (nameInput) nameInput.value = existing.name;
+
+    const drinkInput = document.getElementById('rsvpDrink');
+    if (drinkInput && existing.drink) drinkInput.value = existing.drink;
+
+    const plusOneToggle = document.getElementById('rsvpPlusOneToggle');
+    if (plusOneToggle) {
+      plusOneToggle.checked = Boolean(existing.plusOne);
+      togglePlusOneInput();
+      if (existing.plusOne && existing.plusOneName) {
+        const plusOneNameInput = document.getElementById('rsvpPlusOneName');
+        if (plusOneNameInput) plusOneNameInput.value = existing.plusOneName;
+        handlePlusOneInput(existing.plusOneName);
+      }
+    }
+
+    const pegelInput = document.getElementById('rsvpPegel');
+    const pegelVal = existing.pegel !== undefined ? existing.pegel : 75;
+    if (pegelInput) pegelInput.value = pegelVal;
+    updatePegelDisplay(pegelVal);
+
+    const noteInput = document.getElementById('rsvpNote');
+    if (noteInput) noteInput.value = existing.note || existing.gift || '';
+
+    // Avatar wiederherstellen
+    if (existing.avatar) {
+      if (typeof existing.avatar === 'string') {
+        selectedAvatar = { type: 'emoji', value: existing.avatar };
+      } else {
+        selectedAvatar = existing.avatar;
+      }
+    } else {
+      selectedAvatar = { type: 'emoji', value: '😎' };
+    }
+    updateAvatarPreviewUI();
+
+    if (existing.song && typeof existing.song === 'object' && (existing.song.title || existing.song.trackName)) {
+      selectedRsvpSong = {
+        trackId: existing.song.trackId || null,
+        trackName: existing.song.title || existing.song.trackName,
+        artistName: existing.song.artist || existing.song.artistName || '',
+        artworkUrl100: existing.song.cover || existing.song.artworkUrl100 || '',
+        previewUrl: existing.song.previewUrl || ''
+      };
+      renderSelectedRsvpSong();
+      document.getElementById('rsvpSongInputWrapper')?.classList.add('hidden');
+    }
+  } else {
+    if (banner) banner.classList.add('hidden');
+    if (submitText) submitText.textContent = '📲 ZUSAGE PER WHATSAPP SENDEN';
+    selectedAvatar = { type: 'emoji', value: '😎' };
+    updateAvatarPreviewUI();
+    const pegelInput = document.getElementById('rsvpPegel');
+    updatePegelDisplay(pegelInput ? pegelInput.value : 75);
+  }
+}
+
+export function selectAvatarPreset(emoji) {
+  selectedAvatar = { type: 'emoji', value: emoji };
+  updateAvatarPreviewUI();
+  playTone(600, 'sine', 0.03);
+}
+
+export function handleAvatarPhotoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    playBuzzerError();
+    showToast('⚠️ Bitte wähle eine Bilddatei aus!');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Bild verkleinern auf max 96x96 quadratisch (Client-side Compression für schnelle Ladezeiten & Firebase DB)
+      const canvas = document.createElement('canvas');
+      const size = 96;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const minDim = Math.min(img.width, img.height);
+      const sx = (img.width - minDim) / 2;
+      const sy = (img.height - minDim) / 2;
+
+      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+
+      selectedAvatar = { type: 'image', value: compressedDataUrl };
+      updateAvatarPreviewUI();
+      playSuccessChime();
+      showToast('✓ Profilfoto geladen!');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateAvatarPreviewUI() {
+  const previewEl = document.getElementById('rsvpAvatarPreview');
+  if (!previewEl) return;
+
+  if (selectedAvatar.type === 'image') {
+    previewEl.innerHTML = `<img src="${selectedAvatar.value}" alt="Avatar" class="w-full h-full object-cover" />`;
+  } else {
+    previewEl.innerHTML = selectedAvatar.value || '😎';
+  }
+
+  // Preset Buttons hervorheben / entmarkieren
+  document.querySelectorAll('.avatar-preset-btn').forEach((btn) => {
+    const av = btn.getAttribute('data-avatar');
+    if (selectedAvatar.type === 'emoji' && av === selectedAvatar.value) {
+      btn.className =
+        'avatar-preset-btn w-7 h-7 rounded border border-emerald-400 bg-emerald-950/80 text-sm flex items-center justify-center transition active:scale-95 shadow-[0_0_8px_rgba(16,185,129,0.5)]';
+    } else {
+      btn.className =
+        'avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95';
+    }
+  });
 }
 
 export function closeRsvpModal() {
@@ -555,18 +722,87 @@ export function closeRsvpModal() {
 }
 
 export function togglePlusOneInput() {
-  const enabled = document.getElementById('rsvpPlusOneToggle').checked;
-  document.getElementById('plusOneContainer').classList.toggle('hidden', !enabled);
+  const checkbox = document.getElementById('rsvpPlusOneToggle');
+  const enabled = checkbox ? checkbox.checked : false;
+  const container = document.getElementById('plusOneContainer');
+  const label = document.getElementById('plusOneToggleLabel');
+  if (container) container.classList.toggle('hidden', !enabled);
   if (enabled) {
-    document.getElementById('rsvpPlusOneName').focus();
+    if (label) label.textContent = '👥 +1:';
+    const input = document.getElementById('rsvpPlusOneName');
+    if (input) input.focus();
     playTone(700, 'sine', 0.05);
+  } else if (label) {
+    label.textContent = '👥 +1 Begleitung?';
+    const input = document.getElementById('rsvpPlusOneName');
+    if (input) input.value = '';
   }
 }
 
+export function handlePlusOneInput(value) {
+  const label = document.getElementById('plusOneToggleLabel');
+  if (!label) return;
+  const isChecked = document.getElementById('rsvpPlusOneToggle')?.checked;
+  if (isChecked) {
+    label.textContent = '👥 +1:';
+  } else {
+    label.textContent = '👥 +1 Begleitung?';
+  }
+}
+
+export function getPegelDescription(value) {
+  const val = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
+  if (val === 0) return 'Fahrer-Modus: 0,0 Promille & Softdrinks 🚗';
+  if (val <= 15) return 'Ganz entspannt nippen & anstoßen 🥤';
+  if (val <= 35) return '1-2 Bierchen, lockeres Aufwärmen 🍻';
+  if (val <= 55) return 'Gute Grundstimmung, Tanzbein zuckt schon 🕺';
+  if (val <= 75) return 'Pegel stabil! Wo is der DJ? Lass mal Meiern! 🪩';
+  if (val <= 90) return 'Volle Fahrt voraus! Schüttelkorn & Mischen fließen 🎊';
+  if (val <= 99) return 'Gefahrenzone: Textsicher bei jedem Track! 🤪';
+  return 'ABRISS! WO IST DER TRICHTER?! VOLLGAS! 🚨💥';
+}
+
 export function updatePegelDisplay(value) {
-  document.getElementById('pegelValueBadge').textContent = `Pegel: ${value}%`;
-  document.getElementById('pegelDescription').textContent = CONFIG.pegelDescriptions[value];
-  playTone(220 + value * 5, 'sine', 0.02, 0.03);
+  const val = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
+  const badge = document.getElementById('pegelValueBadge');
+  const desc = document.getElementById('pegelDescription');
+
+  if (badge) {
+    badge.textContent = `Pegel: ${val}%`;
+    let badgeColorClass = 'border-cyan-600 bg-cyan-950/80 text-cyan-300';
+    if (val === 0) {
+      badgeColorClass = 'border-neutral-600 bg-neutral-900 text-neutral-300';
+    } else if (val <= 35) {
+      badgeColorClass = 'border-emerald-600 bg-emerald-950/80 text-emerald-300';
+    } else if (val <= 75) {
+      badgeColorClass = 'border-cyan-600 bg-cyan-950/80 text-cyan-300';
+    } else if (val <= 90) {
+      badgeColorClass =
+        'border-amber-500 bg-amber-950/80 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]';
+    } else {
+      badgeColorClass =
+        'border-rose-500 bg-rose-950/90 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse';
+    }
+    badge.className = `text-[11px] px-2 py-0.5 rounded font-mono font-bold transition-all border ${badgeColorClass}`;
+  }
+
+  if (desc) {
+    desc.textContent = getPegelDescription(val);
+  }
+
+  playTone(200 + val * 5, 'sine', 0.02, 0.02);
+}
+
+export function rollRandomPegel() {
+  playTone(450, 'square', 0.04);
+  setTimeout(() => playTone(650, 'square', 0.04), 50);
+  setTimeout(() => playTone(900, 'sawtooth', 0.06), 100);
+  const randomPegel = Math.floor(Math.random() * 80) + 21; // 21 bis 100%
+  const slider = document.getElementById('rsvpPegel');
+  if (slider) {
+    slider.value = randomPegel;
+    updatePegelDisplay(randomPegel);
+  }
 }
 
 export function selectRsvpSong(trackId) {
@@ -709,11 +945,15 @@ export function dispatchRsvpWhatsApp() {
     return;
   }
 
-  const hasPlusOne = document.getElementById('rsvpPlusOneToggle').checked;
-  const plusOneName = document.getElementById('rsvpPlusOneName').value.trim();
-  const drink = document.getElementById('rsvpDrink').value;
-  const pegelValue = document.getElementById('rsvpPegel').value;
-  const gift = document.getElementById('rsvpGift')?.value.trim() || '';
+  const hasPlusOne = document.getElementById('rsvpPlusOneToggle')?.checked || false;
+  const plusOneName = document.getElementById('rsvpPlusOneName')?.value.trim() || '';
+  const drink = document.getElementById('rsvpDrink')?.value || 'Kühles Pils';
+  const pegelValue = document.getElementById('rsvpPegel')?.value || 75;
+  const note = (
+    document.getElementById('rsvpNote')?.value ||
+    document.getElementById('rsvpGift')?.value ||
+    ''
+  ).trim();
 
   // Gewählten Song oder getippten Fallback erfassen
   let songPayload = null;
@@ -735,6 +975,21 @@ export function dispatchRsvpWhatsApp() {
         cover: '',
         previewUrl: ''
       };
+    }
+  }
+
+  // Falls zuvor ein anderer Song gevotet wurde und jetzt gewechselt wurde, alten Vote bereinigen
+  const prevSong = (cachedRsvps[deviceToken] || getSavedLocalRsvp())?.song;
+  if (prevSong && songPayload && prevSong.trackId && String(prevSong.trackId) !== String(songPayload.trackId)) {
+    const oldSongId = `track_${prevSong.trackId}`;
+    if (cachedSongs[oldSongId]) {
+      database.ref(`songs/${oldSongId}`).transaction((song) => {
+        if (song && song.voters && song.voters[deviceToken]) {
+          delete song.voters[deviceToken];
+          song.votesCount = Math.max(0, (song.votesCount || 1) - 1);
+        }
+        return song;
+      });
     }
   }
 
@@ -767,31 +1022,53 @@ export function dispatchRsvpWhatsApp() {
     }
   }
 
-  database.ref(`rsvps/${deviceToken}`).set({
+  const wasExisting = Boolean(cachedRsvps[deviceToken] || getSavedLocalRsvp());
+
+  const rsvpRecord = {
     name,
+    avatar: selectedAvatar,
     plusOne: hasPlusOne,
     plusOneName,
     drink,
     pegel: pegelValue,
-    gift,
+    note,
+    gift: note,
     song: songPayload
       ? {
+          trackId: songPayload.trackId,
           title: songPayload.title,
           artist: songPayload.artist,
-          cover: songPayload.cover
+          cover: songPayload.cover,
+          previewUrl: songPayload.previewUrl
         }
       : null,
+    deviceToken,
+    updatedAt: Date.now(),
     timestamp: Date.now()
-  });
+  };
 
-  let message = `🚨 Zusage für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nBin dabei!\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja' : 'Nein'}\n⛽ Getränk: ${drink}\n📊 Pegel: ${CONFIG.pegelDescriptions[pegelValue]}`;
+  database.ref(`rsvps/${deviceToken}`).set(rsvpRecord);
+  cachedRsvps[deviceToken] = rsvpRecord;
+  try {
+    localStorage.setItem('party_rsvp_data', JSON.stringify(rsvpRecord));
+  } catch (_) {}
+
+  updateBottomRsvpButton();
+  updateGuestModalFooter();
+
+  const pegelText = getPegelDescription(pegelValue);
+  let message = wasExisting
+    ? `🚨 Zusage-Update für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nhier ist ein Update zu meiner Zusage:\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja (+1)' : 'Nein'}\n⛽ Kraftstoff: ${drink}\n📊 Pegel: ${pegelValue}% (${pegelText})`
+    : `🚨 Zusage für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nBin dabei!\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja (+1)' : 'Nein'}\n⛽ Kraftstoff: ${drink}\n📊 Pegel: ${pegelValue}% (${pegelText})`;
+
   if (songPayload) {
     message += `\n🎵 Party-Playlist: ${songPayload.title}${songPayload.artist ? ` - ${songPayload.artist}` : ''}`;
   }
-  if (gift) {
-    message += `\n🎁 Mitbringsel: ${gift}`;
+  if (note) {
+    message += `\n💬 Ansage / Wunsch: ${note}`;
   }
 
+  showToast(wasExisting ? '✓ Zusage aktualisiert! 🔄' : '✓ Zusage erfolgreich gespeichert! 👍');
   playSuccessChime();
   closeRsvpModal();
   window.open(
@@ -864,38 +1141,737 @@ function setupMusicSearchListeners() {
 }
 
 // ==========================================
-// GÄSTE-BOARD
+// GÄSTE-BOARD (TERMINAL CHAT & MODAL)
 // ==========================================
 
 export function showGuestBoard() {
-  appendLine("<span class='text-cyan-400 font-bold'>[GÄSTE-RADAR] Lade Daten...</span>");
+  playTone(600, 'sine', 0.05);
+  appendLine("<span class='text-cyan-400 font-bold'>[GÄSTE-RADAR] Lade Gästedaten...</span>");
+
   database.ref('rsvps').once('value', (snapshot) => {
-    const guests = snapshot.val();
-    if (!guests) {
-      appendLine("<span class='text-neutral-500'>Noch keine Einträge.</span>");
+    const guestsObj = snapshot.val();
+    if (!guestsObj) {
+      appendLine(
+        `<div class='border border-cyan-800 bg-neutral-900/80 p-3 rounded-xl my-2 text-xs font-mono space-y-2'>
+          <div class='text-cyan-300 font-bold border-b border-cyan-800 pb-1'>ANGEMELDETE GÄSTE (0)</div>
+          <div class='text-neutral-400'>Noch keine Anmeldungen in der Datenbank. Sei der Erste!</div>
+          <button
+            onclick="openRsvpModal()"
+            class="w-full mt-2 py-2 px-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-black font-extrabold text-xs active:scale-95 transition"
+          >
+            👍 JETZT ZUSAGEN
+          </button>
+        </div>`
+      );
       return;
     }
 
-    const guestList = Object.values(guests);
+    const guestList = Object.entries(guestsObj)
+      .map(([token, guest]) => ({ ...guest, deviceToken: token }))
+      .sort((a, b) => (b.updatedAt || b.timestamp || 0) - (a.updatedAt || a.timestamp || 0));
+
+    const totalRegistrations = guestList.length;
+    const totalPersons = guestList.reduce((acc, g) => acc + 1 + (g.plusOne ? 1 : 0), 0);
+    const avgPegel = Math.round(
+      guestList.reduce((acc, g) => acc + (parseInt(g.pegel, 10) || 0), 0) / (totalRegistrations || 1)
+    );
+
+    // Erstmal nur 5 Einträge im Terminal posten
+    const previewList = guestList.slice(0, 5);
+    const remainingCount = totalRegistrations - previewList.length;
+
     appendLine(
-      `<div class='border border-cyan-800 bg-neutral-900/80 p-3 rounded my-2 text-xs font-mono space-y-2'>
-        <div class='text-cyan-300 font-bold border-b border-cyan-800 pb-1'>ANGEMELDETE CREW (${guestList.length})</div>
-        ${guestList
-          .map(
-            (guest) => `
-          <div class='flex justify-between py-1 border-b border-neutral-800/50'>
-            <div class='min-w-0 pr-2'>
-              <span class='text-white font-bold'>${escapeHtml(guest.name)}</span>
-              ${guest.plusOne ? `<span class='text-[10px] text-cyan-300 ml-1'>+1 (${escapeHtml(guest.plusOneName || 'Begleitung')})</span>` : ''}
-              <br>
-              <span class='text-[11px] text-neutral-400'>${escapeHtml(guest.drink)}</span>
-              ${guest.song ? `<br><span class='text-[10px] text-fuchsia-400 truncate'>🎵 ${escapeHtml(guest.song.title || guest.song)}${guest.song.artist ? ` - ${escapeHtml(guest.song.artist)}` : ''}</span>` : ''}
-            </div>
-            <span class='text-emerald-400 font-bold flex-shrink-0'>${guest.pegel}%</span>
-          </div>`
-          )
-          .join('')}
+      `<div class='border border-cyan-700 bg-neutral-950/90 p-3 rounded-xl my-2 text-xs font-mono space-y-2.5 shadow-[0_0_20px_rgba(6,182,212,0.3)]'>
+        <div class='flex justify-between items-center border-b border-cyan-800/80 pb-1.5'>
+          <span class='text-cyan-300 font-bold tracking-wider flex items-center gap-1.5'>
+            <span>👥</span> ANGEMELDETE GÄSTE (${totalPersons} Personen)
+          </span>
+          <span class='text-[10px] text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-800/60 px-1.5 py-0.5 rounded'>
+            Ø ${avgPegel}% Pegel
+          </span>
+        </div>
+
+        <div class='space-y-2 divide-y divide-neutral-800/60'>
+          ${previewList
+            .map(
+              (guest, idx) => {
+                const avatarDisplay = getGuestAvatarDisplay(guest);
+                return `
+            <div class='${idx > 0 ? 'pt-1.5' : ''} flex justify-between items-start gap-2'>
+              <div class='flex items-center gap-2 min-w-0 flex-1'>
+                <div class='w-7 h-7 rounded bg-neutral-900 border border-neutral-800 flex items-center justify-center flex-shrink-0 overflow-hidden'>
+                  ${avatarDisplay}
+                </div>
+                <div class='min-w-0 flex-1'>
+                  <div class='flex items-center gap-1.5 flex-wrap'>
+                    <span class='text-white font-bold'>${escapeHtml(guest.name)}</span>
+                    ${guest.plusOne ? `<span class='text-[10px] text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.2 rounded'>+1 (${escapeHtml(guest.plusOneName || 'Begleitung')})</span>` : ''}
+                  </div>
+                  <div class='text-[11px] text-neutral-400 mt-0.5'>⛽ ${escapeHtml(guest.drink)}</div>
+                  ${guest.song ? `<div class='text-[10px] text-fuchsia-400 truncate mt-0.5'>🎵 ${escapeHtml(guest.song.title || guest.song)}${guest.song.artist ? ` - ${escapeHtml(guest.song.artist)}` : ''}</div>` : ''}
+                  ${guest.note || guest.gift ? `<div class='text-[11px] text-amber-300 italic mt-0.5 font-sans'>💬 "${escapeHtml(guest.note || guest.gift)}"</div>` : ''}
+                </div>
+              </div>
+              <span class='text-xs font-bold font-mono px-2 py-0.5 rounded flex-shrink-0 ${
+                (parseInt(guest.pegel, 10) || 0) >= 80
+                  ? 'bg-rose-950/80 text-rose-300 border border-rose-700/60'
+                  : 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/60'
+              }'>${guest.pegel || 0}%</span>
+            </div>`;
+              }
+            )
+            .join('')}
+        </div>
+
+        ${
+          remainingCount > 0
+            ? `<div class='text-[10px] text-cyan-400/80 text-center font-mono pt-1'>
+                ... und <strong>${remainingCount} weitere Gäste</strong> im Verzeichnis!
+               </div>`
+            : ''
+        }
+
+        <!-- Auffälliger Button zum Öffnen des Menüs -->
+        <button
+          onclick="openGuestModal()"
+          class="w-full mt-2 py-2.5 px-3 rounded-lg bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.6)] active:scale-95 transition"
+        >
+          <span>👥</span> VOLLSTÄNDIGE GÄSTELISTE & GÄSTEBUCH ÖFFNEN (${totalRegistrations}) ➔
+        </button>
       </div>`
     );
   });
 }
+
+// ==========================================
+// GÄSTEMODAL & GÄSTEBUCH LOGIK
+// ==========================================
+
+export function openGuestModal() {
+  playTone(550, 'sine', 0.06);
+  const modal = document.getElementById('guestModal');
+  if (modal) modal.classList.remove('hidden');
+  renderGuestListModal();
+  updateGuestModalFooter();
+}
+
+export function closeGuestModal() {
+  stopAudioPreview();
+  const modal = document.getElementById('guestModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+export function toggleGuestStatsModal() {
+  const modal = document.getElementById('guestStatsModal');
+  if (!modal) return;
+  const isHidden = modal.classList.contains('hidden');
+  if (isHidden) {
+    playTone(620, 'sine', 0.05);
+    modal.classList.remove('hidden');
+    // Standardmäßig auf Gäste-Aufschlüsselung stellen falls nichts gewählt ist
+    if (!activeStatDetail) {
+      toggleStatDetail('guests');
+    }
+  } else {
+    closeGuestStatsModal();
+  }
+}
+
+export function closeGuestStatsModal() {
+  const modal = document.getElementById('guestStatsModal');
+  if (modal) modal.classList.add('hidden');
+  closeStatDetail();
+  playTone(450, 'sine', 0.03);
+}
+
+export function setGuestFilter(filter) {
+  currentGuestFilter = filter;
+  playTone(600, 'sine', 0.03);
+
+  // Filter Chips UI aktualisieren
+  document.querySelectorAll('.guest-filter-chip').forEach((btn) => {
+    const isCurrent = btn.getAttribute('data-filter') === filter;
+    if (isCurrent) {
+      btn.className =
+        'guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-cyan-500 bg-cyan-400 text-black font-bold active:scale-95 transition shadow-[0_0_8px_rgba(6,182,212,0.5)]';
+    } else {
+      btn.className =
+        'guest-filter-chip px-2 py-0.5 rounded text-[10px] font-mono border border-neutral-800 bg-neutral-900 text-neutral-300 hover:text-cyan-300 active:scale-95 transition';
+    }
+  });
+
+  renderGuestListModal();
+}
+
+export function changeGuestSort(sortVal) {
+  currentGuestSort = sortVal;
+  playTone(500, 'sine', 0.03);
+  renderGuestListModal();
+}
+
+export function clearGuestSearch() {
+  const input = document.getElementById('guestSearchInput');
+  const clearBtn = document.getElementById('guestSearchClearBtn');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  if (clearBtn) clearBtn.classList.add('hidden');
+  currentGuestSearchQuery = '';
+  renderGuestListModal();
+}
+
+function setupGuestSearchListeners() {
+  const input = document.getElementById('guestSearchInput');
+  const clearBtn = document.getElementById('guestSearchClearBtn');
+
+  if (input) {
+    input.addEventListener('input', (e) => {
+      const query = e.target.value;
+      if (clearBtn) clearBtn.classList.toggle('hidden', !query);
+      clearTimeout(guestSearchTimeout);
+      guestSearchTimeout = setTimeout(() => {
+        currentGuestSearchQuery = query.trim().toLowerCase();
+        renderGuestListModal();
+      }, 160);
+    });
+  }
+}
+
+function getGuestAvatarDisplay(guest) {
+  if (guest.avatar) {
+    if (typeof guest.avatar === 'object') {
+      if (guest.avatar.type === 'image' && guest.avatar.value) {
+        return `<img src="${escapeHtml(guest.avatar.value)}" alt="Avatar" class="w-full h-full object-cover rounded-lg" />`;
+      }
+      if (guest.avatar.value) {
+        return `<span class="text-sm">${escapeHtml(guest.avatar.value)}</span>`;
+      }
+    } else if (typeof guest.avatar === 'string' && guest.avatar.length <= 4) {
+      return `<span class="text-sm">${escapeHtml(guest.avatar)}</span>`;
+    }
+  }
+
+  // Fallback: dynamisch nach Pegel/Getränk
+  return `<span class="text-sm">${getGuestAvatarEmoji(guest)}</span>`;
+}
+
+function getGuestAvatarEmoji(guest) {
+  const pegel = parseInt(guest.pegel, 10) || 0;
+  if (pegel === 100) return '👑';
+  if (pegel >= 85) return '⚡';
+  if (pegel === 0 || (guest.drink && guest.drink.toLowerCase().includes('fahrer'))) return '🚗';
+  if (guest.drink && (guest.drink.includes('Korn') || guest.drink.includes('SCHÜTTELKORN'))) return '🥃';
+  if (guest.drink && guest.drink.includes('Pils')) return '🍺';
+  if (guest.drink && guest.drink.includes('Wein')) return '🍷';
+  return '🕺';
+}
+
+function getPegelBadgeStyle(pegel) {
+  const num = parseInt(pegel, 10) || 0;
+  if (num === 0) return 'border-neutral-600 bg-neutral-900 text-neutral-300';
+  if (num <= 35) return 'border-emerald-600 bg-emerald-950/80 text-emerald-300';
+  if (num <= 75) return 'border-cyan-600 bg-cyan-950/80 text-cyan-300';
+  if (num <= 90) return 'border-amber-500 bg-amber-950/80 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.3)]';
+  return 'border-rose-500 bg-rose-950/90 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse';
+}
+
+function formatRelativeTime(timestamp) {
+  if (!timestamp) return '';
+  const diffSec = Math.floor((Date.now() - timestamp) / 1000);
+  if (diffSec < 60) return 'Gerade eben';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `vor ${diffMin} Min.`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `vor ${diffHours} Std.`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'Gestern';
+  if (diffDays < 7) return `vor ${diffDays} Tagen`;
+  const d = new Date(timestamp);
+  return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.`;
+}
+
+function renderGuestListModal() {
+  const container = document.getElementById('guestListContainer');
+  if (!container) return;
+
+  const rawList = Object.entries(cachedRsvps).map(([token, guest]) => ({
+    ...guest,
+    deviceToken: token
+  }));
+
+  // Stats aktualisieren
+  const totalCount = rawList.length;
+  const totalPersons = rawList.reduce((acc, g) => acc + 1 + (g.plusOne ? 1 : 0), 0);
+  const plusOneCount = rawList.filter((g) => Boolean(g.plusOne)).length;
+  const avgPegel = totalCount
+    ? Math.round(rawList.reduce((acc, g) => acc + (parseInt(g.pegel, 10) || 0), 0) / totalCount)
+    : 0;
+  const notesCount = rawList.filter((g) => Boolean((g.note || g.gift || '').trim())).length;
+
+  const drinkCounts = {};
+  rawList.forEach((g) => {
+    const d = g.drink || 'Pils';
+    drinkCounts[d] = (drinkCounts[d] || 0) + 1;
+  });
+  let topDrink = '–';
+  let maxDrinkCount = 0;
+  for (const [drink, count] of Object.entries(drinkCounts)) {
+    if (count > maxDrinkCount) {
+      maxDrinkCount = count;
+      topDrink = drink.replace(/🍺|🥃|🎊|🥶|🍷|🚗|🎒/g, '').trim();
+    }
+  }
+
+  const headerBadge = document.getElementById('guestHeaderBadge');
+  if (headerBadge) {
+    headerBadge.textContent = `${totalPersons} ${totalPersons === 1 ? 'Gast' : 'Gäste'}`;
+  }
+
+  const statTotal = document.getElementById('statTotalGuests');
+  const statTotalSub = document.getElementById('statTotalGuestsSub');
+  const statAvg = document.getElementById('statAvgPegel');
+  const statAvgSub = document.getElementById('statAvgPegelSub');
+  const statDrink = document.getElementById('statTopDrink');
+  const statDrinkSub = document.getElementById('statTopDrinkSub');
+  const statNotes = document.getElementById('statNotesCount');
+  const statNotesSub = document.getElementById('statNotesCountSub');
+
+  if (statTotal) statTotal.textContent = `${totalPersons} ${totalPersons === 1 ? 'Person' : 'Personen'}`;
+  if (statTotalSub) statTotalSub.textContent = `${totalCount} Zusagen · ${plusOneCount} (+1)`;
+  if (statAvg) statAvg.textContent = `${avgPegel}%`;
+  if (statAvgSub) statAvgSub.textContent = 'Ziel-Pegel';
+  if (statDrink) statDrink.textContent = topDrink;
+  if (statDrinkSub) statDrinkSub.textContent = `${maxDrinkCount}x gewählt`;
+  if (statNotes) statNotes.textContent = `${notesCount} ${notesCount === 1 ? 'Spruch' : 'Sprüche'}`;
+  if (statNotesSub) statNotesSub.textContent = 'Gästebuch';
+
+  // Zusammenfassungszeile im einklappbaren Trigger
+  const summaryEl = document.getElementById('guestStatsSummaryText');
+  if (summaryEl) {
+    const filterLabels = {
+      all: 'Alle',
+      beer: '🍺 Bier',
+      korn: '🥃 Korn/Mische',
+      driver: '🚗 0,0‰',
+      notes: '💬 Sprüche',
+      plusone: '👥 +1'
+    };
+    const activeFilterName = filterLabels[currentGuestFilter] || 'Alle';
+    summaryEl.textContent = `${totalPersons} Gäste · Ø ${avgPegel}% Pegel · Filter: ${activeFilterName}`;
+  }
+
+  // Falls Detail-Panel geöffnet ist, live nachrendern
+  if (activeStatDetail) {
+    renderStatDetail(activeStatDetail);
+  }
+
+  // Filtern
+  let filtered = rawList.filter((g) => {
+    // Suchfilter
+    if (currentGuestSearchQuery) {
+      const q = currentGuestSearchQuery;
+      const matchName = (g.name || '').toLowerCase().includes(q);
+      const matchPlusOne = (g.plusOneName || '').toLowerCase().includes(q);
+      const matchDrink = (g.drink || '').toLowerCase().includes(q);
+      const matchNote = (g.note || g.gift || '').toLowerCase().includes(q);
+      const matchSong =
+        g.song &&
+        ((g.song.title || '').toLowerCase().includes(q) ||
+          (g.song.artist || '').toLowerCase().includes(q));
+      if (!matchName && !matchPlusOne && !matchDrink && !matchNote && !matchSong) {
+        return false;
+      }
+    }
+
+    // Kategorien-Filter
+    if (currentGuestFilter === 'beer') {
+      return g.drink && /pils|bier/i.test(g.drink);
+    }
+    if (currentGuestFilter === 'korn') {
+      return g.drink && /korn|mische/i.test(g.drink);
+    }
+    if (currentGuestFilter === 'driver') {
+      return (
+        (g.drink && /fahrer|0,0/i.test(g.drink)) ||
+        parseInt(g.pegel, 10) === 0
+      );
+    }
+    if (currentGuestFilter === 'notes') {
+      return Boolean((g.note || g.gift || '').trim());
+    }
+    if (currentGuestFilter === 'plusone') {
+      return Boolean(g.plusOne);
+    }
+
+    return true;
+  });
+
+  // Sortieren
+  filtered.sort((a, b) => {
+    if (currentGuestSort === 'pegel_desc') {
+      return (parseInt(b.pegel, 10) || 0) - (parseInt(a.pegel, 10) || 0);
+    }
+    if (currentGuestSort === 'name_asc') {
+      return (a.name || '').localeCompare(b.name || '', 'de');
+    }
+    // Standard: 'newest'
+    return (b.updatedAt || b.timestamp || 0) - (a.updatedAt || a.timestamp || 0);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8 text-neutral-500 font-mono space-y-2">
+        <div class="text-2xl">🔍</div>
+        <div class="text-xs">Keine Gäste für diesen Filter gefunden.</div>
+        <button
+          onclick="setGuestFilter('all'); clearGuestSearch();"
+          class="text-[11px] text-cyan-400 underline hover:text-cyan-300"
+        >
+          Alle Filter zurücksetzen
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered
+    .map((guest) => {
+      const isCurrentUser = guest.deviceToken === deviceToken;
+      const avatarContent = getGuestAvatarDisplay(guest);
+      const pegelBadge = getPegelBadgeStyle(guest.pegel);
+      const timeAgo = formatRelativeTime(guest.updatedAt || guest.timestamp);
+      const noteText = (guest.note || guest.gift || '').trim();
+
+      return `
+        <div class="p-3 rounded-xl border ${
+          isCurrentUser
+            ? 'border-cyan-400 bg-cyan-950/30 shadow-[0_0_15px_rgba(6,182,212,0.25)]'
+            : 'border-neutral-800 bg-neutral-900/60 hover:border-neutral-700'
+        } transition">
+          <!-- Top Row: Avatar, Name, Badges, Pegel -->
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div class="w-8 h-8 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden">
+                ${avatarContent}
+              </div>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-sm font-bold text-white truncate">${escapeHtml(guest.name)}</span>
+                  ${isCurrentUser ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400 text-black">DU</span>' : ''}
+                  ${
+                    guest.plusOne
+                      ? `<span class="text-[10px] text-cyan-300 bg-cyan-950 border border-cyan-800/80 px-1.5 py-0.5 rounded font-mono">👥 +1: ${escapeHtml(guest.plusOneName || 'Begleitung')}</span>`
+                      : ''
+                  }
+                </div>
+                <div class="text-[11px] text-neutral-400 flex items-center gap-1 mt-0.5">
+                  <span>⛽</span>
+                  <span class="text-neutral-300">${escapeHtml(guest.drink)}</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+              <span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${pegelBadge}">
+                ${guest.pegel || 0}%
+              </span>
+              ${timeAgo ? `<span class="text-[9px] text-neutral-500 font-mono">${timeAgo}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- Songwunsch (falls vorhanden) -->
+          ${
+            guest.song
+              ? (() => {
+                  const songObj = typeof guest.song === 'object' ? guest.song : { title: guest.song };
+                  const songTitle = songObj.title || songObj.trackName || '';
+                  const songArtist = songObj.artist || songObj.artistName || '';
+                  const songCover = songObj.cover || songObj.artworkUrl100 || '';
+                  const matchedCached = findExistingSong({ trackName: songTitle, artistName: songArtist, trackId: songObj.trackId }, cachedSongs);
+                  const songPreviewUrl = songObj.previewUrl || matchedCached?.previewUrl || '';
+
+                  return `
+                    <div class="mt-2 pt-2 border-t border-neutral-800/60 flex items-center justify-between gap-2 text-[11px]">
+                      <div class="flex items-center gap-2 min-w-0">
+                        ${
+                          songCover || matchedCached?.cover
+                            ? `<img src="${escapeHtml(songCover || matchedCached.cover)}" alt="Cover" class="w-6 h-6 rounded object-cover flex-shrink-0 border border-neutral-700" />`
+                            : `<span class="text-xs">🎵</span>`
+                        }
+                        <div class="truncate text-fuchsia-300">
+                          <span class="font-bold">${escapeHtml(songTitle)}</span>
+                          ${songArtist ? `<span class="text-neutral-400 text-[10px]"> · ${escapeHtml(songArtist)}</span>` : ''}
+                        </div>
+                      </div>
+                      ${
+                        songPreviewUrl
+                          ? `
+                          <button
+                            type="button"
+                            onclick="toggleAudioPreview('${songPreviewUrl}', 'guest_${guest.deviceToken}')"
+                            data-preview-btn="guest_${guest.deviceToken}"
+                            class="w-6 h-6 rounded border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-[11px] flex items-center justify-center flex-shrink-0 transition active:scale-95 text-neutral-300"
+                            title="30s Hörprobe"
+                          >
+                            ▶️
+                          </button>
+                        `
+                          : ''
+                      }
+                    </div>
+                  `;
+                })()
+              : ''
+          }
+
+          <!-- Gästebuch-Ansage / Notiz -->
+          ${
+            noteText
+              ? `
+              <div class="mt-2 p-2 rounded-lg bg-neutral-950/80 border border-cyan-900/60 text-cyan-200 text-xs flex items-start gap-2 shadow-inner">
+                <span class="text-cyan-400 text-xs flex-shrink-0">💬</span>
+                <div class="italic leading-relaxed break-words flex-1 font-sans">
+                  "${escapeHtml(noteText)}"
+                </div>
+              </div>
+            `
+              : ''
+          }
+        </div>
+      `;
+    })
+    .join('');
+}
+
+function updateGuestModalFooter() {
+  const myRsvp = cachedRsvps[deviceToken] || getSavedLocalRsvp();
+  const userStatusEl = document.getElementById('guestUserStatus');
+  const rsvpBtn = document.getElementById('guestModalRsvpBtn');
+
+  if (myRsvp && myRsvp.name) {
+    if (userStatusEl) {
+      userStatusEl.innerHTML = `<span class="text-emerald-400 font-bold">✓ Angemeldet als: ${escapeHtml(myRsvp.name)}</span>`;
+    }
+    if (rsvpBtn) {
+      rsvpBtn.innerHTML = '<span>✏️</span> Zusage anpassen';
+    }
+  } else {
+    if (userStatusEl) {
+      userStatusEl.innerHTML = '<span class="text-neutral-400">Du bist noch nicht eingetragen!</span>';
+    }
+    if (rsvpBtn) {
+      rsvpBtn.innerHTML = '<span>👍</span> Jetzt zusagen';
+    }
+  }
+}
+
+export function updateBottomRsvpButton() {
+  const bottomRsvpBtn = document.getElementById('bottomRsvpBtn');
+  const iconEl = document.getElementById('bottomRsvpBtnIcon');
+  const textEl = document.getElementById('bottomRsvpBtnText');
+  if (!bottomRsvpBtn) return;
+
+  const myRsvp = cachedRsvps[deviceToken] || getSavedLocalRsvp();
+  const hasRsvp = Boolean(myRsvp && myRsvp.name);
+
+  if (hasRsvp) {
+    if (iconEl) iconEl.textContent = '✏️';
+    if (textEl) textEl.textContent = 'ZUSAGE ANPASSEN';
+    bottomRsvpBtn.className =
+      'flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold text-sm sm:text-base shadow-[0_0_18px_rgba(6,182,212,0.4)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2';
+  } else {
+    if (iconEl) iconEl.textContent = '👍';
+    if (textEl) textEl.textContent = 'ZUSAGEN';
+    bottomRsvpBtn.className =
+      'flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2';
+  }
+}
+
+export function toggleGuestStatsAndFilters() {
+  guestStatsAndFiltersOpen = !guestStatsAndFiltersOpen;
+  const collapseEl = document.getElementById('guestStatsAndFiltersCollapse');
+  const arrowEl = document.getElementById('guestStatsToggleArrow');
+  if (collapseEl) {
+    collapseEl.classList.toggle('hidden', !guestStatsAndFiltersOpen);
+  }
+  if (arrowEl) {
+    arrowEl.textContent = guestStatsAndFiltersOpen ? '▲' : '▼';
+  }
+}
+
+export function toggleStatDetail(type) {
+  if (activeStatDetail === type) {
+    closeStatDetail();
+  } else {
+    activeStatDetail = type;
+    const panel = document.getElementById('guestStatDetailPanel');
+    if (panel) panel.classList.remove('hidden');
+    renderStatDetail(type);
+    playTone(650, 'sine', 0.04);
+  }
+}
+
+export function closeStatDetail() {
+  activeStatDetail = null;
+  const panel = document.getElementById('guestStatDetailPanel');
+  if (panel) panel.classList.add('hidden');
+}
+
+export function renderStatDetail(type) {
+  const titleEl = document.getElementById('guestStatDetailTitle');
+  const contentEl = document.getElementById('guestStatDetailContent');
+  if (!titleEl || !contentEl) return;
+
+  const rawList = Object.entries(cachedRsvps).map(([token, guest]) => ({
+    ...guest,
+    deviceToken: token
+  }));
+
+  const totalCount = rawList.length;
+  const totalPersons = rawList.reduce((acc, g) => acc + 1 + (g.plusOne ? 1 : 0), 0);
+  const plusOneCount = rawList.filter((g) => Boolean(g.plusOne)).length;
+
+  if (type === 'guests') {
+    titleEl.innerHTML = `👥 GÄSTE-AUFSCHLÜSSELUNG (${totalPersons} Personen gesamt)`;
+    if (totalCount === 0) {
+      contentEl.innerHTML = `<div class="text-neutral-500 py-2">Noch keine Anmeldungen vorhanden.</div>`;
+      return;
+    }
+
+    const rows = rawList
+      .map((g) => {
+        const hasPlusOne = Boolean(g.plusOne);
+        return `
+          <div class="flex items-center justify-between py-1 border-b border-neutral-800/60 text-[11px]">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-xs">${hasPlusOne ? '👥' : '👤'}</span>
+              <div class="truncate">
+                <span class="text-white font-bold">${escapeHtml(g.name)}</span>
+                ${hasPlusOne ? `<span class="text-cyan-400 font-sans text-[10px]"> +1: ${escapeHtml(g.plusOneName || 'Begleitperson')}</span>` : ''}
+              </div>
+            </div>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-mono flex-shrink-0 ${
+              hasPlusOne
+                ? 'bg-cyan-950 text-cyan-300 border border-cyan-800'
+                : 'bg-neutral-800 text-neutral-400'
+            }">
+              ${hasPlusOne ? '2 Personen' : '1 Person'}
+            </span>
+          </div>
+        `;
+      })
+      .join('');
+
+    contentEl.innerHTML = `
+      <div class="text-[10px] text-cyan-400 font-mono mb-1.5 flex justify-between bg-cyan-950/40 p-1.5 rounded border border-cyan-900/40">
+        <span>${totalCount} Anmeldungen</span>
+        <span>${plusOneCount} mit Begleitperson (+1)</span>
+      </div>
+      <div class="space-y-0.5">${rows}</div>
+    `;
+  } else if (type === 'pegel') {
+    const avgPegel = totalCount
+      ? Math.round(rawList.reduce((acc, g) => acc + (parseInt(g.pegel, 10) || 0), 0) / totalCount)
+      : 0;
+    titleEl.innerHTML = `📈 ZIEL-PEGEL BAROMETER (Ø ${avgPegel}%)`;
+
+    if (totalCount === 0) {
+      contentEl.innerHTML = `<div class="text-neutral-500 py-2">Noch keine Daten vorhanden.</div>`;
+      return;
+    }
+
+    const brackets = [
+      { label: '🚨 Abriss & Trichter (91-100%)', color: 'bg-rose-500', test: (p) => p >= 91 },
+      { label: '🎊 Eskalation & Schüttelkorn (76-90%)', color: 'bg-amber-500', test: (p) => p >= 76 && p <= 90 },
+      { label: '🪩 Party-Modus (36-75%)', color: 'bg-cyan-500', test: (p) => p >= 36 && p <= 75 },
+      { label: '🍻 Lockeres Aufwärmen (1-35%)', color: 'bg-emerald-500', test: (p) => p >= 1 && p <= 35 },
+      { label: '🚗 Fahrer / 0,0‰ (0%)', color: 'bg-neutral-500', test: (p) => p === 0 }
+    ];
+
+    const bracketHtml = brackets
+      .map((b) => {
+        const matchingGuests = rawList.filter((g) => b.test(parseInt(g.pegel, 10) || 0));
+        const pct = Math.round((matchingGuests.length / totalCount) * 100);
+        const names = matchingGuests.map((g) => escapeHtml(g.name)).join(', ');
+
+        return `
+          <div class="space-y-1 py-1 border-b border-neutral-800/60">
+            <div class="flex justify-between items-center text-[10px]">
+              <span class="text-neutral-300 font-bold">${b.label}</span>
+              <span class="text-cyan-400 font-mono">${matchingGuests.length} (${pct}%)</span>
+            </div>
+            <div class="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+              <div class="${b.color} h-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+            ${names ? `<div class="text-[9px] text-neutral-400 font-sans truncate">${names}</div>` : ''}
+          </div>
+        `;
+      })
+      .join('');
+
+    contentEl.innerHTML = `<div class="space-y-1">${bracketHtml}</div>`;
+  } else if (type === 'drinks') {
+    titleEl.innerHTML = `⛽ TREIBSTOFF-HITLISTE & VERTEILUNG`;
+    if (totalCount === 0) {
+      contentEl.innerHTML = `<div class="text-neutral-500 py-2">Noch keine Daten vorhanden.</div>`;
+      return;
+    }
+
+    const drinkMap = {};
+    rawList.forEach((g) => {
+      const d = g.drink || 'Pils';
+      if (!drinkMap[d]) drinkMap[d] = [];
+      drinkMap[d].push(g.name);
+    });
+
+    const sortedDrinks = Object.entries(drinkMap).sort((a, b) => b[1].length - a[1].length);
+
+    const drinkHtml = sortedDrinks
+      .map(([drinkName, names]) => {
+        const count = names.length;
+        const pct = Math.round((count / totalCount) * 100);
+        return `
+          <div class="space-y-1 py-1 border-b border-neutral-800/60">
+            <div class="flex justify-between items-center text-[11px]">
+              <span class="text-amber-300 font-bold">${escapeHtml(drinkName)}</span>
+              <span class="text-cyan-400 font-mono">${count}x (${pct}%)</span>
+            </div>
+            <div class="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+              <div class="bg-amber-500 h-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+            <div class="text-[9px] text-neutral-400 font-sans truncate">${names.map((n) => escapeHtml(n)).join(', ')}</div>
+          </div>
+        `;
+      })
+      .join('');
+
+    contentEl.innerHTML = `<div class="space-y-1">${drinkHtml}</div>`;
+  } else if (type === 'quotes') {
+    const quotesList = rawList.filter((g) => Boolean((g.note || g.gift || '').trim()));
+    titleEl.innerHTML = `💬 GÄSTEBUCH-SPRÜCHE AN GEORG (${quotesList.length})`;
+
+    if (quotesList.length === 0) {
+      contentEl.innerHTML = `<div class="text-neutral-500 py-2 text-center">Bisher hat noch niemand einen Spruch hinterlassen. Schreib den ersten in deiner Zusage!</div>`;
+      return;
+    }
+
+    const quotesHtml = quotesList
+      .map((g) => {
+        const text = g.note || g.gift || '';
+        const time = formatRelativeTime(g.updatedAt || g.timestamp);
+        return `
+          <div class="p-2 rounded bg-neutral-950/80 border border-fuchsia-900/60 space-y-1">
+            <div class="flex justify-between items-center text-[10px]">
+              <span class="text-fuchsia-300 font-bold">${escapeHtml(g.name)}</span>
+              <span class="text-neutral-500 text-[9px] font-mono">${time}</span>
+            </div>
+            <div class="text-amber-200 text-[11px] font-sans italic">"${escapeHtml(text)}"</div>
+          </div>
+        `;
+      })
+      .join('');
+
+    contentEl.innerHTML = `<div class="space-y-1.5">${quotesHtml}</div>`;
+  }
+}
+

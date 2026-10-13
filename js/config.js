@@ -31,11 +31,14 @@ export const CONFIG = {
     jumpIntervalFast: 700
   },
   pegelDescriptions: {
-    0: 'p = 0.0 : Also ich bleibe nüchtern! (Fahrer / Softdrinks)',
-    25: 'p = √2 : 1-2 Bierchen und dann mal sehen...',
-    50: 'p = e¹ : Die Tanzfläche ist mein! Wo is der DJ?',
-    75: 'p = π² : Lass mal ne Runde Meiern!',
-    100: 'p → ∞ : WO IST DER TRICHTER? (VOLLGAS!)'
+    0: 'Fahrer-Modus: 0,0 Promille & Softdrinks 🚗',
+    15: 'Ganz entspannt nippen & anstoßen 🥤',
+    35: '1-2 Bierchen, lockeres Aufwärmen 🍻',
+    55: 'Gute Grundstimmung, Tanzbein zuckt schon 🕺',
+    75: 'Pegel stabil! Wo is der DJ? Lass mal Meiern! 🪩',
+    90: 'Volle Fahrt voraus! Schüttelkorn & Mischen fließen 🎊',
+    99: 'Gefahrenzone: Textsicher bei jedem Track! 🤪',
+    100: 'ABRISS! WO IST DER TRICHTER?! VOLLGAS! 🚨💥'
   },
   shotsList: [
     '🗼 Der Hubiturm muss wachsen!',
