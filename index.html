@@ -173,7 +173,7 @@
             onclick="openMusicModal()"
             class="cmd-btn py-2 rounded border border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
           >
-            <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">MUSIK</span>
+            <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">PLAYLIST</span>
           </button>
           <button
             onclick="runCommand('geschenke')"
@@ -337,13 +337,28 @@
             />
           </div>
           <div>
-            <label class="block text-emerald-400 font-bold mb-1">05. SONG-WUNSCH / ANMERKUNG</label>
-            <input
-              type="text"
-              id="rsvpSong"
-              placeholder="Z. B. 'Bella Napoli'"
-              class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800"
-            />
+            <label class="block text-emerald-400 font-bold mb-1">
+              05. WAS MUSS IN DIE PARTY-PLAYLIST? (DEIN SONGWUNSCH)
+            </label>
+            <div class="relative">
+              <div id="rsvpSongInputWrapper">
+                <input
+                  type="text"
+                  id="rsvpSongSearchInput"
+                  placeholder="Song oder Künstler suchen (z. B. Bella Napoli, Rammstein)..."
+                  autocomplete="off"
+                  class="w-full px-3 py-2 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs sm:text-sm"
+                />
+                <div
+                  id="rsvpSongSearchResults"
+                  class="hidden absolute left-0 right-0 top-full mt-1 bg-neutral-950 border border-emerald-600 rounded-lg shadow-2xl z-50 max-h-56 overflow-y-auto divide-y divide-neutral-800"
+                ></div>
+              </div>
+              <div id="rsvpSelectedSongContainer" class="hidden"></div>
+            </div>
+            <p class="text-[10px] text-emerald-600/90 mt-1 font-mono">
+              💡 Wird direkt mit Zusage in die Playlist gevotet!
+            </p>
           </div>
           <div class="pt-2">
             <button
@@ -384,7 +399,9 @@
         >
           <div id="radarMap" class="absolute inset-0"></div>
           <div class="radar-grid absolute inset-0 pointer-events-none z-[400]"></div>
-          <div class="absolute inset-0 pointer-events-none z-[410] flex items-center justify-center opacity-70">
+          <div
+            class="absolute inset-0 pointer-events-none z-[410] flex items-center justify-center opacity-70"
+          >
             <div class="w-full h-px bg-cyan-400/40 absolute"></div>
             <div class="h-full w-px bg-cyan-400/40 absolute"></div>
           </div>
@@ -406,16 +423,40 @@
             ZOOM 17
           </div>
           <div class="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-[600]">
-            <button id="radarZoomIn" type="button" class="radar-btn" aria-label="Hineinzoomen">+</button>
-            <button id="radarZoomOut" type="button" class="radar-btn" aria-label="Herauszoomen">−</button>
-            <button id="radarLocate" type="button" class="radar-btn" aria-label="Meine Position und Route">📍</button>
-            <button id="radarRecenter" type="button" class="radar-btn" aria-label="Auf Ziel zentrieren">◎</button>
+            <button id="radarZoomIn" type="button" class="radar-btn" aria-label="Hineinzoomen">
+              +
+            </button>
+            <button id="radarZoomOut" type="button" class="radar-btn" aria-label="Herauszoomen">
+              −
+            </button>
+            <button
+              id="radarLocate"
+              type="button"
+              class="radar-btn"
+              aria-label="Meine Position und Route"
+            >
+              📍
+            </button>
+            <button
+              id="radarRecenter"
+              type="button"
+              class="radar-btn"
+              aria-label="Auf Ziel zentrieren"
+            >
+              ◎
+            </button>
           </div>
           <div
             class="absolute bottom-2 left-2 right-2 flex justify-between gap-2 text-[10px] font-mono z-[600] pointer-events-none"
           >
-            <span id="radarCoords" class="text-cyan-300 bg-black/70 px-1.5 py-0.5 rounded border border-cyan-900/60"></span>
-            <span id="radarDistance" class="text-rose-300 bg-black/70 px-1.5 py-0.5 rounded border border-cyan-900/60"></span>
+            <span
+              id="radarCoords"
+              class="text-cyan-300 bg-black/70 px-1.5 py-0.5 rounded border border-cyan-900/60"
+            ></span>
+            <span
+              id="radarDistance"
+              class="text-rose-300 bg-black/70 px-1.5 py-0.5 rounded border border-cyan-900/60"
+            ></span>
           </div>
         </div>
         <div
@@ -440,19 +481,25 @@
       </div>
     </div>
 
-    <!-- Modal: Musik-Radar -->
+    <!-- Modal: Party-Playlist & Live Voting -->
     <div
       id="musicModal"
       class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
     >
       <div
-        class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[90vh] flex flex-col"
+        class="w-full max-w-lg border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-4 sm:p-5 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[90vh] flex flex-col"
       >
-        <div class="flex justify-between items-center border-b border-fuchsia-800/80 pb-2 mb-3">
+        <div class="flex justify-between items-start border-b border-fuchsia-800/80 pb-2 mb-3">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
-              [PLAYLIST] LIVE VOTING
-            </h2>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-pulse"></span>
+              <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
+                [PARTY-PLAYLIST] WAS MUSS IN DIE PLAYLIST? 🪩
+              </h2>
+            </div>
+            <p class="text-[10px] sm:text-[11px] text-fuchsia-400/80 mt-0.5">
+              Suche Songs, vote deine Favoriten & bestimme den Party-Sound!
+            </p>
           </div>
           <button
             onclick="closeMusicModal()"
@@ -461,20 +508,45 @@
             ✕
           </button>
         </div>
-        <div class="flex gap-2 mb-3">
-          <input
-            type="text"
-            id="newSongInput"
-            placeholder="Artist - Trackname..."
-            class="flex-1 px-3 py-2 bg-neutral-900 border border-fuchsia-800 rounded text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-fuchsia-400"
-          />
-          <button
-            onclick="submitSongProposal()"
-            class="px-3 py-2 rounded bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold text-xs active:scale-95 transition"
+
+        <!-- Suchleiste mit Live-Vorschau -->
+        <div class="relative mb-3">
+          <div
+            class="flex items-center bg-neutral-900 border border-fuchsia-700/80 rounded-lg overflow-hidden focus-within:border-fuchsia-400 focus-within:ring-1 focus-within:ring-fuchsia-400"
           >
-            + DROP
-          </button>
+            <span class="pl-3 text-neutral-400 text-xs">🔍</span>
+            <input
+              type="text"
+              id="musicSearchInput"
+              placeholder="Song oder Künstler suchen (z. B. Finch, Wolle Petry, Layla)..."
+              autocomplete="off"
+              class="w-full px-2.5 py-2 bg-transparent text-xs sm:text-sm text-white placeholder:text-neutral-500 focus:outline-none"
+            />
+            <button
+              id="musicSearchClearBtn"
+              onclick="clearMusicSearch()"
+              class="hidden px-2.5 py-1 text-neutral-400 hover:text-white text-xs"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Live Suchergebnisse Dropdown -->
+          <div
+            id="musicSearchResults"
+            class="hidden absolute left-0 right-0 top-full mt-1.5 bg-neutral-950 border border-fuchsia-600 rounded-lg shadow-[0_10px_30px_rgba(0,0,0,0.9)] z-50 max-h-60 overflow-y-auto divide-y divide-neutral-800"
+          ></div>
         </div>
+
+        <!-- Playlist Stats Header -->
+        <div class="flex justify-between items-center mb-2 text-[11px] font-mono">
+          <span id="playlistStatsText" class="text-fuchsia-300 font-bold">
+            🔥 AKTUELL GEVOTET (0 Tracks | 0 Votes)
+          </span>
+          <span class="text-[10px] text-neutral-400">Sortiert nach Votes</span>
+        </div>
+
+        <!-- Scrollbare Playlist Rangliste -->
         <div id="songListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1"></div>
       </div>
     </div>

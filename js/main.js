@@ -3,6 +3,10 @@ import { playBuzzerError, playSuccessChime, playTone, toggleAudio } from './app/
 import { initializeCommands, runCommand, toggleCommands } from './app/commands.js';
 import { handleDeclineClick } from './app/decline-game.js';
 import {
+  addSongFromSearch,
+  addSongVote,
+  clearMusicSearch,
+  clearSelectedRsvpSong,
   closeMusicModal,
   closeRadarModal,
   closeRsvpModal,
@@ -12,8 +16,11 @@ import {
   openMusicModal,
   openRadarModal,
   openRsvpModal,
+  selectRsvpSong,
   showGuestBoard,
+  stopAudioPreview,
   submitSongProposal,
+  toggleAudioPreview,
   togglePlusOneInput,
   toggleSongVote,
   updatePegelDisplay
@@ -33,7 +40,11 @@ window.isSudoRunning = false;
 window.canSkip = false;
 
 Object.assign(window, {
+  addSongFromSearch,
+  addSongVote,
   appendLine,
+  clearMusicSearch,
+  clearSelectedRsvpSong,
   closeMusicModal,
   closeRadarModal,
   closeRsvpModal,
@@ -49,10 +60,13 @@ Object.assign(window, {
   playSuccessChime,
   playTone,
   runCommand,
+  selectRsvpSong,
   showGuestBoard,
   showToast,
+  stopAudioPreview,
   submitSongProposal,
   toggleAudio,
+  toggleAudioPreview,
   toggleCommands,
   toggleCRT,
   toggleFullscreen,
