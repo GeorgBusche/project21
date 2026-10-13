@@ -1,6 +1,67 @@
 import { CONFIG } from '../config.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { escapeHtml, showToast } from './ui.js';
+import {
+  getPartyModeState,
+  onPartyModeChange,
+  toggleGlobalPartyMode,
+  togglePartyModePreview
+} from './party-mode/mode-controller.js';
+import {
+  adminConnectSpotify,
+  adminSkipToNextVote,
+  adminStartNextVote,
+  disconnectSpotify,
+  renderSpotifyAdminState,
+  syncSongsToSpotifyPlaylist
+} from './party-mode/spotify-next-vote.js';
+
+function adminOnly(action) {
+  if (!isAdminAuth) return undefined;
+  return action();
+}
+
+export function adminSpotifyConnect() {
+  return adminOnly(adminConnectSpotify);
+}
+export function adminSpotifyDisconnect() {
+  return adminOnly(disconnectSpotify);
+}
+export function adminSpotifySyncPlaylist() {
+  return adminOnly(syncSongsToSpotifyPlaylist);
+}
+export function adminNextVoteStart() {
+  return adminOnly(adminStartNextVote);
+}
+export function adminNextVoteSkip() {
+  return adminOnly(adminSkipToNextVote);
+}
+
+function updateAdminPartyModeLabels() {
+  const state = getPartyModeState();
+  const globalLabel = document.getElementById('adminPartyModeGlobalState');
+  const previewLabel = document.getElementById('adminPartyModePreviewState');
+  if (globalLabel) {
+    globalLabel.textContent = state.timeUnlocked
+      ? 'Automatisch live (Freischalt-Datum erreicht)'
+      : state.override
+        ? '🟢 Für alle LIVE – klicken zum Sperren'
+        : '🔒 Gesperrt – klicken zum Freischalten';
+  }
+  if (previewLabel) {
+    previewLabel.textContent = state.preview ? '👁️ Vorschau AN – klicken zum Beenden' : 'Vorschau aus';
+  }
+}
+
+export function adminTogglePartyModeGlobal() {
+  if (!isAdminAuth) return;
+  toggleGlobalPartyMode();
+}
+
+export function adminTogglePartyModePreview() {
+  if (!isAdminAuth) return;
+  togglePartyModePreview();
+}
 
 let isAdminAuth = false;
 let databaseInstance = null;
@@ -14,6 +75,9 @@ function getDatabase() {
 }
 
 export function initializeAdmin() {
+  onPartyModeChange(updateAdminPartyModeLabels);
+  updateAdminPartyModeLabels();
+
   // Check session storage
   try {
     if (sessionStorage.getItem('party_admin_auth') === 'true') {
@@ -108,6 +172,7 @@ export function adminClearPin() {
 async function showAdminDashboard() {
   document.getElementById('adminPinView')?.classList.add('hidden');
   document.getElementById('adminDashboardView')?.classList.remove('hidden');
+  renderSpotifyAdminState();
 
   await refreshAdminStats();
 }
@@ -173,7 +238,7 @@ export async function adminExportGuestsCsv() {
       esc(r.drink || ''),
       esc(r.pegel || ''),
       esc(song),
-      esc(r.note || r.gift || ''),
+      esc(r.note || ''),
       esc(date)
     ].join(';'));
   });
@@ -207,7 +272,7 @@ export async function adminCopyGuestsText() {
     text += `${num}. ${r.name}${r.plusOne ? ` +1 (${r.plusOneName || 'Begleitung'})` : ''}\n`;
     text += `   ⛽ ${r.drink || 'Keine Angabe'} | 📈 ${r.pegel || 0}%\n`;
     if (r.song) text += `   🎵 ${r.song.title} - ${r.song.artist || ''}\n`;
-    if (r.note || r.gift) text += `   💬 "${r.note || r.gift}"\n`;
+    if (r.note) text += `   💬 "${r.note}"\n`;
     text += `\n`;
   });
 
@@ -335,48 +400,7 @@ export async function adminDownloadFullBackup() {
 // ==========================================
 // CLEAR & RESET
 // ==========================================
-
-export async function adminClearRsvpsConfirm() {
-  if (!confirm('⚠️ WIRKLICH ALLE GÄSTELISTEN-EINTRÄGE (RSVPS) LÖSCHEN?\n\nTipp: Lade vorher ein Backup herunter!')) {
-    return;
-  }
-  const db = getDatabase();
-  if (!db) return;
-
-  await db.ref('rsvps').remove();
-  showToast('✓ Gästeliste vollständig geleert!');
-  playSuccessChime();
-  await refreshAdminStats();
-}
-
-export async function adminClearSongsConfirm() {
-  if (!confirm('⚠️ WIRKLICH ALLE SONGS & VOTES IN DER PLAYLIST LÖSCHEN?')) {
-    return;
-  }
-  const db = getDatabase();
-  if (!db) return;
-
-  await db.ref('songs').remove();
-  showToast('✓ Playlist vollständig geleert!');
-  playSuccessChime();
-  await refreshAdminStats();
-}
-
-export async function adminClearAllConfirm() {
-  if (!confirm('🚨 ALLES ZURÜCKSETZEN?\n\nDies löscht Gästeliste UND Playlist unwiderruflich!')) {
-    return;
-  }
-  const db = getDatabase();
-  if (!db) return;
-
-  await Promise.all([
-    db.ref('rsvps').remove(),
-    db.ref('songs').remove()
-  ]);
-  showToast('✓ Datenbank vollständig auf Werkseinstellungen zurückgesetzt!');
-  playSuccessChime();
-  await refreshAdminStats();
-}
+// Löschen läuft bewusst nur über scripts/clear-db.js (mit automatischem Backup).
 
 export async function adminHandleRestoreUpload(event) {
   const file = event.target.files?.[0];

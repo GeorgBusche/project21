@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { trackShow } from './achievements.js';
 import { playTone } from './audio.js';
 import { appendLine, showToast } from './ui.js';
 
@@ -29,6 +30,9 @@ export function initializeSudo() {
       if (label) label.textContent = 'TEST';
     }
   }
+
+  const sudoButton = document.getElementById('sudoPartyBtn');
+  if (sudoButton) setupSudoButtonGestures(sudoButton);
 
   document.addEventListener('click', () => {
     if (window.isSudoRunning && window.canSkip) emergencySkipParty();
@@ -72,12 +76,66 @@ export function emergencySkipParty() {
   );
 }
 
-export function triggerRandomSudoParty() {
+// Kurzer Klick = Zufalls-Show, langes Drücken = Jukebox zur Auswahl.
+function setupSudoButtonGestures(button) {
+  const LONG_PRESS_MS = 500;
+  let timer = null;
+  let longPressed = false;
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  button.addEventListener('pointerdown', () => {
+    longPressed = false;
+    cancel();
+    if (CONFIG.sudoTestSong !== null) return;
+    timer = setTimeout(() => {
+      longPressed = true;
+      if (navigator.vibrate) navigator.vibrate(30);
+      openSudoJukebox();
+    }, LONG_PRESS_MS);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach((type) =>
+    button.addEventListener(type, cancel)
+  );
+  button.addEventListener('contextmenu', (event) => event.preventDefault());
+  button.addEventListener('click', () => {
+    if (longPressed) {
+      longPressed = false;
+      return;
+    }
+    triggerRandomSudoParty();
+  });
+}
+
+export function openSudoJukebox() {
   if (window.isSudoRunning) {
     showToast('⚠️ System eskaliert bereits!');
     return;
   }
+  if (CONFIG.sudoTestSong !== null) {
+    triggerRandomSudoParty();
+    return;
+  }
+  playTone(520, 'sine', 0.06);
+  document.getElementById('sudoJukeboxModal')?.classList.remove('hidden');
+}
 
+export function closeSudoJukebox() {
+  document.getElementById('sudoJukeboxModal')?.classList.add('hidden');
+}
+
+export function triggerSpecificSudoParty(songKey) {
+  if (!Object.prototype.hasOwnProperty.call(SUDO_MODULES, songKey)) {
+    showToast('⚠️ Unbekannte SUDO-Show');
+    return;
+  }
+  startSudoParty(SUDO_MODULES[songKey]);
+}
+
+export function triggerRandomSudoParty() {
   const testSong = CONFIG.sudoTestSong;
   if (testSong !== null && !Object.prototype.hasOwnProperty.call(SUDO_MODULES, testSong)) {
     console.error(`Invalid SUDO test song "${testSong}".`);
@@ -85,20 +143,30 @@ export function triggerRandomSudoParty() {
     return;
   }
 
+  if (testSong) {
+    startSudoParty(SUDO_MODULES[testSong]);
+    return;
+  }
+
+  const availableModules = Object.values(SUDO_MODULES).filter((module) => module !== lastSudoParty);
+  startSudoParty(availableModules[Math.floor(Math.random() * availableModules.length)]);
+}
+
+function startSudoParty(moduleFile) {
+  if (window.isSudoRunning) {
+    showToast('⚠️ System eskaliert bereits!');
+    return;
+  }
+
+  closeSudoJukebox();
+  const showKey = Object.keys(SUDO_MODULES).find((key) => SUDO_MODULES[key] === moduleFile);
+  if (showKey) trackShow(showKey);
   const actionBar = document.getElementById('actionbar');
   const commandGrid = document.getElementById('commandGrid');
   if (actionBar) actionBar.style.display = 'none';
   if (commandGrid) commandGrid.style.pointerEvents = 'none';
 
-  if (testSong) {
-    lastSudoParty = SUDO_MODULES[testSong];
-  } else {
-    const availableModules = Object.values(SUDO_MODULES).filter(
-      (module) => module !== lastSudoParty
-    );
-    lastSudoParty = availableModules[Math.floor(Math.random() * availableModules.length)];
-  }
-
+  lastSudoParty = moduleFile;
   window.isSudoRunning = true;
   window.canSkip = false;
   setTimeout(() => {

@@ -117,6 +117,7 @@ export const startSudoTimeline = (audio, startTimeline, songName, onAudioFailure
   try {
     audio.currentTime = 0;
     audio.volume = 1;
+    audio.muted = window.parent.isMuted === true;
     const playAttempt = audio.play();
     if (playAttempt && typeof playAttempt.then === 'function') {
       playAttempt.then(startOnce, reportFailure);

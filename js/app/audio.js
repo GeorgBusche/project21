@@ -1,5 +1,6 @@
 let audioContext = null;
 let soundEnabled = true;
+window.isMuted = false;
 
 export function getAudioContext() {
   if (!audioContext) {
@@ -13,7 +14,18 @@ export function getAudioContext() {
 
 export function toggleAudio() {
   soundEnabled = !soundEnabled;
+  window.isMuted = !soundEnabled;
   const icon = document.getElementById('soundIcon');
+
+  if (window.isMuted) window.stopAudioPreview?.();
+  try {
+    document
+      .getElementById('sudoIframe')
+      ?.contentDocument?.querySelectorAll('audio')
+      .forEach((audio) => {
+        audio.muted = window.isMuted;
+      });
+  } catch (_) {}
 
   if (icon) icon.textContent = soundEnabled ? '🔊' : '🔇';
   window.showToast(soundEnabled ? 'Sound aktiviert' : 'Sound stumm');

@@ -14,9 +14,14 @@ export const CONFIG = {
     phone: '4915174345666',
     date: 'Samstag, 19.12.2026',
     time: 'Ab 19:30 Uhr bis zum Systemabsturz',
+    startIso: '2026-12-19T19:30:00',
+    endIso: '2026-12-20T06:00:00',
     location: 'Partyraum Lohhof 49, 31600 Uchte',
     mapsUrl: 'https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8',
     dresscode: 'Schick, verkleidet oder nackt... Mir doch egal!',
+    gifts: 'Bringt einfach gute Laune mit!',
+    partyModeUnlockIso: '2026-12-10T00:00:00',
+    spotify: { clientId: '', playlistId: '' },
     adminPin: '2121'
   },
   // Auf einen Songnamen setzen, um den SUDO-Button vorübergehend darauf zu fixieren.

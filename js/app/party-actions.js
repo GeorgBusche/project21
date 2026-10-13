@@ -1,4 +1,11 @@
 import { CONFIG } from '../config.js';
+import {
+  getUnlockedIds,
+  onAchievementsChange,
+  renderBadgeIcons,
+  trackFlag,
+  trackVote
+} from './achievements.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { showRadarMap } from './radar-map.js';
 import { appendLine, escapeHtml, showToast } from './ui.js';
@@ -19,9 +26,18 @@ let latestRsvpSearchResults = [];
 let currentGuestFilter = 'all';
 let currentGuestSort = 'newest';
 let currentGuestSearchQuery = '';
-let guestStatsAndFiltersOpen = false;
 let activeStatDetail = null;
+let pendingWhatsAppMessage = '';
 let selectedAvatar = { type: 'emoji', value: '😎' };
+
+export function getPartyContext() {
+  return {
+    database,
+    deviceToken,
+    getCachedRsvps: () => cachedRsvps,
+    getCachedSongs: () => cachedSongs
+  };
+}
 
 export function initializePartyBackend() {
   const firebase = window.firebase;
@@ -50,12 +66,22 @@ function getSavedLocalRsvp() {
   }
 }
 
+function syncAchievementsToGuestList(ids = getUnlockedIds()) {
+  const own = cachedRsvps[deviceToken];
+  if (!database || !own) return;
+  const current = Array.isArray(own.achievements) ? own.achievements : [];
+  if (current.length === ids.length && current.every((id) => ids.includes(id))) return;
+  database.ref(`rsvps/${deviceToken}/achievements`).set(ids);
+}
+
 function listenToRsvpUpdates() {
+  onAchievementsChange(syncAchievementsToGuestList);
   database.ref('rsvps').on('value', (snapshot) => {
     cachedRsvps = snapshot.val() || {};
     renderGuestListModal();
     updateGuestModalFooter();
     updateBottomRsvpButton();
+    syncAchievementsToGuestList();
   });
 }
 
@@ -178,6 +204,11 @@ export function toggleAudioPreview(previewUrl, trackId) {
     return;
   }
 
+  if (window.isMuted) {
+    showToast('🔇 Sound ist stumm – oben rechts wieder aktivieren');
+    return;
+  }
+
   if (currentPreviewAudio && String(currentPreviewTrackId) === String(trackId)) {
     stopAudioPreview();
     return;
@@ -195,6 +226,7 @@ export function toggleAudioPreview(previewUrl, trackId) {
       showToast('Hörprobe konnte nicht abgespielt werden');
       stopAudioPreview();
     });
+    trackFlag('preview');
 
     audio.onended = () => {
       stopAudioPreview();
@@ -275,6 +307,7 @@ export function toggleSongVote(songId) {
     }
     return song;
   });
+  if (!cachedSongs[songId]?.voters?.[deviceToken]) trackVote(songId);
   playTone(600, 'sine', 0.05);
 }
 
@@ -291,6 +324,7 @@ export function addSongVote(songId) {
     return song;
   });
   playTone(850, 'sine', 0.06);
+  trackVote(songId);
   showToast('✓ Stimme für diesen Song gezählt! 🔥');
 }
 
@@ -321,24 +355,8 @@ export function addSongFromSearch(trackId) {
   });
 
   playSuccessChime();
+  trackVote(songId);
   showToast('✓ Song in die Playlist gepackt! 🔥');
-}
-
-// Fallback für alte Freitext-Eingaben
-export function submitSongProposal() {
-  const input = document.getElementById('musicSearchInput');
-  const title = input ? input.value.trim() : '';
-  if (!title) return;
-
-  database.ref(`songs/song_${Date.now()}`).set({
-    title,
-    artist: 'Gast-Wunsch',
-    votesCount: 1,
-    voters: { [deviceToken]: true },
-    addedAt: Date.now()
-  });
-  clearMusicSearch();
-  showToast('✓ Song hinzugefügt! 🔥');
 }
 
 function listenToMusicUpdates() {
@@ -580,11 +598,13 @@ export function openRsvpModal() {
   const banner = document.getElementById('rsvpExistingBanner');
   const bannerName = document.getElementById('rsvpExistingName');
   const submitText = document.getElementById('rsvpSubmitBtnText');
+  document.getElementById('rsvpFormView')?.classList.remove('hidden');
+  document.getElementById('rsvpConfirmView')?.classList.add('hidden');
 
   if (existing && existing.name) {
     if (banner) banner.classList.remove('hidden');
     if (bannerName) bannerName.textContent = existing.name;
-    if (submitText) submitText.textContent = '🔄 ZUSAGE AKTUALISIEREN (WHATSAPP)';
+    if (submitText) submitText.textContent = '🔄 ZUSAGE AKTUALISIEREN';
 
     const nameInput = document.getElementById('rsvpName');
     if (nameInput) nameInput.value = existing.name;
@@ -609,7 +629,7 @@ export function openRsvpModal() {
     updatePegelDisplay(pegelVal);
 
     const noteInput = document.getElementById('rsvpNote');
-    if (noteInput) noteInput.value = existing.note || existing.gift || '';
+    if (noteInput) noteInput.value = existing.note || '';
 
     // Avatar wiederherstellen
     if (existing.avatar) {
@@ -636,7 +656,7 @@ export function openRsvpModal() {
     }
   } else {
     if (banner) banner.classList.add('hidden');
-    if (submitText) submitText.textContent = '📲 ZUSAGE PER WHATSAPP SENDEN';
+    if (submitText) submitText.textContent = '✅ ZUSAGE SPEICHERN';
     selectedAvatar = { type: 'emoji', value: '😎' };
     updateAvatarPreviewUI();
     const pegelInput = document.getElementById('rsvpPegel');
@@ -752,14 +772,11 @@ export function handlePlusOneInput(value) {
 
 export function getPegelDescription(value) {
   const val = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
-  if (val === 0) return 'Fahrer-Modus: 0,0 Promille & Softdrinks 🚗';
-  if (val <= 15) return 'Ganz entspannt nippen & anstoßen 🥤';
-  if (val <= 35) return '1-2 Bierchen, lockeres Aufwärmen 🍻';
-  if (val <= 55) return 'Gute Grundstimmung, Tanzbein zuckt schon 🕺';
-  if (val <= 75) return 'Pegel stabil! Wo is der DJ? Lass mal Meiern! 🪩';
-  if (val <= 90) return 'Volle Fahrt voraus! Schüttelkorn & Mischen fließen 🎊';
-  if (val <= 99) return 'Gefahrenzone: Textsicher bei jedem Track! 🤪';
-  return 'ABRISS! WO IST DER TRICHTER?! VOLLGAS! 🚨💥';
+  const thresholds = Object.keys(CONFIG.pegelDescriptions)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const match = thresholds.find((threshold) => val <= threshold);
+  return CONFIG.pegelDescriptions[match ?? thresholds[thresholds.length - 1]];
 }
 
 export function updatePegelDisplay(value) {
@@ -936,7 +953,7 @@ function renderRsvpSearchResults(results) {
   container.classList.remove('hidden');
 }
 
-export function dispatchRsvpWhatsApp() {
+export function saveRsvp() {
   const name = document.getElementById('rsvpName').value.trim();
   if (!name) {
     playBuzzerError();
@@ -949,11 +966,7 @@ export function dispatchRsvpWhatsApp() {
   const plusOneName = document.getElementById('rsvpPlusOneName')?.value.trim() || '';
   const drink = document.getElementById('rsvpDrink')?.value || 'Kühles Pils';
   const pegelValue = document.getElementById('rsvpPegel')?.value || 75;
-  const note = (
-    document.getElementById('rsvpNote')?.value ||
-    document.getElementById('rsvpGift')?.value ||
-    ''
-  ).trim();
+  const note = (document.getElementById('rsvpNote')?.value || '').trim();
 
   // Gewählten Song oder getippten Fallback erfassen
   let songPayload = null;
@@ -1024,6 +1037,9 @@ export function dispatchRsvpWhatsApp() {
 
   const wasExisting = Boolean(cachedRsvps[deviceToken] || getSavedLocalRsvp());
 
+  if (songPayload) trackVote(songPayload.trackId || songPayload.title);
+  if (parseInt(pegelValue, 10) === 100) trackFlag('pegel100');
+
   const rsvpRecord = {
     name,
     avatar: selectedAvatar,
@@ -1032,7 +1048,6 @@ export function dispatchRsvpWhatsApp() {
     drink,
     pegel: pegelValue,
     note,
-    gift: note,
     song: songPayload
       ? {
           trackId: songPayload.trackId,
@@ -1043,6 +1058,7 @@ export function dispatchRsvpWhatsApp() {
         }
       : null,
     deviceToken,
+    achievements: getUnlockedIds(),
     updatedAt: Date.now(),
     timestamp: Date.now()
   };
@@ -1055,7 +1071,6 @@ export function dispatchRsvpWhatsApp() {
 
   updateBottomRsvpButton();
   updateGuestModalFooter();
-
   const pegelText = getPegelDescription(pegelValue);
   let message = wasExisting
     ? `🚨 Zusage-Update für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nhier ist ein Update zu meiner Zusage:\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja (+1)' : 'Nein'}\n⛽ Kraftstoff: ${drink}\n📊 Pegel: ${pegelValue}% (${pegelText})`
@@ -1068,12 +1083,119 @@ export function dispatchRsvpWhatsApp() {
     message += `\n💬 Ansage / Wunsch: ${note}`;
   }
 
+  pendingWhatsAppMessage = message;
+
   showToast(wasExisting ? '✓ Zusage aktualisiert! 🔄' : '✓ Zusage erfolgreich gespeichert! 👍');
   playSuccessChime();
-  closeRsvpModal();
+  appendLine(
+    `<div class="my-1 p-2 rounded border border-emerald-600 bg-emerald-950/40 text-emerald-300 text-xs">✅ ZUSAGE GESPEICHERT – Zutritt gewährt!<br><button type="button" onclick="openTicketModal()" class="mt-1.5 px-3 py-1 rounded bg-emerald-600 text-black font-bold text-xs active:scale-95 transition">🎟️ VIP-Ticket öffnen</button></div>`,
+    300
+  );
+
+  stopAudioPreview();
+  const rsvpResults = document.getElementById('rsvpSongSearchResults');
+  if (rsvpResults) {
+    rsvpResults.innerHTML = '';
+    rsvpResults.classList.add('hidden');
+  }
+  document.getElementById('rsvpExistingBanner')?.classList.add('hidden');
+  document.getElementById('rsvpFormView')?.classList.add('hidden');
+  const confirmTitle = document.getElementById('rsvpConfirmTitle');
+  if (confirmTitle) {
+    confirmTitle.textContent = wasExisting ? 'Zusage aktualisiert!' : 'Zusage gespeichert!';
+  }
+  document.getElementById('rsvpConfirmView')?.classList.remove('hidden');
+}
+
+function toIcsLocal(iso) {
+  return iso.replace(/[-:]/g, '').slice(0, 15);
+}
+
+function toIcsUtcNow() {
+  return new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+function escapeIcsText(text) {
+  return String(text)
+    .replace(/\\/g, '\\\\')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
+}
+
+// Zeilen > 75 Oktette werden laut RFC 5545 gefaltet.
+function foldIcsLine(line) {
+  const encoder = new TextEncoder();
+  const parts = [];
+  let current = '';
+  let currentBytes = 0;
+  for (const char of line) {
+    const size = encoder.encode(char).length;
+    const limit = parts.length === 0 ? 75 : 74;
+    if (currentBytes + size > limit) {
+      parts.push(current);
+      current = '';
+      currentBytes = 0;
+    }
+    current += char;
+    currentBytes += size;
+  }
+  parts.push(current);
+  return parts.join('\r\n ');
+}
+
+export function downloadPartyCalendar() {
+  const { startIso, endIso, location, mapsUrl, dresscode, hostName } = CONFIG.party;
+  const description = [
+    `${hostName} wird 21 – die Party des Jahres!`,
+    `Dresscode: ${dresscode}`,
+    `Ort: ${location}`,
+    `Google Maps: ${mapsUrl}`
+  ].join('\n');
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Georg 21//Partyplanung//DE',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:georg21-party-${toIcsLocal(startIso)}@lohhof49`,
+    `DTSTAMP:${toIcsUtcNow()}`,
+    `DTSTART:${toIcsLocal(startIso)}`,
+    `DTEND:${toIcsLocal(endIso)}`,
+    `SUMMARY:${escapeIcsText('🚨 Georgs 21. Geburtstag (Partyraum Lohhof 49)')}`,
+    `LOCATION:${escapeIcsText(location)}`,
+    `DESCRIPTION:${escapeIcsText(description)}`,
+    `URL:${mapsUrl}`,
+    'BEGIN:VALARM',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Morgen steigt Georgs 21. Geburtstag!',
+    'TRIGGER:-PT24H',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+
+  const blob = new Blob([lines.map(foldIcsLine).join('\r\n') + '\r\n'], {
+    type: 'text/calendar;charset=utf-8'
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'georgs_21_geburtstag.ics';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('📅 Kalendereintrag heruntergeladen!');
+}
+
+export function sendRsvpViaWhatsApp() {
+  if (!pendingWhatsAppMessage) return;
   const cleanPhone = CONFIG.party.phone.replace(/\D/g, '');
   window.open(
-    `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`,
+    `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(pendingWhatsAppMessage)}`,
     '_blank'
   );
 }
@@ -1206,11 +1328,12 @@ export function showGuestBoard() {
                 <div class='min-w-0 flex-1'>
                   <div class='flex items-center gap-1.5 flex-wrap'>
                     <span class='text-white font-bold'>${escapeHtml(guest.name)}</span>
+                    ${renderBadgeIcons(guest.achievements)}
                     ${guest.plusOne ? `<span class='text-[10px] text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.2 rounded'>+1 (${escapeHtml(guest.plusOneName || 'Begleitung')})</span>` : ''}
                   </div>
                   <div class='text-[11px] text-neutral-400 mt-0.5'>⛽ ${escapeHtml(guest.drink)}</div>
                   ${guest.song ? `<div class='text-[10px] text-fuchsia-400 truncate mt-0.5'>🎵 ${escapeHtml(guest.song.title || guest.song)}${guest.song.artist ? ` - ${escapeHtml(guest.song.artist)}` : ''}</div>` : ''}
-                  ${guest.note || guest.gift ? `<div class='text-[11px] text-amber-300 italic mt-0.5 font-sans'>💬 "${escapeHtml(guest.note || guest.gift)}"</div>` : ''}
+                  ${guest.note ? `<div class='text-[11px] text-amber-300 italic mt-0.5 font-sans'>💬 "${escapeHtml(guest.note)}"</div>` : ''}
                 </div>
               </div>
               <span class='text-xs font-bold font-mono px-2 py-0.5 rounded flex-shrink-0 ${
@@ -1377,7 +1500,7 @@ function getPegelBadgeStyle(pegel) {
   return 'border-rose-500 bg-rose-950/90 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse';
 }
 
-function formatRelativeTime(timestamp) {
+export function formatRelativeTime(timestamp) {
   if (!timestamp) return '';
   const diffSec = Math.floor((Date.now() - timestamp) / 1000);
   if (diffSec < 60) return 'Gerade eben';
@@ -1408,7 +1531,7 @@ function renderGuestListModal() {
   const avgPegel = totalCount
     ? Math.round(rawList.reduce((acc, g) => acc + (parseInt(g.pegel, 10) || 0), 0) / totalCount)
     : 0;
-  const notesCount = rawList.filter((g) => Boolean((g.note || g.gift || '').trim())).length;
+  const notesCount = rawList.filter((g) => Boolean((g.note || '').trim())).length;
 
   const drinkCounts = {};
   rawList.forEach((g) => {
@@ -1475,7 +1598,7 @@ function renderGuestListModal() {
       const matchName = (g.name || '').toLowerCase().includes(q);
       const matchPlusOne = (g.plusOneName || '').toLowerCase().includes(q);
       const matchDrink = (g.drink || '').toLowerCase().includes(q);
-      const matchNote = (g.note || g.gift || '').toLowerCase().includes(q);
+      const matchNote = (g.note || '').toLowerCase().includes(q);
       const matchSong =
         g.song &&
         ((g.song.title || '').toLowerCase().includes(q) ||
@@ -1499,7 +1622,7 @@ function renderGuestListModal() {
       );
     }
     if (currentGuestFilter === 'notes') {
-      return Boolean((g.note || g.gift || '').trim());
+      return Boolean((g.note || '').trim());
     }
     if (currentGuestFilter === 'plusone') {
       return Boolean(g.plusOne);
@@ -1542,7 +1665,7 @@ function renderGuestListModal() {
       const avatarContent = getGuestAvatarDisplay(guest);
       const pegelBadge = getPegelBadgeStyle(guest.pegel);
       const timeAgo = formatRelativeTime(guest.updatedAt || guest.timestamp);
-      const noteText = (guest.note || guest.gift || '').trim();
+      const noteText = (guest.note || '').trim();
 
       return `
         <div class="p-3 rounded-xl border ${
@@ -1559,6 +1682,7 @@ function renderGuestListModal() {
               <div class="min-w-0">
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="text-sm font-bold text-white truncate">${escapeHtml(guest.name)}</span>
+                  ${renderBadgeIcons(guest.achievements)}
                   ${isCurrentUser ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400 text-black">DU</span>' : ''}
                   ${
                     guest.plusOne
@@ -1656,7 +1780,9 @@ function updateGuestModalFooter() {
     if (rsvpBtn) {
       rsvpBtn.innerHTML = '<span>✏️</span> Zusage anpassen';
     }
+    document.getElementById('guestModalTicketBtn')?.classList.remove('hidden');
   } else {
+    document.getElementById('guestModalTicketBtn')?.classList.add('hidden');
     if (userStatusEl) {
       userStatusEl.innerHTML = '<span class="text-neutral-400">Du bist noch nicht eingetragen!</span>';
     }
@@ -1688,25 +1814,11 @@ export function updateBottomRsvpButton() {
   }
 }
 
-export function toggleGuestStatsAndFilters() {
-  guestStatsAndFiltersOpen = !guestStatsAndFiltersOpen;
-  const collapseEl = document.getElementById('guestStatsAndFiltersCollapse');
-  const arrowEl = document.getElementById('guestStatsToggleArrow');
-  if (collapseEl) {
-    collapseEl.classList.toggle('hidden', !guestStatsAndFiltersOpen);
-  }
-  if (arrowEl) {
-    arrowEl.textContent = guestStatsAndFiltersOpen ? '▲' : '▼';
-  }
-}
-
 export function toggleStatDetail(type) {
   if (activeStatDetail === type) {
     closeStatDetail();
   } else {
     activeStatDetail = type;
-    const panel = document.getElementById('guestStatDetailPanel');
-    if (panel) panel.classList.remove('hidden');
     renderStatDetail(type);
     playTone(650, 'sine', 0.04);
   }
@@ -1714,8 +1826,6 @@ export function toggleStatDetail(type) {
 
 export function closeStatDetail() {
   activeStatDetail = null;
-  const panel = document.getElementById('guestStatDetailPanel');
-  if (panel) panel.classList.add('hidden');
 }
 
 export function renderStatDetail(type) {
@@ -1848,7 +1958,7 @@ export function renderStatDetail(type) {
 
     contentEl.innerHTML = `<div class="space-y-1">${drinkHtml}</div>`;
   } else if (type === 'quotes') {
-    const quotesList = rawList.filter((g) => Boolean((g.note || g.gift || '').trim()));
+    const quotesList = rawList.filter((g) => Boolean((g.note || '').trim()));
     titleEl.innerHTML = `💬 GÄSTEBUCH-SPRÜCHE AN GEORG (${quotesList.length})`;
 
     if (quotesList.length === 0) {
@@ -1858,7 +1968,7 @@ export function renderStatDetail(type) {
 
     const quotesHtml = quotesList
       .map((g) => {
-        const text = g.note || g.gift || '';
+        const text = g.note || '';
         const time = formatRelativeTime(g.updatedAt || g.timestamp);
         return `
           <div class="p-2 rounded bg-neutral-950/80 border border-fuchsia-900/60 space-y-1">

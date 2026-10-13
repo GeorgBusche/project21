@@ -55,7 +55,35 @@ export function appendLine(html, delay = 0) {
   }, delay);
 }
 
+function updatePartyCountdown() {
+  const badge = document.getElementById('partyCountdown');
+  if (!badge) return;
+
+  const diff = new Date(CONFIG.party.startIso).getTime() - Date.now();
+  if (Number.isNaN(diff)) {
+    badge.textContent = '';
+    return;
+  }
+  if (diff <= 0) {
+    badge.textContent = '🔥 ESKALATION LÄUFT!';
+    return;
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const pad = (value) => String(value).padStart(2, '0');
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  badge.textContent = `T-MINUS: ${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+}
+
+let countdownTimer = null;
+
 export function startBootSequence() {
+  updatePartyCountdown();
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(updatePartyCountdown, 1000);
   const bootSequence = [
     {
       text: "<span class='text-emerald-500'>[SYS]</span> Lade Linux kernel 6.8.0-partyraum-generic...",

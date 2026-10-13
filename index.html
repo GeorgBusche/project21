@@ -38,14 +38,14 @@
     id="bodyRoot"
     class="h-full flex flex-col justify-between select-none relative crt-overlay bg-neutral-950 pb-20"
   >
-    <!-- Fullscreen FX Canvas -->
-    <canvas id="fxCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
-    <!-- Strobo / Farb-Overlay -->
-    <div
-      id="discoOverlay"
-      class="fixed inset-0 pointer-events-none z-40 opacity-0 transition-opacity duration-75"
-    ></div>
-    <div id="discoBallElem" class="hidden">🪩</div>
+    <!--
+      Psst, Quelltext-Leser! 🕵️
+      Oben im Terminal versteckt sich eine Kommandozeile. Öffnen: Klick auf "SERVER: LOHHOF_49"
+      (am Desktop reicht es, einfach loszutippen). Probier:
+        help | sudo <bella|wolle|rammstein|biertornado|ragecage|schuettelkorn> | drunk | flip
+        ls | cat <datei> | whoami | ping lohhof | trophies | clear | root | exit
+      Wer alles findet, bekommt ein Abzeichen in der Gästeliste. 🏆
+    -->
 
     <!-- Top System Bar -->
     <header
@@ -89,6 +89,14 @@
         </button>
 
         <button
+          onclick="openTrophies()"
+          title="Trophäen"
+          class="px-2.5 py-1 text-[10px] border border-amber-800/80 rounded bg-amber-950/30 text-amber-300 active:scale-95 transition flex items-center justify-center gap-1"
+        >
+          🏆 <span id="trophyCount">0</span>
+        </button>
+
+        <button
           id="soundToggleBtn"
           onclick="toggleAudio()"
           class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
@@ -112,11 +120,12 @@
       <div
         class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600"
       >
-        <span class="truncate pr-2"
+        <span class="truncate pr-2 cursor-pointer select-none" onclick="toggleSecretCli()"
           >SERVER: <strong class="text-emerald-400">LOHHOF_49</strong></span
         >
+        <span id="partyCountdown" class="font-mono text-cyan-400 truncate px-1"></span>
         <span class="whitespace-nowrap"
-          >STATUS: <span class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span
+          >STATUS: <span id="terminalStatusText" class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span
         >
       </div>
 
@@ -125,6 +134,8 @@
         id="terminalOutput"
         class="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2 relative z-20"
       ></div>
+
+      <div id="secretCliBar" class="hidden flex items-center gap-1.5 border-t border-emerald-800/70 pt-1.5 mt-1 font-mono text-xs"><span class="text-emerald-400 font-bold">gast@lohhof49:~$</span><input id="secretCliInput" type="text" autocomplete="off" spellcheck="false" class="flex-1 bg-transparent text-emerald-200 focus:outline-none" placeholder="Befehl eingeben (z. B. help)..." /></div>
 
       <!-- Einklappbares System-Befehle Gitter -->
       <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
@@ -143,7 +154,7 @@
 
         <div
           id="commandGrid"
-          class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 transition-all relative"
+          class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 transition-all relative"
         >
           <button
             onclick="runCommand('info')"
@@ -158,18 +169,6 @@
             <span class="cmd-icon text-sm">📡</span><span class="cmd-text">RADAR</span>
           </button>
           <button
-            onclick="runCommand('mathe')"
-            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">∫</span><span class="cmd-text">MATHE</span>
-          </button>
-          <button
-            onclick="runCommand('shot_roulette')"
-            class="cmd-btn py-2 rounded border border-amber-800 bg-amber-950/30 text-amber-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">🥃</span><span class="cmd-text">ROULETTE</span>
-          </button>
-          <button
             onclick="showGuestBoard()"
             class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
           >
@@ -182,17 +181,18 @@
             <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">PLAYLIST</span>
           </button>
           <button
-            onclick="runCommand('geschenke')"
-            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">🎁</span><span class="cmd-text">GESCHENKE</span>
-          </button>
-          <button
             id="sudoPartyBtn"
-            onclick="triggerRandomSudoParty()"
-            class="cmd-btn py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]"
+            title="Tippen: Zufalls-Show · Gedrückt halten: Show auswählen"
+            class="cmd-btn select-none py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]"
           >
             <span class="cmd-icon text-sm">🎲</span><span class="cmd-text font-bold">SUDO</span>
+          </button>
+          <button
+            id="partyLockBtn"
+            onclick="showToast('🔒 Party-Features (Glücksrad, Trinkspiel, Live-Voting &amp; Snap-Cam) starten am 10.12.!')"
+            class="cmd-btn py-2 rounded border border-neutral-700 bg-neutral-900/50 text-neutral-500 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 opacity-70"
+          >
+            <span class="cmd-icon text-sm">🔒</span><span class="cmd-text">PARTY-MODUS (10.12.)</span>
           </button>
         </div>
       </div>
@@ -264,7 +264,7 @@
           </div>
         </div>
 
-        <div class="space-y-2.5 text-xs">
+        <div id="rsvpFormView" class="space-y-2.5 text-xs">
           <!-- 01 Name -->
           <div>
             <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
@@ -496,12 +496,53 @@
           <div class="pt-1">
             <button
               id="rsvpSubmitBtn"
-              onclick="dispatchRsvpWhatsApp()"
+              onclick="saveRsvp()"
               class="w-full py-2.5 sm:py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-extrabold text-xs sm:text-sm tracking-wide flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.6)] active:scale-95 transition"
             >
-              <span id="rsvpSubmitBtnText">📲 ZUSAGE PER WHATSAPP SENDEN</span>
+              <span id="rsvpSubmitBtnText">✅ ZUSAGE SPEICHERN</span>
             </button>
           </div>
+        </div>
+
+        <!-- Bestätigung nach dem Speichern -->
+        <div id="rsvpConfirmView" class="hidden space-y-3 py-3 text-center">
+          <div class="text-4xl">✅</div>
+          <div>
+            <div id="rsvpConfirmTitle" class="text-sm font-bold text-emerald-300 font-mono">
+              Zusage gespeichert!
+            </div>
+            <div class="text-[11px] text-neutral-400 mt-1">
+              Deine Zusage ist bei Georg angekommen. Mehr musst du nicht tun.
+            </div>
+          </div>
+          <button
+            type="button"
+            onclick="closeRsvpModal(); openTicketModal();"
+            class="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-400 text-black font-extrabold text-sm shadow-[0_0_20px_rgba(16,185,129,0.55)] animate-pulse active:scale-95 transition"
+          >
+            🎟️ DEIN VIP-TICKET ANSEHEN & TEILEN
+          </button>
+          <button
+            type="button"
+            onclick="sendRsvpViaWhatsApp()"
+            class="w-full py-2 px-4 rounded-lg bg-neutral-900 border border-emerald-600 hover:border-emerald-400 text-emerald-300 font-bold text-xs active:scale-95 transition"
+          >
+            📲 Zusätzlich per WhatsApp an Georg senden
+          </button>
+          <button
+            type="button"
+            onclick="downloadPartyCalendar()"
+            class="w-full py-2 px-4 rounded-lg bg-neutral-900 border border-cyan-600 hover:border-cyan-400 text-cyan-300 font-bold text-xs active:scale-95 transition"
+          >
+            📅 Termin in Kalender speichern (.ics)
+          </button>
+          <button
+            type="button"
+            onclick="closeRsvpModal()"
+            class="w-full py-2 px-4 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 font-bold text-xs active:scale-95 transition"
+          >
+            Schließen
+          </button>
         </div>
       </div>
     </div>
@@ -818,13 +859,22 @@
           <div id="guestUserStatus" class="text-[11px] text-neutral-400 truncate min-w-0 pr-2">
             Noch nicht angemeldet?
           </div>
-          <button
-            onclick="closeGuestModal(); openRsvpModal();"
-            id="guestModalRsvpBtn"
-            class="px-3 py-1 rounded bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-black font-bold text-xs flex-shrink-0 active:scale-95 transition shadow-sm"
-          >
-            ✏️ Zusage anpassen
-          </button>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              onclick="closeGuestModal(); openTicketModal();"
+              id="guestModalTicketBtn"
+              class="hidden px-3 py-1 rounded border border-emerald-500 text-emerald-300 font-bold text-xs active:scale-95 transition"
+            >
+              🎟️ Mein Ticket
+            </button>
+            <button
+              onclick="closeGuestModal(); openRsvpModal();"
+              id="guestModalRsvpBtn"
+              class="px-3 py-1 rounded bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-black font-bold text-xs flex-shrink-0 active:scale-95 transition shadow-sm"
+            >
+              ✏️ Zusage anpassen
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -972,7 +1022,7 @@
               ROOT-AUTHENTIFIZIERUNG ERFORDERLICH
             </div>
             <div class="text-[11px] text-neutral-400 mt-1">
-              Bitte gib deinen Master-PIN ein (Standard: 2121):
+              Bitte gib deinen Master-PIN ein:
             </div>
           </div>
 
@@ -1013,6 +1063,57 @@
           <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/80 flex items-center justify-between font-mono">
             <span class="text-emerald-400 font-bold">STATUS:</span>
             <span id="adminHeaderStats" class="text-neutral-300 text-[11px] truncate">Lade Daten...</span>
+          </div>
+
+          <!-- BEREICH: SPOTIFY & NEXT SONG -->
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-green-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <span>🎧</span> SPOTIFY &amp; NEXT-SONG-VOTING
+            </div>
+            <div class="p-2 rounded bg-neutral-900 border border-green-900 space-y-1.5">
+              <input id="spotifyClientIdInput" type="text" autocomplete="off" spellcheck="false" placeholder="Spotify Client ID" class="w-full bg-black border border-green-900 rounded px-2 py-1.5 text-[11px] text-green-200 focus:outline-none focus:border-green-500" />
+              <input id="spotifyPlaylistInput" type="text" autocomplete="off" spellcheck="false" placeholder="Playlist ID oder Playlist-Link" class="w-full bg-black border border-green-900 rounded px-2 py-1.5 text-[11px] text-green-200 focus:outline-none focus:border-green-500" />
+              <div class="text-[10px] text-neutral-500 break-all">Redirect-URI im Spotify-Dashboard eintragen: <span id="spotifyRedirectUri" class="text-neutral-300"></span></div>
+              <div id="spotifyStatus" class="text-[11px] text-neutral-300 font-mono">⚪ Nicht verbunden</div>
+              <div class="flex gap-1.5">
+                <button type="button" onclick="adminSpotifyConnect()" class="flex-1 py-2 rounded bg-green-700 hover:bg-green-600 text-white font-bold text-[11px] active:scale-95 transition">🟢 Mit Spotify verbinden</button>
+                <button type="button" onclick="adminSpotifyDisconnect()" class="px-3 py-2 rounded border border-neutral-700 text-neutral-400 text-[11px] active:scale-95 transition">Trennen</button>
+              </div>
+            </div>
+            <button type="button" onclick="adminSpotifySyncPlaylist()" class="w-full p-2 rounded bg-neutral-900 border border-green-800 hover:border-green-400 text-left font-bold text-white text-xs active:scale-95 transition">🔄 Alle Wunsch-Songs in Spotify-Playlist synchronisieren</button>
+            <button type="button" onclick="adminNextVoteStart()" class="w-full p-2 rounded bg-neutral-900 border border-fuchsia-800 hover:border-fuchsia-400 text-left active:scale-95 transition">
+              <div class="font-bold text-white text-xs">▶️ Live 3er-Voting Runde starten / Auto-Rotation</div>
+              <div id="adminNextVoteState" class="text-[10px] text-neutral-400">Runde: keine aktiv</div>
+            </button>
+            <button type="button" onclick="adminNextVoteSkip()" class="w-full p-2 rounded bg-neutral-900 border border-rose-800 hover:border-rose-400 text-left font-bold text-white text-xs active:scale-95 transition">⏭️ Gewinner jetzt in Spotify-Queue schicken &amp; neue 3 ziehen</button>
+            <p class="text-[10px] text-neutral-500">Die Queue-Übergabe läuft nur im Browser, der mit Spotify verbunden ist und offen bleibt. Spotify Premium und ein aktives Wiedergabegerät sind nötig.</p>
+          </div>
+
+          <!-- BEREICH 0: PARTY-MODUS -->
+          <div class="space-y-2">
+            <div class="text-[11px] font-bold text-fuchsia-400 uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <span>🎉</span> PARTY-MODUS STEUERUNG
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                id="adminPartyModeGlobalBtn"
+                onclick="adminTogglePartyModeGlobal()"
+                class="p-2 rounded bg-neutral-900 border border-fuchsia-800 hover:border-fuchsia-400 text-left hover:bg-neutral-800 active:scale-95 transition"
+              >
+                <div class="font-bold text-white text-xs">🌐 Für ALLE Gäste live schalten / sperren</div>
+                <div id="adminPartyModeGlobalState" class="text-[10px] text-neutral-400">Status wird geladen...</div>
+              </button>
+              <button
+                type="button"
+                id="adminPartyModePreviewBtn"
+                onclick="adminTogglePartyModePreview()"
+                class="p-2 rounded bg-neutral-900 border border-cyan-800 hover:border-cyan-400 text-left hover:bg-neutral-800 active:scale-95 transition"
+              >
+                <div class="font-bold text-white text-xs">👁️ Nur für mich testen (Vorschau)</div>
+                <div id="adminPartyModePreviewState" class="text-[10px] text-neutral-400">Vorschau aus</div>
+              </button>
+            </div>
           </div>
 
           <!-- BEREICH 1: EXPORTE & EINKAUFSPLANER -->
@@ -1102,7 +1203,7 @@
           <!-- BEREICH 3: DATEN SICHERN & LÖSCHEN (GEFAHRENZONE) -->
           <div class="space-y-2 p-2.5 rounded-lg bg-rose-950/20 border border-rose-900/60 font-mono">
             <div class="text-[11px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-              <span>⚠️</span> 3. DATENBANK-VERWALTUNG & GEFAHRENZONE
+              <span>⚠️</span> 3. DATENBANK-BACKUP
             </div>
 
             <div class="flex flex-wrap gap-2">
@@ -1126,33 +1227,331 @@
                 />
               </label>
             </div>
-
-            <div class="pt-2 border-t border-rose-900/40 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <button
-                type="button"
-                onclick="adminClearRsvpsConfirm()"
-                class="py-2 px-2 rounded bg-neutral-900 border border-rose-800 text-rose-300 hover:bg-rose-950 active:scale-95 transition font-bold text-center"
-              >
-                🗑️ Gästeliste leeren
-              </button>
-
-              <button
-                type="button"
-                onclick="adminClearSongsConfirm()"
-                class="py-2 px-2 rounded bg-neutral-900 border border-rose-800 text-rose-300 hover:bg-rose-950 active:scale-95 transition font-bold text-center"
-              >
-                🗑️ Playlist leeren
-              </button>
-
-              <button
-                type="button"
-                onclick="adminClearAllConfirm()"
-                class="py-2 px-2 rounded bg-rose-900/60 border border-rose-600 text-white hover:bg-rose-800 active:scale-95 transition font-extrabold text-center shadow-[0_0_10px_rgba(244,63,94,0.3)]"
-              >
-                💥 ALLES RESETTEN
-              </button>
-            </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: SUDO-Jukebox -->
+    <div
+      id="sudoJukeboxModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(217,70,239,0.35)] max-h-[96vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-rose-800/80 pb-1.5 mb-3">
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
+              [SUDO] JUKEBOX
+            </h2>
+            <p class="text-[10px] text-rose-400">Wähle deine Eskalationsstufe</p>
+          </div>
+          <button
+            onclick="closeSudoJukebox()"
+            class="text-fuchsia-400 hover:text-fuchsia-200 text-lg px-2 py-0.5 rounded border border-fuchsia-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onclick="triggerRandomSudoParty()"
+          class="w-full py-3 mb-3 rounded-lg bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 hover:to-fuchsia-500 text-white font-extrabold text-xs sm:text-sm tracking-wide shadow-[0_0_18px_rgba(236,72,153,0.5)] active:scale-95 transition"
+        >
+          🎲 ZUFALLS-ESKALATION STARTEN
+        </button>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs">
+          <button type="button" onclick="triggerSpecificSudoParty('bella')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🍕 Bella Napoli</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Dorf-Abriss &amp; Piazza</div>
+          </button>
+          <button type="button" onclick="triggerSpecificSudoParty('wolle')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🎸 Wolle Petry</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Flanell &amp; Stadion-Nacht</div>
+          </button>
+          <button type="button" onclick="triggerSpecificSudoParty('rammstein')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🔥 Rammstein – Sonne</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Pyro &amp; Industriestahl</div>
+          </button>
+          <button type="button" onclick="triggerSpecificSudoParty('biertornado')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🌪️ Biertornado</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Sturm &amp; Druckbetankung</div>
+          </button>
+          <button type="button" onclick="triggerSpecificSudoParty('ragecage')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🥤 Rage Cage</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Arena &amp; Becher-Chaos</div>
+          </button>
+          <button type="button" onclick="triggerSpecificSudoParty('schuettelkorn')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
+            <div class="font-bold text-rose-300">🌾 Schüttelkorn</div>
+            <div class="text-[10px] text-neutral-400 font-sans">Ahoi-Brause &amp; Heinz Erhardt</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Trophäen -->
+    <div
+      id="achievementsModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-amber-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(245,158,11,0.3)] max-h-[96vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-amber-800/80 pb-1.5 mb-3">
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">
+              [🏆] TROPHÄEN
+            </h2>
+            <p id="trophySummary" class="text-[10px] text-amber-600">0 Trophäen</p>
+          </div>
+          <button
+            onclick="closeTrophies()"
+            class="text-amber-400 hover:text-amber-200 text-lg px-2 py-0.5 rounded border border-amber-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div id="trophyList" class="space-y-1.5 font-mono"></div>
+        <p class="text-[10px] text-neutral-500 mt-3 font-sans">
+          Freigeschaltete Trophäen erscheinen als Abzeichen neben deinem Namen in der Gästeliste (sobald du zugesagt hast).
+        </p>
+      </div>
+    </div>
+
+    <!-- Modal: Glücksrad -->
+    <div
+      id="wheelModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-amber-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(245,158,11,0.3)] max-h-[96vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-amber-800/80 pb-1.5 mb-2">
+          <h2 class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">[🎡] GLÜCKSRAD-ROULETTE</h2>
+          <button
+            onclick="closeWheelModal()"
+            class="text-amber-400 hover:text-amber-200 text-lg px-2 py-0.5 rounded border border-amber-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="grid grid-cols-3 gap-1 mb-2 text-[10px] font-mono">
+          <button id="wheelTabShots" onclick="setWheelMode('shots')" class="py-1.5 rounded border border-amber-800 text-amber-300 active:scale-95 transition">🥃 SHOT-RAD</button>
+          <button id="wheelTabGuests" onclick="setWheelMode('guests')" class="py-1.5 rounded border border-amber-800 text-amber-300 active:scale-95 transition">👥 WER TRINKT?</button>
+          <button id="wheelTabCombo" onclick="setWheelMode('combo')" class="py-1.5 rounded border border-amber-800 text-amber-300 active:scale-95 transition">🔥 KOMBI</button>
+        </div>
+        <div class="relative mx-auto w-full max-w-[320px]">
+          <div class="absolute left-1/2 -top-1 -translate-x-1/2 z-10 text-2xl leading-none text-red-500 drop-shadow">▼</div>
+          <canvas id="wheelCanvas" width="320" height="320" class="w-full h-auto"></canvas>
+        </div>
+        <div id="wheelResult" class="hidden mt-2 p-2.5 rounded-lg border border-amber-500 bg-amber-950/30 text-center font-mono"></div>
+        <button
+          id="wheelSpinBtn"
+          onclick="spinWheel()"
+          class="mt-3 w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold text-sm active:scale-95 transition disabled:opacity-50"
+        >
+          🎡 RAD DREHEN!
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal: Trinkspiel -->
+    <div
+      id="drinkingGameModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-rose-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(244,63,94,0.3)] max-h-[96vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-rose-800/80 pb-1.5 mb-2">
+          <h2 class="text-sm sm:text-base font-bold text-rose-300 tracking-wider">[💣] TRINKSPIELE</h2>
+          <button
+            onclick="closeDrinkingGameModal()"
+            class="text-rose-400 hover:text-rose-200 text-lg px-2 py-0.5 rounded border border-rose-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-1 mb-3 text-[10px] font-mono">
+          <button id="drinkTabBomb" onclick="setDrinkingGameMode('bomb')" class="py-1.5 rounded border border-rose-800 text-rose-300 active:scale-95 transition">💣 KERNEL-BOMBE</button>
+          <button id="drinkTabDuel" onclick="setDrinkingGameMode('duel')" class="py-1.5 rounded border border-rose-800 text-rose-300 active:scale-95 transition">⚔️ LOHHOF-DUELL</button>
+        </div>
+
+        <div id="drinkBombPanel">
+          <div id="bombScreen" class="rounded-lg border border-rose-800 bg-neutral-900 p-5 text-center font-mono transition-colors">
+            <div id="bombQuestion" class="text-lg font-extrabold text-rose-100 min-h-[4rem] flex items-center justify-center">Bereit? Handy in die Runde geben und starten!</div>
+            <div id="bombStatus" class="text-[11px] text-neutral-400 mt-2">Die Zündschnur ist unsichtbar...</div>
+          </div>
+          <button
+            id="bombStartBtn"
+            onclick="startKernelBomb()"
+            class="mt-3 w-full py-3 rounded-lg bg-gradient-to-r from-rose-600 to-red-500 text-white font-extrabold text-sm active:scale-95 transition"
+          >
+            💣 BOMBE ZÜNDEN
+          </button>
+          <button
+            id="bombPassBtn"
+            onclick="passKernelBomb()"
+            class="hidden mt-3 w-full py-4 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-black font-extrabold text-base active:scale-95 transition"
+          >
+            👉 WEITERGEBEN
+          </button>
+          <p class="text-[10px] text-neutral-500 mt-2 font-sans">Wer antwortet, drückt "Weitergeben" und reicht das Handy weiter. Wer es beim Knall hält, trinkt.</p>
+        </div>
+
+        <div id="drinkDuelPanel" class="hidden">
+          <div id="duelResult" class="hidden rounded-lg border border-rose-800 bg-neutral-900 p-4 text-center font-mono"></div>
+          <button
+            onclick="startLohhofDuel()"
+            class="mt-3 w-full py-3 rounded-lg bg-gradient-to-r from-rose-600 to-fuchsia-600 text-white font-extrabold text-sm active:scale-95 transition"
+          >
+            ⚔️ DUELL AUSLOSEN
+          </button>
+          <p class="text-[10px] text-neutral-500 mt-2 font-sans">Zwei zufällige Gäste aus der Gästeliste, eine Challenge.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Next Song Voting -->
+    <div
+      id="nextSongModal"
+      class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[96vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-fuchsia-800/80 pb-1.5 mb-2">
+          <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">[🎧] NEXT SONG (3er-LIVE-VOTE)</h2>
+          <button
+            onclick="closeNextSongModal()"
+            class="text-fuchsia-400 hover:text-fuchsia-200 text-lg px-2 py-0.5 rounded border border-fuchsia-800 active:scale-95 transition leading-none"
+          >
+            ✕
+          </button>
+        </div>
+        <div id="nextSongCountdown" class="text-center text-xs font-mono text-cyan-300 mb-1">⏱️ Lade...</div>
+        <div id="nextSongLastWinner" class="hidden text-center text-[11px] font-mono text-amber-300 mb-2"></div>
+        <div id="nextSongOptions" class="space-y-2"></div>
+        <p class="text-[10px] text-neutral-500 mt-3 font-sans">Jeder hat pro Runde eine Stimme – du kannst sie jederzeit wechseln.</p>
+      </div>
+    </div>
+
+    <!-- Modal: Party-Snap -->
+    <div
+      id="snapModal"
+      class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-2 hidden"
+    >
+      <div
+        class="w-full max-w-sm border-2 border-cyan-500 bg-neutral-950 rounded-xl p-2.5 shadow-[0_0_35px_rgba(34,211,238,0.3)] max-h-[98vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-cyan-800/80 pb-1.5 mb-2">
+          <h2 class="text-sm font-bold text-cyan-300 tracking-wider">[📸] PARTY-SNAP</h2>
+          <div class="flex gap-1.5">
+            <button onclick="switchSnapCamera()" class="text-cyan-300 text-[11px] px-2 py-1 rounded border border-cyan-800 active:scale-95 transition">🔄 Kamera wechseln</button>
+            <button onclick="closeSnapModal()" class="text-cyan-400 text-lg px-2 py-0.5 rounded border border-cyan-800 active:scale-95 transition leading-none">✕</button>
+          </div>
+        </div>
+
+        <div class="relative mx-auto rounded-lg overflow-hidden bg-black" style="aspect-ratio: 3 / 4">
+          <canvas id="snapCanvas" width="540" height="720" class="w-full h-full block"></canvas>
+          <div id="snapFlash" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-150"></div>
+          <div id="snapUploadFallback" class="hidden absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 p-4 text-center">
+            <div id="snapUploadMessage" class="text-xs text-cyan-200"></div>
+            <label class="px-4 py-2 rounded-lg bg-cyan-600 text-black font-bold text-sm cursor-pointer active:scale-95 transition">
+              📁 Foto aufnehmen / wählen
+              <input type="file" accept="image/*" capture="environment" class="hidden" onchange="handleSnapFileUpload(event)" />
+            </label>
+          </div>
+        </div>
+
+        <div id="snapFilterPills" class="flex gap-1.5 overflow-x-auto mt-2 pb-1"></div>
+
+        <div id="snapCaptionWrap" class="mt-1.5">
+          <input
+            id="snapCaptionInput"
+            type="text"
+            maxlength="60"
+            autocomplete="off"
+            oninput="updateSnapCaption(this.value)"
+            placeholder="Spruch ins Bild schreiben..."
+            class="w-full bg-black border border-cyan-900 rounded px-2 py-1.5 text-xs text-cyan-100 focus:outline-none focus:border-cyan-500"
+          />
+        </div>
+
+        <div id="snapShutterRow" class="flex justify-center mt-2">
+          <button
+            onclick="takeSnap()"
+            class="w-16 h-16 rounded-full border-4 border-white bg-cyan-500/80 text-2xl active:scale-90 transition shadow-[0_0_18px_rgba(34,211,238,0.5)]"
+            title="Foto aufnehmen"
+          >
+            📸
+          </button>
+        </div>
+
+        <div id="snapResultRow" class="hidden mt-2 space-y-1.5">
+          <button id="snapPostBtn" onclick="postSnap()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-extrabold text-sm active:scale-95 transition disabled:opacity-50">🚀 IN GALERIE POSTEN</button>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="retakeSnap()" class="py-2 rounded-lg border border-cyan-800 text-cyan-300 text-xs active:scale-95 transition">🔄 Nochmal</button>
+            <button onclick="saveSnapToDevice()" class="py-2 rounded-lg border border-emerald-800 text-emerald-300 text-xs active:scale-95 transition">💾 Auf Handy speichern</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Party-Galerie -->
+    <div
+      id="galleryModal"
+      class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-md border-2 border-emerald-500 bg-neutral-950 rounded-xl p-3 shadow-[0_0_35px_rgba(16,185,129,0.3)] max-h-[96vh] flex flex-col"
+      >
+        <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2">
+          <div>
+            <h2 class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">[🖼️] PARTY-GALERIE</h2>
+            <p id="galleryCount" class="text-[10px] text-emerald-600">0 Fotos</p>
+          </div>
+          <button onclick="closeGalleryModal()" class="text-emerald-400 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95 transition leading-none">✕</button>
+        </div>
+        <button onclick="openSnapFromGallery()" class="mb-2 w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-emerald-600 text-black font-extrabold text-sm active:scale-95 transition">📸 Neues Foto knipsen</button>
+        <div id="galleryGrid" class="grid grid-cols-2 gap-2.5 overflow-y-auto flex-1 min-h-0"></div>
+      </div>
+
+      <div id="galleryLightbox" class="hidden fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-3 gap-2">
+        <button onclick="closeGalleryLightbox()" class="absolute top-3 right-3 text-white text-xl px-3 py-1 rounded border border-neutral-600 active:scale-95 transition">✕</button>
+        <img id="galleryLightboxImg" alt="Foto" class="max-h-[78vh] max-w-full rounded-lg object-contain" />
+        <div id="galleryLightboxMeta" class="text-xs text-neutral-300 font-mono"></div>
+        <div class="flex gap-2">
+          <button onclick="downloadGalleryPhoto()" class="px-4 py-2 rounded-lg bg-emerald-600 text-black font-bold text-xs active:scale-95 transition">💾 Bild herunterladen</button>
+          <button id="galleryDeleteBtn" onclick="deleteGalleryPhoto()" class="hidden px-4 py-2 rounded-lg bg-rose-700 text-white font-bold text-xs active:scale-95 transition">🗑️ Foto löschen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: VIP-Ticket -->
+    <div
+      id="ticketModal"
+      class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-3 hidden"
+    >
+      <div
+        class="w-full max-w-sm border-2 border-emerald-500 bg-neutral-950 rounded-xl p-3 shadow-[0_0_35px_rgba(16,185,129,0.3)] max-h-[97vh] overflow-y-auto"
+      >
+        <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2">
+          <h2 class="text-sm font-bold text-emerald-300 tracking-wider">[🎟️] DEIN VIP-TICKET</h2>
+          <button onclick="closeTicketModal()" class="text-emerald-400 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95 transition leading-none">✕</button>
+        </div>
+        <canvas
+          id="ticketCanvas"
+          width="1080"
+          height="1920"
+          class="w-full max-w-[280px] sm:max-w-[310px] mx-auto rounded-xl shadow-2xl border border-emerald-500/50"
+        ></canvas>
+        <div class="mt-3 space-y-2">
+          <button onclick="shareTicketImage()" class="w-full py-3 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-400 text-black font-extrabold text-sm active:scale-95 transition shadow-[0_0_18px_rgba(16,185,129,0.45)]">📲 TEILEN (INSTA / WHATSAPP)</button>
+          <button onclick="downloadTicketImage()" class="w-full py-2.5 rounded-lg border border-emerald-600 text-emerald-300 font-bold text-sm active:scale-95 transition">💾 BILD SPEICHERN (.PNG)</button>
         </div>
       </div>
     </div>

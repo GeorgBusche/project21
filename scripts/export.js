@@ -130,7 +130,7 @@ async function runExport() {
       escapeCsv(r.drink || ''),
       escapeCsv(r.pegel || ''),
       escapeCsv(songText),
-      escapeCsv(r.note || r.gift || ''),
+      escapeCsv(r.note || ''),
       escapeCsv(dateText)
     ].join(';'));
   });
@@ -160,8 +160,8 @@ async function runExport() {
       if (r.song) {
         txtContent += `\n     🎵 Song: ${r.song.title}${r.song.artist ? ' - ' + r.song.artist : ''}`;
       }
-      if (r.note || r.gift) {
-        txtContent += `\n     💬 Notiz: "${r.note || r.gift}"`;
+      if (r.note) {
+        txtContent += `\n     💬 Notiz: "${r.note}"`;
       }
       txtContent += `\n\n`;
     });
