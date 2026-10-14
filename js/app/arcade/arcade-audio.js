@@ -556,6 +556,21 @@ export function warmSudoSamples() {
   }
 }
 
+// Blendet einen laufenden Song-Ausschnitt schnell aus (z. B. bei Phasenwechsel)
+export function stopSudoSample() {
+  const n = a.songNode;
+  a.songNode = null;
+  if (!n || !a.ctx) return;
+  const now = a.ctx.currentTime;
+  try {
+    n.g.gain.cancelScheduledValues(now);
+    n.g.gain.setValueAtTime(Math.max(n.g.gain.value, 0.0001), now);
+    n.g.gain.linearRampToValueAtTime(0.0001, now + 0.25);
+    n.src.stop(now + 0.3);
+  } catch {}
+  if (a.djHold) a.djHold.until = Math.min(a.djHold.until, now + 0.3);
+}
+
 // Spielt einen Song-Ausschnitt; die Arcade-Musik wird dumpf gezogen und kommt danach mit Drop zurueck
 export function triggerSudoSample(name) {
   const def = SONGS[name];
@@ -582,7 +597,9 @@ export function triggerSudoSample(name) {
   src.connect(lp);
   lp.connect(g);
   g.connect(a.comp);
+  stopSudoSample();
   src.start(now, def.start, def.len);
+  a.songNode = { src, g };
   rampFilter(380, 0.15);
   a.djHold = { beat: Infinity, until: now + def.len };
 }

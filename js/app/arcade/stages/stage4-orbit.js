@@ -1,6 +1,6 @@
 import { CONTENT } from '../../../content.js';
 import { clamp, createBeatSource } from './stage-utils.js';
-import { SONGS, SONG_SET } from '../arcade-songs.js';
+import { SONGS, PLAYLISTS } from '../arcade-songs.js';
 import {
   drawBackground,
   drawGlitch,
@@ -306,6 +306,8 @@ export function createStage4(random = Math.random) {
     const prev = phase;
     phase = np;
     song = null;
+    songIdx = 0;
+    engine.stopSudoSample?.();
     mode = 'shield';
     shieldBeats = 3;
     for (const h of hazards) {
@@ -342,6 +344,8 @@ export function createStage4(random = Math.random) {
 
   function startLast() {
     mode = 'last';
+    song = null;
+    engine.stopSudoSample?.();
     hazards = [];
     capsules = [];
     finalCap = null;
@@ -558,17 +562,35 @@ export function createStage4(random = Math.random) {
     say(calls.songs.gas.pedal, '#fca5a5');
   }
 
+  // Bass-Drop: zwei kurze Druckwellen, erst auf einem Ring, dann auf dem anderen - Ringwechsel im Takt
+  function patBassDrop() {
+    if (!unlocked) return patSpokes();
+    const lead = Math.max(1.1, bl() * 1.9);
+    const tell = Math.max(0.8, bl() * 1.4);
+    const dur = 0.45;
+    const first = random() < 0.5 ? 1 : 0;
+    for (let k = 0; k < 2; k++) {
+      const liveAt = t + lead + k * (dur + tell);
+      hazards.push({ kind: 'zone', ring: (first + k) % 2, wave: true, saw: false, tellAt: liveAt - (k === 0 ? lead : tell), liveAt, dur });
+    }
+    slamT = lead + 1;
+    shakeUntil = t + lead;
+    say(calls.bassDrop, '#e879f9');
+    return undefined;
+  }
+
   const SONG_POOLS = {
-    sonne: [patSonne, patSonneCount],
-    tornado: [() => patMortar(true), patStorm],
-    gas: [patCage, patGasPedal],
-    schuetteln: [() => patGeysers(5), patHalf],
-    wolle: [patSpokes, patHalf]
+    napoli: [patSpokes, () => patGeysers(4), () => patMortar(false)],
+    sonne: [patSonne, patSonneCount, patBassDrop],
+    tornado: [() => patMortar(true), patStorm, patBassDrop],
+    gas: [patCage, patGasPedal, patBassDrop],
+    schuetteln: [() => patGeysers(5), patHalf, patBassDrop],
+    wolle: [patSpokes, patHalf, patBassDrop]
   };
 
   function beginSong() {
-    const id = SONG_SET[songIdx];
-    song = { id, end: t + SONGS[id].len - 1.2 };
+    const id = PLAYLISTS[phase][songIdx];
+    song = { id, start: t, end: t + SONGS[id].len - 1.2, len: SONGS[id].len };
     themeId = id;
     engine.triggerDjScratch?.();
     engine.triggerSudoSample?.(id);
@@ -584,20 +606,19 @@ export function createStage4(random = Math.random) {
     gap = 3;
     attacked = false;
     // Belohnung: ab Song 3 ein [ sudo ! ]-Fragment, sonst fehlende Konter-Kapsel
-    if (songIdx >= 3 && sudoProg < calls.cmd.length && !capsules.some((c) => c.kind === 'sudo')) {
+    if (phase === 2 && songIdx >= 3 && sudoProg < calls.cmd.length && !capsules.some((c) => c.kind === 'sudo')) {
       addCap(ang + dir * 1.1, randRing(), t, 6, 'sudo');
-    } else if (glasses > 5 && !capsules.some((c) => c.kind === 'gold')) addCap(ang + dir * 1.1, randRing(), t, 5);
+    } else if (capAllowed() && !capsules.some((c) => c.kind === 'gold')) addCap(ang + dir * 1.1, randRing(), t, 5);
   }
   function launch() {
     attacked = true;
-    if (phase === 0) [patSpokes, () => patMortar(false)][patIdx++ % 2]();
+    if (song) {
+      const pool = SONG_POOLS[song.id];
+      pool[patIdx++ % pool.length]();
+    } else if (phase === 0) [patSpokes, () => patMortar(false)][patIdx++ % 2]();
     else if (phase === 1) [patFoam, () => patMortar(false), patFraese, patHalf, patSpokes, patGeysers][patIdx++ % 6]();
-    else if (phase === 2) {
-      if (song) {
-        const pool = SONG_POOLS[song.id];
-        pool[patIdx++ % pool.length]();
-      } else patEqualizer();
-    } else [patHalf, patSpokes, () => patMortar(true)][patIdx++ % 3]();
+    else if (phase === 2) patEqualizer();
+    else [patHalf, patSpokes, () => patMortar(true)][patIdx++ % 3]();
   }
 
   function lastBeat() {
@@ -630,9 +651,9 @@ export function createStage4(random = Math.random) {
       addCap(ang + dir * 1.1, randRing(), t, 4);
     }
     attacked = false;
-    if (phase === 2 && song && t >= song.end) endSong();
+    if (song && t >= song.end) endSong();
     if (--gap > 0) return;
-    if (phase === 2 && !song && songIdx < SONG_SET.length) {
+    if (!song && songIdx < PLAYLISTS[phase].length) {
       beginSong();
       return;
     }
@@ -748,6 +769,10 @@ export function createStage4(random = Math.random) {
       phase,
       glasses,
       unlocked,
+      songIdx,
+      sudoProg,
+      song,
+      gap,
       dangerAt: (a, ahead, m = 0, r = ring) => hazards.some((h) => hazardHit(h, a, t + ahead, m, r))
     }),
     update(dt, beatInfo) {
@@ -760,7 +785,7 @@ export function createStage4(random = Math.random) {
       dashInv = Math.max(0, dashInv - dt);
       slamT = Math.max(0, slamT - dt);
       sunT = Math.max(0, sunT - dt);
-      themeA = clamp(themeA + (song && phase === 2 ? dt * 2.5 : -dt * 2.5), 0, 1);
+      themeA = clamp(themeA + (song ? dt * 2.5 : -dt * 2.5), 0, 1);
       unlockT = Math.max(0, unlockT - dt);
       flash = Math.max(0, flash - dt * 2.2);
       bossFlash = Math.max(0, bossFlash - dt * 5);
@@ -857,10 +882,13 @@ export function createStage4(random = Math.random) {
       view.unl = unlocked;
       const shk = t < shakeUntil ? Math.sin(t * 70) : 0;
       drawBackground(ctx, { t, beat, accent: ac, barPulse });
-      const themed = dj && themeA > 0.02;
+      const themed = themeA > 0.02 && mode !== 'ko';
       const tc = themed && themeA > 0.5 ? THEMES[themeId].c : GREEN;
       if (dj && !themed) drawMatrix(ctx, t);
-      if (themed) drawSongBg(ctx, themeId, themeA, t);
+      if (themed) {
+        drawSongBg(ctx, themeId, themeA, t);
+        drawSongFx(ctx, THEMES[themeId].c, themeA, t, barPulse, beat);
+      }
       drawPillars(ctx, pillars, t);
 
       if (dj) drawVinylDisc(ctx, t, themed ? tc : '#14532d');
@@ -869,7 +897,7 @@ export function createStage4(random = Math.random) {
         drawCrownCap(ctx, CX, CY, 178, t * 0.18, '#7f1d1d');
         ctx.globalAlpha = 1;
       }
-      drawRails(ctx, ac, dj, unlocked, unlockT, tc);
+      drawRails(ctx, themed && !dj ? THEMES[themeId].c : ac, dj, unlocked, unlockT, tc);
 
       // Warnungen / sichere Zonen
       let safeLabel = true;
@@ -933,6 +961,7 @@ export function createStage4(random = Math.random) {
         ctx.globalAlpha = 1;
         drawGlassRing(ctx, t, glasses, broken, bossFlash);
         if (sunT > 0) drawSun(ctx, t, Math.min(1, sunT * 2));
+        if (themed) drawSongProps(ctx, themeId, themeA, t);
         const wob = mode === 'smash' ? Math.sin(clock * 60) * 3 : shk * 4;
         engine.drawFiech(ctx, CX + wob, CY, 84, {
           beatPhase: beat.beatPhase,
@@ -1046,14 +1075,7 @@ export function createStage4(random = Math.random) {
       ctx.font = '9px monospace';
       ctx.fillText(`PINNCHEN ${glasses}/${GLASSES}`, W / 2, 44);
       if (cmd.target) drawCmd(ctx, cmd, clock);
-      if (dj && themeA > 0.3) {
-        ctx.globalAlpha = themeA;
-        ctx.fillStyle = THEMES[themeId].c;
-        ctx.font = 'bold 10px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(calls.songs[themeId].name, W / 2, 58);
-        ctx.globalAlpha = 1;
-      }
+      if (themed && themeA > 0.3) drawSongHud(ctx, THEMES[themeId].c, themeA, calls.songs[themeId].name, song ? clamp((t - song.start) / song.len, 0, 1) : 1, t);
 
       drawCockpit(ctx, text.cockpit, ac, dir, unlocked, ring, down && down.held ? holdDir : 0, t);
       drawGlitch(ctx, t, barPulse, ac);
@@ -1247,6 +1269,18 @@ function drawZone(ctx, h, t, safeText) {
       ctx.fillText('!', p.x, p.y + 6);
     }
   }
+  if (h.wave) {
+    ctx.strokeStyle = '#f5d0fe';
+    ctx.lineWidth = 3;
+    for (let k = 0; k < 3; k++) {
+      const p = live ? 1 : (t * 1.6 + k / 3) % 1;
+      ctx.globalAlpha = live ? 0.9 : 0.6 * (1 - p);
+      ctx.beginPath();
+      ctx.arc(CX, CY, 30 + (rr - 30) * p, 0, TAU);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
   if (h.cage) {
     ctx.strokeStyle = '#fecaca';
     ctx.globalAlpha = live ? 1 : 0.5;
@@ -1276,6 +1310,7 @@ function drawZone(ctx, h, t, safeText) {
 
 const THEMES = {
   sonne: { c: '#fb923c', bg: '#1c0603' },
+  napoli: { c: '#38bdf8', bg: '#04101c' },
   tornado: { c: '#60a5fa', bg: '#050b1a' },
   gas: { c: '#e5e7eb', bg: '#0b0b0d' },
   schuetteln: { c: '#a3e635', bg: '#04140a' },
@@ -1289,7 +1324,39 @@ function drawSongBg(ctx, id, a, t) {
   ctx.fillRect(0, 0, W, COCKPIT_Y);
   ctx.globalAlpha = a;
   const fall = (i, speed, span) => (t * speed * (0.6 + noise(i)) + noise(i * 5) * span) % span;
-  if (id === 'sonne') {
+  if (id === 'napoli') {
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = ['#16a34a', '#f8fafc', '#dc2626'][i];
+      ctx.globalAlpha = 0.09 * a;
+      ctx.fillRect(i * 120, 0, 120, COCKPIT_Y);
+    }
+    ctx.fillStyle = '#292524';
+    ctx.globalAlpha = 0.8 * a;
+    ctx.beginPath();
+    ctx.moveTo(40, 300);
+    ctx.lineTo(150, 120);
+    ctx.lineTo(210, 120);
+    ctx.lineTo(320, 300);
+    ctx.fill();
+    ctx.fillStyle = '#f97316';
+    for (let i = 0; i < 22; i++) {
+      ctx.globalAlpha = 0.7 * a;
+      const k = (t * 0.5 + noise(i)) % 1;
+      ctx.fillRect(180 + (noise(i * 3) - 0.5) * 140 * k + Math.sin(t * 2 + i) * 6, 120 - k * 110, 3, 3);
+    }
+    ctx.strokeStyle = '#38bdf8';
+    ctx.globalAlpha = 0.5 * a;
+    ctx.lineWidth = 2;
+    for (let r = 0; r < 3; r++) {
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 12) ctx.lineTo(x, COCKPIT_Y - 18 + r * 7 + Math.sin(t * 2 + x * 0.04 + r) * 5);
+      ctx.stroke();
+    }
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.6 * a;
+    for (let i = 0; i < 4; i++) ctx.fillText('🍕', 50 + i * 85, 90 + 20 * Math.sin(t * 1.5 + i * 2));
+  } else if (id === 'sonne') {
     ctx.fillStyle = '#9a3412';
     ctx.globalAlpha = 0.5 * a;
     ctx.beginPath();
@@ -1433,6 +1500,62 @@ function drawSongBg(ctx, id, a, t) {
   }
   ctx.globalAlpha = 1;
 }
+// Beat-Rahmen und Equalizer-Saeule am Boden: der ganze Bildschirm pumpt im Takt der Musik
+function drawSongFx(ctx, col, a, t, pulse, beat) {
+  ctx.strokeStyle = col;
+  ctx.globalAlpha = (0.35 + 0.5 * pulse) * a;
+  ctx.lineWidth = 3 + 7 * pulse;
+  ctx.strokeRect(1, 1, W - 2, COCKPIT_Y - 2);
+  ctx.fillStyle = col;
+  const ph = beat.beatPhase ?? 0;
+  for (let i = 0; i < 24; i++) {
+    const h = 8 + 34 * Math.abs(Math.sin(t * 3.1 + i * 0.8)) * (0.45 + 0.55 * (1 - ph));
+    ctx.globalAlpha = 0.22 * a;
+    ctx.fillRect(i * 15 + 2, COCKPIT_Y - h, 11, h);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Song-Requisiten kreisen um das Fiech
+function drawSongProps(ctx, id, a, t) {
+  const icon = { napoli: '🍕', sonne: '☀️', tornado: '🌪️', gas: '🏁', schuetteln: '🥃', wolle: '🏅' }[id];
+  ctx.globalAlpha = 0.9 * a;
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  const spin = id === 'gas' ? -2.6 : 1.4;
+  for (let i = 0; i < 4; i++) {
+    const an = t * spin + (i * TAU) / 4;
+    ctx.fillText(icon, CX + Math.cos(an) * 66, CY + Math.sin(an) * 66 + 6);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// Plattenspieler-HUD: kreisende Platte mit Song-Fortschritt und Songname
+function drawSongHud(ctx, col, a, name, prog, t) {
+  ctx.globalAlpha = a;
+  ctx.fillStyle = '#05050a';
+  ctx.beginPath();
+  ctx.arc(26, 70, 14, 0, TAU);
+  ctx.fill();
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(26, 70, 14, -Math.PI / 2, -Math.PI / 2 + TAU * prog);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(26, 70, 8, t * 5, t * 5 + 2.2);
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.beginPath();
+  ctx.arc(26, 70, 2.5, 0, TAU);
+  ctx.fill();
+  ctx.font = 'bold 10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(name, 46, 74);
+  ctx.globalAlpha = 1;
+}
+
 function drawRails(ctx, ac, dj, unl, unlockT, tc = GREEN) {
   const rails = unl ? [[R_OUT, 15], [R_IN, 13]] : [[R_OUT, 15]];
   for (const [rr, w] of rails) {

@@ -241,6 +241,7 @@ export const CONTENT = {
           cage: 'RAGE CAGE // GAS!',
           medals: ['BRONZE!', 'SILBER!', 'GOLD!'],
           songs: {
+            napoli: { name: '♪ BELLA NAPOLI // WARM-UP' },
             sonne: { name: '♪ RAMMSTEIN-SHOW // SONNE', count: ['EINS!', 'ZWEI!', 'DREI!'] },
             tornado: { name: '♪ BIERTORNADO // STURM', storm: 'STURM-FRONT!' },
             gas: { name: '♪ RAGE CAGE // GAS GEBEN', pedal: 'GAS! GAS! GAS!' },
@@ -248,6 +249,8 @@ export const CONTENT = {
             wolle: { name: '♪ MEDAILLEN-SHOW // WOLLE', stadium: 'FIECH-STADION!' }
           },
           nextTrack: 'NEXT TRACK!',
+          bassDrop: 'BASS DROP!',
+          vesuv: 'VESUV-AUSBRUCH!',
           sudoCap: '[ sudo ! ]',
           cmd: ['> sudo ...', '> sudo kill -9 ...', '> sudo kill -9 FIECH.exe [EXECUTING!]'],
           enough: 'GENUG GESPIELT!',
