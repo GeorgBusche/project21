@@ -18,7 +18,7 @@ export const EVENT_CORE = {
   locationCity: '31600 Uchte',
   mapsUrl: 'https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8',
   coords: [52.4832492, 8.8754388],
-  siteUrl: 'https://DEIN-USERNAME.github.io/project21', // <--- HIER DEINE GITHUB-PAGES-URL EINTRAGEN
+  siteUrl: 'https://GeorgBusche.github.io/project21', // <--- HIER DEINE GITHUB-PAGES-URL EINTRAGEN
   // Kurz-Infos:
   timeLabel: 'Ab 19:30 Uhr bis zum Systemabsturz',
   dresscode: 'Schick, verkleidet oder nackt... Mir doch egal!',
