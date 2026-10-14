@@ -18,22 +18,22 @@ export const H = 600;
 export const CX = 180;
 export const CY = 255;
 export const R = 132;
-export const OMEGA = 2.3;
+export const OMEGA = 1.9;
 export const GLASSES = 10;
 export const CHARGE_TIME = 3.4;
-export const PLAYER_HALF = 0.075; // Winkel-Halbbreite des Spielers auf der Schiene
+export const PLAYER_HALF = 0.03; // Winkel-Halbbreite des Spielers auf der Schiene
 export const COCKPIT_Y = 445;
 
 const TAU = Math.PI * 2;
 const TELL = 0.95;
-const SPOKE_HALF = 0.28;
+const SPOKE_HALF = 0.2;
 const SPOKE_DUR = 0.45;
 const FLAME_DUR = 1.0;
-const FLAME_HALF = 0.2;
-const GEYSER_HALF = 0.3;
+const FLAME_HALF = 0.15;
+const GEYSER_HALF = 0.22;
 const GEYSER_DUR = 0.4;
 const ARC_DUR = 0.35;
-const BEAM_HALF = 0.1;
+const BEAM_HALF = 0.07;
 const HOLD_TIME = 0.18;
 const RED = '#ef4444';
 const GREEN = '#22c55e';
@@ -485,7 +485,7 @@ export function createStage4(random = Math.random) {
         return;
       }
 
-      const speed = OMEGA * (1 + 0.08 * (1 - beat.beatPhase)) * (burst > 0 ? 1.8 : 1);
+      const speed = OMEGA * (1 + 0.08 * (1 - beat.beatPhase)) * (burst > 0 ? 1.8 : 1) * (down && down.held ? 0.55 : 1);
       ang = wrap(ang + dir * speed * dt);
       trail.push({ a: ang, al: 1 });
 
@@ -650,8 +650,8 @@ export function createStage4(random = Math.random) {
         }
         ctx.globalAlpha = 1;
         const p = ringPt(ang);
-        drawRing(ctx, p.x, p.y, 22, '#ffffff', 0.9, 2);
-        engine.drawPlayer(ctx, p.x, p.y, 26, { mode: 'ship', thrust: 0.6, beatPhase: beat.beatPhase, accent: burst > 0 ? '#22d3ee' : '#ffffff' });
+        drawRing(ctx, p.x, p.y, 17, '#ffffff', 0.9, 2);
+        engine.drawPlayer(ctx, p.x, p.y, 20, { mode: 'ship', thrust: 0.6, beatPhase: beat.beatPhase, accent: burst > 0 ? '#22d3ee' : '#ffffff' });
         // Richtungspfeil in Fahrtrichtung
         const ta = ang + dir * 0.2;
         const tip = ringPt(ta, R);
@@ -1063,5 +1063,5 @@ function drawCockpit(ctx, t, ac, dir, charge, charging, holdDir) {
   }
   ctx.fillStyle = '#e5e7eb';
   ctx.font = 'bold 9px monospace';
-  ctx.fillText('TAP = RICHTUNG WECHSELN · HALTEN = RICHTUNG WÄHLEN', W / 2, COCKPIT_Y + 146);
+  ctx.fillText('TAP = RICHTUNG WECHSELN · HALTEN = LENKEN + LANGSAMER', W / 2, COCKPIT_Y + 146);
 }
