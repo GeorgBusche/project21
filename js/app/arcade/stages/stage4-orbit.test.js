@@ -111,7 +111,7 @@ function runBot({ seed, fps, bpm, maxSeconds = 160 }) {
     stage.update(dt, { running: true, beatIndex, beatPhase: beatT / bl, bpm, isBeat });
     stage.render(ctx);
     const d = stage.debug();
-    const vis = d.hazards.filter((h) => d.t < (h.kind === 'bottle' ? h.landAt + 1 : h.liveAt + 0.5)).length;
+    const vis = d.hazards.filter((h) => (h.kind === 'bottle' ? d.t >= h.landAt && d.t < h.landAt + 1.2 : d.t >= h.liveAt && d.t < h.liveAt + 0.5)).length;
     if (d.mode === 'last') maxLast = Math.max(maxLast, vis);
     else maxVisible = Math.max(maxVisible, vis);
   }
