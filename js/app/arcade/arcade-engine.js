@@ -147,7 +147,7 @@ function buildOverlay() {
         <div>SCORE <span id="arcadeScore" class="font-bold">0</span> · BEST <span id="arcadeBest">0</span></div>
         <div id="arcadeLives" class="text-sm leading-none"></div>
       </div>
-      ${import.meta.env.DEV ? '<button id="arcadeStageMenu" class="shrink-0 px-2 h-8 rounded border border-cyan-700 text-cyan-300" aria-label="Stage-Auswahl">STAGES</button>' : ''}
+      ${state.adminMenu ? '<button id="arcadeStageMenu" class="shrink-0 px-2 h-8 rounded border border-cyan-700 text-cyan-300" aria-label="Stage-Auswahl">STAGES</button>' : ''}
       <button id="arcadeExit" class="shrink-0 w-8 h-8 rounded border border-neutral-700 text-neutral-300 hover:text-white" aria-label="Schließen">✕</button>
     </div>
     <div class="w-full max-w-[520px] px-3"><div class="h-2 bg-neutral-900 rounded overflow-hidden border border-neutral-800"><div id="arcadeProgress" class="h-full" style="width:0%"></div></div>
@@ -166,7 +166,7 @@ function buildOverlay() {
   );
   hudValues = {};
   el.querySelector('#arcadeExit').addEventListener('click', closeArcadeGame);
-  if (import.meta.env.DEV) el.querySelector('#arcadeStageMenu').addEventListener('click', showStageMenu);
+  el.querySelector('#arcadeStageMenu')?.addEventListener('click', showStageMenu);
 }
 
 function resize() {
@@ -265,7 +265,7 @@ function startStage(index, segmentId = null) {
 function startRun(index = 0, testRun = false, segmentId = null) {
   hideScreen();
   stopArcadeAudio(true);
-  state.testRun = import.meta.env.DEV && testRun;
+  state.testRun = state.adminMenu && testRun;
   bestScore = getLocalBest().score;
   const party = getPartyContext();
   const rsvp = party.getCachedRsvps()[party.deviceToken] || readLocalPlayerRsvp();
@@ -275,12 +275,12 @@ function startRun(index = 0, testRun = false, segmentId = null) {
   state.shakeT = 0;
   state.keys.clear();
   state.pointer = { x: W / 2, y: H - 80, down: false };
-  state.segmentId = import.meta.env.DEV && testRun ? segmentId : null;
+  state.segmentId = state.adminMenu && testRun ? segmentId : null;
   startStage(index, state.segmentId);
 }
 
 function showStageMenu() {
-  if (!import.meta.env.DEV || !state.overlay) return;
+  if (!state.adminMenu || !state.overlay) return;
   stopArcadeAudio(true);
   state.mode = 'stageSelect';
   state.keys.clear();
@@ -288,7 +288,7 @@ function showStageMenu() {
   const a = arcadeText();
   showScreen(`
     <div class="font-mono max-w-sm w-full text-white">
-      <div class="text-xs text-cyan-400 mb-1">TEMPORÄR / NUR LOKALE ENTWICKLUNG</div>
+      <div class="text-xs text-cyan-400 mb-1">ADMIN · TESTMODUS</div>
       <h2 class="text-xl font-black mb-2">STAGE AUSWÄHLEN</h2>
       <p class="text-xs text-neutral-400 mb-4">Direktstart mit 3 Leben und deinem Avatar. Keine Rekorde oder Achievements. Nach der Stage endet der Test.</p>
       <div class="flex flex-col gap-2">
@@ -309,13 +309,13 @@ function showStageMenu() {
 }
 
 function showSegmentMenu() {
-  if (!import.meta.env.DEV || !state.overlay) return;
+  if (!state.adminMenu || !state.overlay) return;
   const probe = createStage1();
   probe.init(engine);
   const tiers = ['EASY', 'MEDIUM', 'HARD'];
   showScreen(`
     <div class="font-mono max-w-sm w-full text-white max-h-full overflow-y-auto">
-      <div class="text-xs text-cyan-400 mb-1">TEMPORÄR / NUR LOKALE ENTWICKLUNG</div>
+      <div class="text-xs text-cyan-400 mb-1">ADMIN · TESTMODUS</div>
       <h2 class="text-xl font-black mb-2">STAGE 1 · SEGMENT</h2>
       <p class="text-xs text-neutral-400 mb-3">Bearbeiten: Segment-Id in <b>stage1-cube.js</b> unter <b>makeLibrary</b> suchen.</p>
       <div class="grid grid-cols-2 gap-2">
@@ -568,12 +568,13 @@ export function openArcadeGame({ stageMenu = false } = {}) {
     s: 1 + Math.random() * 2,
     v: 10 + Math.random() * 50
   }));
+  state.adminMenu = stageMenu;
   buildOverlay();
   bestScore = getLocalBest().score;
   preloadArcadeAudio();
   attachInput();
   resize();
-  if (import.meta.env.DEV && stageMenu) showStageMenu();
+  if (stageMenu) showStageMenu();
   else startRun();
   state.last = performance.now();
   state.raf = requestAnimationFrame(frame);
@@ -584,7 +585,7 @@ export function closeArcadeGame() {
   stopArcadeAudio();
   detachInput();
   state.overlay?.remove();
-  Object.assign(state, { overlay: null, canvas: null, ctx: null, stage: null, mode: 'idle', testRun: false });
+  Object.assign(state, { adminMenu: false, overlay: null, canvas: null, ctx: null, stage: null, mode: 'idle', testRun: false });
   state.keys.clear();
   playerAppearance = null;
   hudNodes = null;

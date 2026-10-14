@@ -1135,6 +1135,18 @@
 
               <button
                 type="button"
+                onclick="openArcadeGame({ stageMenu: true })"
+                class="p-2 rounded bg-neutral-900 border border-lime-800 hover:border-lime-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
+              >
+                <span class="text-lg">👾</span>
+                <div class="min-w-0">
+                  <div class="font-bold text-lime-300 text-xs">Arcade-Stages testen</div>
+                  <div class="text-[10px] text-neutral-400">Jede Stage direkt starten (ohne Rekord)</div>
+                </div>
+              </button>
+
+              <button
+                type="button"
                 onclick="adminExportPlaylist()"
                 class="p-2 rounded bg-neutral-900 border border-fuchsia-800 hover:border-fuchsia-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
               >
