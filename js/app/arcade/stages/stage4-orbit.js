@@ -18,14 +18,14 @@ export const H = 600;
 export const CX = 180;
 export const CY = 255;
 export const R = 132;
-export const OMEGA = 2.6;
+export const OMEGA = 2.3;
 export const GLASSES = 10;
 export const CHARGE_TIME = 3.4;
 export const PLAYER_HALF = 0.075; // Winkel-Halbbreite des Spielers auf der Schiene
 export const COCKPIT_Y = 445;
 
 const TAU = Math.PI * 2;
-const TELL = 0.6;
+const TELL = 0.95;
 const SPOKE_HALF = 0.28;
 const SPOKE_DUR = 0.45;
 const FLAME_DUR = 1.0;
@@ -271,7 +271,7 @@ export function createStage4(random = Math.random) {
     const targets = [];
     for (let k = 0; k < 2; k++) {
       const throwAt = t + k * 1.1 * bl() * 2;
-      const landAt = throwAt + 0.95;
+      const landAt = throwAt + 1.15;
       let target = predictAng(landAt - t) + rand(-0.4, 0.4);
       if (k === 1 && dAng(target, targets[0]) < 0.9) target += 1.4;
       targets.push(target);
@@ -285,7 +285,7 @@ export function createStage4(random = Math.random) {
   }
 
   function patHalf() {
-    const lead = Math.max(0.85, bl() * 1.4);
+    const lead = Math.max(1.15, bl() * 1.9);
     const center = ang + Math.PI + rand(-0.5, 0.5);
     hazards.push({ kind: 'arcs', center, half: Math.PI / 2, tellAt: t, liveAt: t + lead });
     addCap(center + Math.PI, t + lead + 0.2, 3);
@@ -300,7 +300,7 @@ export function createStage4(random = Math.random) {
     const s = random() < 0.5 ? 1 : -1;
     const a0 = rand(0, TAU);
     for (let k = 0; k < 4; k++) {
-      const liveAt = t + 0.8 + k * bl() * 1.2;
+      const liveAt = t + 1.0 + k * bl() * 1.3;
       hazards.push({ kind: 'geys', angle: a0 + s * k * 1.45, tellAt: liveAt - TELL, liveAt, color: k % 3 });
     }
     addCap(a0 + s * 0.72, t + 0.5, 3);
@@ -312,7 +312,7 @@ export function createStage4(random = Math.random) {
 
   function patLaser() {
     swDir = -swDir;
-    const lead = Math.max(0.85, bl() * 1.4);
+    const lead = Math.max(1.15, bl() * 1.9);
     const dur = Math.max(1.8, bl() * 3.2);
     const a0 = ang + Math.PI / 2 * (random() < 0.5 ? 1 : -1);
     hazards.push({ kind: 'laser', a0, sw: swDir * 2.44, tellAt: t, liveAt: t + lead, dur });
@@ -650,6 +650,7 @@ export function createStage4(random = Math.random) {
         }
         ctx.globalAlpha = 1;
         const p = ringPt(ang);
+        drawRing(ctx, p.x, p.y, 22, '#ffffff', 0.9, 2);
         engine.drawPlayer(ctx, p.x, p.y, 26, { mode: 'ship', thrust: 0.6, beatPhase: beat.beatPhase, accent: burst > 0 ? '#22d3ee' : '#ffffff' });
         // Richtungspfeil in Fahrtrichtung
         const ta = ang + dir * 0.2;
@@ -712,8 +713,20 @@ export function createStage4(random = Math.random) {
 
 // ---------------------------------------------------------------- Zeichnen
 
+function wedge(ctx, center, half, color, alpha) {
+  ctx.fillStyle = color;
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  ctx.moveTo(CX, CY);
+  ctx.arc(CX, CY, R + 16, center - half, center + half);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
 function drawDangerArc(ctx, center, half, t) {
   const pulse = 0.5 + 0.5 * Math.sin(t * 16);
+  wedge(ctx, center, half, RED, 0.16 + 0.1 * pulse);
   ctx.lineCap = 'butt';
   ctx.strokeStyle = RED;
   ctx.globalAlpha = 0.3 + 0.2 * pulse;
@@ -759,6 +772,7 @@ function drawDangerArc(ctx, center, half, t) {
 
 function drawSafeArc(ctx, center, half, t, label) {
   if (half <= 0.02) return;
+  wedge(ctx, center, half, GREEN, 0.2);
   ctx.strokeStyle = GREEN;
   ctx.globalAlpha = 0.3 + 0.12 * Math.sin(t * 8);
   ctx.lineWidth = 26;
