@@ -1,4 +1,20 @@
+import {
+  EVENT_CORE,
+  CONTENT,
+  DRINKS_CONFIG,
+  startIso,
+  endIso,
+  dateFormatted,
+  dateShort,
+  locationFull
+} from './content.js';
+
+export { EVENT_CORE, CONTENT, DRINKS_CONFIG };
+
 export const CONFIG = {
+  event: EVENT_CORE,
+  content: CONTENT,
+  drinks: DRINKS_CONFIG,
   firebase: {
     apiKey: 'AIzaSyDhQTJJSmk6L1XGIvwRIjR03VHY4HXUZ1A',
     authDomain: 'project21-2cea0.firebaseapp.com',
@@ -10,19 +26,20 @@ export const CONFIG = {
     measurementId: 'G-35C5HH0RF0'
   },
   party: {
-    hostName: 'Georg',
-    phone: '4915174345666',
-    date: 'Samstag, 19.12.2026',
-    time: 'Ab 19:30 Uhr bis zum Systemabsturz',
-    startIso: '2026-12-19T19:30:00',
-    endIso: '2026-12-20T06:00:00',
-    location: 'Partyraum Lohhof 49, 31600 Uchte',
-    mapsUrl: 'https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8',
-    dresscode: 'Schick, verkleidet oder nackt... Mir doch egal!',
-    gifts: 'Bringt einfach gute Laune mit!',
-    partyModeUnlockIso: '2026-12-10T00:00:00',
+    hostName: EVENT_CORE.hostName,
+    phone: EVENT_CORE.phone,
+    date: dateFormatted,
+    dateShort,
+    time: EVENT_CORE.timeLabel,
+    startIso,
+    endIso,
+    location: locationFull,
+    mapsUrl: EVENT_CORE.mapsUrl,
+    dresscode: EVENT_CORE.dresscode,
+    gifts: EVENT_CORE.gifts,
+    partyModeUnlockIso: EVENT_CORE.partyModeUnlockIso,
     spotify: { clientId: '', playlistId: '' },
-    adminPin: '2121'
+    adminPin: EVENT_CORE.adminPin
   },
   // Auf einen Songnamen setzen, um den SUDO-Button vorübergehend darauf zu fixieren.
   // Erlaubt: "bella", "wolle", "rammstein", "biertornado", "ragecage", "schuettelkorn".
@@ -35,30 +52,5 @@ export const CONFIG = {
     phase5_clicks: 15,
     jumpIntervalSlow: 1100,
     jumpIntervalFast: 700
-  },
-  pegelDescriptions: {
-    0: 'Fahrer-Modus: 0,0 Promille & Softdrinks 🚗',
-    15: 'Ganz entspannt nippen & anstoßen 🥤',
-    35: '1-2 Bierchen, lockeres Aufwärmen 🍻',
-    55: 'Gute Grundstimmung, Tanzbein zuckt schon 🕺',
-    75: 'Pegel stabil! Wo is der DJ? Lass mal Meiern! 🪩',
-    90: 'Volle Fahrt voraus! Schüttelkorn & Mischen fließen 🎊',
-    99: 'Gefahrenzone: Textsicher bei jedem Track! 🤪',
-    100: 'ABRISS! WO IST DER TRICHTER?! VOLLGAS! 🚨💥'
-  },
-  shotsList: [
-    '🗼 Der Hubiturm muss wachsen!',
-    '🎊 SCHÜTTELKORN!!!',
-    '😩 Ich trink Ouzo was trinkst du so? ',
-    '🍞 ET GIBT KORN!!!',
-    '🫎 JÄGERMEISTER!',
-    '🥃 Vodka is auch ne Option...'
-  ],
-  declinePhrases: [
-    'FEHLER 403: Recht des Gastgebers §21 Abs. 1 greift! Anwesenheitspflicht.',
-    'SYSTEM FEHLER: Mutti hat bereits gekocht!',
-    'SEGMENTATION FAULT: Bier-Integral divergiert ohne dich!',
-    'KERNEL PANIC: Kater lässt sich nicht wegdiskutieren!',
-    'WARNUNG: Wer nicht kommt ist doof!'
-  ]
+  }
 };

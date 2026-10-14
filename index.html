@@ -13,6 +13,12 @@
       property="og:description"
       content="Zugriff auf Partyraum Lohhof 49 angefordert. Vollständige Induktion des Pegels. Zusage erforderlich!"
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="og-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/png" href="favicon.png" />
     <meta name="color-scheme" content="dark" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -62,7 +68,7 @@
         <span
           class="text-[11px] sm:text-xs font-bold tracking-widest text-emerald-400 group-hover:text-emerald-300 transition flex items-center gap-1"
         >
-          GEORG_v21.0 <span class="text-[9px] text-emerald-700 font-mono">🔒</span>
+          <span data-content="ui.headerTitle">GEORG_v21.0</span> <span class="text-[9px] text-emerald-700 font-mono">🔒</span>
         </span>
       </div>
 
@@ -121,11 +127,11 @@
         class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600"
       >
         <span class="truncate pr-2 cursor-pointer select-none" onclick="toggleSecretCli()"
-          >SERVER: <strong class="text-emerald-400">LOHHOF_49</strong></span
+          ><span data-content="ui.serverLabel">SERVER:</span> <strong data-content="ui.serverName" class="text-emerald-400">LOHHOF_49</strong></span
         >
         <span id="partyCountdown" class="font-mono text-cyan-400 truncate px-1"></span>
         <span class="whitespace-nowrap"
-          >STATUS: <span id="terminalStatusText" class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span
+          ><span data-content="ui.statusLabel">STATUS:</span> <span id="terminalStatusText" class="text-emerald-400 font-bold animate-pulse">BEREIT 🍻</span></span
         >
       </div>
 
@@ -135,12 +141,12 @@
         class="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2 relative z-20"
       ></div>
 
-      <div id="secretCliBar" class="hidden flex items-center gap-1.5 border-t border-emerald-800/70 pt-1.5 mt-1 font-mono text-xs"><span class="text-emerald-400 font-bold">gast@lohhof49:~$</span><input id="secretCliInput" type="text" autocomplete="off" spellcheck="false" class="flex-1 bg-transparent text-emerald-200 focus:outline-none" placeholder="Befehl eingeben (z. B. help)..." /></div>
+      <div id="secretCliBar" class="hidden flex items-center gap-1.5 border-t border-emerald-800/70 pt-1.5 mt-1 font-mono text-xs"><span data-content="secretCli.prompt" class="text-emerald-400 font-bold">gast@lohhof49:~$</span><input id="secretCliInput" type="text" autocomplete="off" spellcheck="false" class="flex-1 bg-transparent text-emerald-200 focus:outline-none" placeholder="Befehl eingeben (z. B. help)..." /></div>
 
       <!-- Einklappbares System-Befehle Gitter -->
       <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
         <div class="flex justify-between items-end mb-1.5">
-          <div class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">
+          <div data-content="ui.commandsHeading" class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">
             ⚡ Befehle
           </div>
           <button
@@ -148,7 +154,7 @@
             id="cmdToggleBtn"
             class="text-[9px] text-emerald-500 hover:text-emerald-300 border border-emerald-800/50 rounded px-1.5 py-0.5 bg-emerald-950/20 active:scale-95 transition flex items-center gap-1 leading-none"
           >
-            <span>▼</span> EINKLAPPEN
+            ▼ EINKLAPPEN
           </button>
         </div>
 
@@ -157,42 +163,11 @@
           class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 transition-all relative"
         >
           <button
-            onclick="runCommand('info')"
-            class="cmd-btn py-2 rounded border border-emerald-800 bg-emerald-950/30 text-emerald-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">ℹ️</span><span class="cmd-text">INFOS</span>
-          </button>
-          <button
-            onclick="openRadarModal()"
-            class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">📡</span><span class="cmd-text">RADAR</span>
-          </button>
-          <button
-            onclick="showGuestBoard()"
-            class="cmd-btn py-2 rounded border border-cyan-800 bg-cyan-950/30 text-cyan-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">👥</span><span class="cmd-text">GÄSTE</span>
-          </button>
-          <button
-            onclick="openMusicModal()"
-            class="cmd-btn py-2 rounded border border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5"
-          >
-            <span class="cmd-icon text-sm">🎵</span><span class="cmd-text">PLAYLIST</span>
-          </button>
-          <button
             id="sudoPartyBtn"
             title="Tippen: Zufalls-Show · Gedrückt halten: Show auswählen"
             class="cmd-btn select-none py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]"
           >
             <span class="cmd-icon text-sm">🎲</span><span class="cmd-text font-bold">SUDO</span>
-          </button>
-          <button
-            id="partyLockBtn"
-            onclick="showToast('🔒 Party-Features (Glücksrad, Trinkspiel, Live-Voting &amp; Snap-Cam) starten am 10.12.!')"
-            class="cmd-btn py-2 rounded border border-neutral-700 bg-neutral-900/50 text-neutral-500 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 opacity-70"
-          >
-            <span class="cmd-icon text-sm">🔒</span><span class="cmd-text">PARTY-MODUS (10.12.)</span>
           </button>
         </div>
       </div>
@@ -208,7 +183,14 @@
         onclick="openRsvpModal()"
         class="flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2"
       >
-        <span id="bottomRsvpBtnIcon">👍</span> <span id="bottomRsvpBtnText">ZUSAGEN</span>
+        <span id="bottomRsvpBtnIcon" data-content="ui.actionBar.rsvp.icon">👍</span> <span id="bottomRsvpBtnText" data-content="ui.actionBar.rsvp.label">ZUSAGEN</span>
+      </button>
+      <button
+        id="bottomLiveVoteBtn"
+        onclick="openNextSongModal()"
+        class="hidden flex-1 py-3 rounded-lg bg-gradient-to-r from-fuchsia-600 to-rose-500 text-white font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(217,70,239,0.4)] active:scale-95 transition-all duration-300 items-center justify-center gap-2"
+      >
+        <span id="bottomLiveVoteBtnIcon"></span> <span id="bottomLiveVoteBtnText"></span>
       </button>
       <div
         id="declineWrapper"
@@ -225,7 +207,7 @@
           onclick="handleDeclineClick()"
           class="absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base z-[60] shadow-md"
         >
-          <span id="declineIcon">❌</span> <span id="declineText">ABSAGEN</span>
+          <span id="declineIcon" data-content="ui.actionBar.decline.icon">❌</span> <span id="declineText" data-content="ui.actionBar.decline.label">ABSAGEN</span>
         </button>
       </div>
     </div>
@@ -240,10 +222,10 @@
       >
         <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2.5">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">
+            <h2 data-modal-title="rsvp" class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">
               [+] ZUSAGE: GEORGS 21. GEBURTSTAG
             </h2>
-            <p class="text-[10px] text-emerald-600">Registrierung für den Partyraum Lohhof 49</p>
+            <p data-content="ui.modals.rsvp.subtitle" class="text-[10px] text-emerald-600">Registrierung für den Partyraum Lohhof 49</p>
           </div>
           <button
             onclick="closeRsvpModal()"
@@ -288,17 +270,7 @@
                 id="rsvpDrink"
                 class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none text-xs sm:text-sm"
               >
-                <option value="Kühles Pils">🍺 Kühles Pils</option>
-                <option value="Cola-Korn / die 50/50 Mischen">
-                  🥃 Cola-Korn / 50/50 Mischen
-                </option>
-                <option value="SCHÜTTELKORN!!!">🎊 SCHÜTTELKORN!!!</option>
-                <option value="Omas Guter ;)">🥶 Omas Guter ;)</option>
-                <option value="Wein / Sekt">🍷 Wein / Sekt</option>
-                <option value="Fahrer-Modus (0,0 Promille & Softdrinks)">
-                  🚗 Fahrer-Modus (0,0 Promille)
-                </option>
-                <option value="Bring mein eigenes Zeug mit">🎒 Bring eigenes Zeug mit</option>
+                <!-- Optionen werden aus DRINKS_CONFIG (js/content.js) befüllt -->
               </select>
             </div>
 
@@ -558,7 +530,7 @@
         <div class="flex justify-between items-center border-b border-cyan-800 pb-2 mb-3">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
-            <h2 class="text-sm sm:text-base font-bold text-cyan-300 tracking-wider">
+            <h2 data-modal-title="radar" class="text-sm sm:text-base font-bold text-cyan-300 tracking-wider">
               [HUD] TAKTISCHE KARTE
             </h2>
           </div>
@@ -637,10 +609,11 @@
         <div
           class="bg-neutral-900/90 p-2.5 rounded border border-cyan-800/80 text-xs font-mono text-cyan-200 space-y-1 my-3"
         >
-          <div>📍 <strong>Zielgebiet:</strong> Partyraum Lohhof 49, Uchte</div>
+          <div>📍 <strong>Zielgebiet:</strong> <span data-content="event.locationFull">Partyraum Lohhof 49, Uchte</span></div>
         </div>
         <div class="space-y-2">
           <a
+            id="radarMapsLink"
             href="https://maps.app.goo.gl/6eNiNjvt4FKFRNZV8"
             target="_blank"
             class="w-full py-2.5 px-3 rounded bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.6)] active:scale-95 transition"
@@ -668,11 +641,11 @@
           <div>
             <div class="flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 animate-pulse"></span>
-              <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
+              <h2 data-modal-title="music" class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
                 [PARTY-PLAYLIST] WAS MUSS IN DIE PLAYLIST? 🪩
               </h2>
             </div>
-            <p class="text-[10px] sm:text-[11px] text-fuchsia-400/80 mt-0.5">
+            <p data-content="ui.modals.music.subtitle" class="text-[10px] sm:text-[11px] text-fuchsia-400/80 mt-0.5">
               Suche Songs, vote deine Favoriten & bestimme den Party-Sound!
             </p>
           </div>
@@ -738,7 +711,7 @@
         <div class="flex justify-between items-center border-b border-cyan-800/80 pb-1.5 mb-2 flex-shrink-0">
           <div class="flex items-center gap-2 min-w-0">
             <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-            <h2 class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider truncate">
+            <h2 data-modal-title="guest" class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider truncate">
               GÄSTELISTE & GÄSTEBUCH 👥
             </h2>
             <span id="guestHeaderBadge" class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 font-bold flex-shrink-0">
@@ -891,10 +864,10 @@
           <div class="flex items-center gap-2">
             <span class="text-base">📊</span>
             <div>
-              <h2 class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider">
+              <h2 data-modal-title="stats" class="text-xs sm:text-sm font-bold text-cyan-300 tracking-wider">
                 PARTY-RADAR & STATISTIKEN
               </h2>
-              <p class="text-[10px] text-neutral-400">Live-Auswertung aller Anmeldungen</p>
+              <p data-content="ui.modals.stats.subtitle" class="text-[10px] text-neutral-400">Live-Auswertung aller Anmeldungen</p>
             </div>
           </div>
           <button
@@ -1000,10 +973,10 @@
           <div class="flex items-center gap-2">
             <span class="text-emerald-400 font-mono text-sm">👑</span>
             <div>
-              <h2 class="text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
+              <h2 data-modal-title="admin" class="text-xs sm:text-sm font-bold text-emerald-300 tracking-wider">
                 [ROOT] GEORG ADMIN-COCKPIT
               </h2>
-              <p class="text-[10px] text-neutral-400">Verwaltung, Exporte & Party-Kontrolle</p>
+              <p data-content="ui.modals.admin.subtitle" class="text-[10px] text-neutral-400">Verwaltung, Exporte & Party-Kontrolle</p>
             </div>
           </div>
           <button
@@ -1242,10 +1215,10 @@
       >
         <div class="flex justify-between items-center border-b border-rose-800/80 pb-1.5 mb-3">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
+            <h2 data-modal-title="sudoJukebox" class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">
               [SUDO] JUKEBOX
             </h2>
-            <p class="text-[10px] text-rose-400">Wähle deine Eskalationsstufe</p>
+            <p data-content="ui.modals.sudoJukebox.subtitle" class="text-[10px] text-rose-400">Wähle deine Eskalationsstufe</p>
           </div>
           <button
             onclick="closeSudoJukebox()"
@@ -1258,37 +1231,13 @@
         <button
           type="button"
           onclick="triggerRandomSudoParty()"
+          data-content="ui.commands.sudoJukeboxRandom"
           class="w-full py-3 mb-3 rounded-lg bg-gradient-to-r from-rose-600 to-fuchsia-600 hover:from-rose-500 hover:to-fuchsia-500 text-white font-extrabold text-xs sm:text-sm tracking-wide shadow-[0_0_18px_rgba(236,72,153,0.5)] active:scale-95 transition"
         >
           🎲 ZUFALLS-ESKALATION STARTEN
         </button>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs">
-          <button type="button" onclick="triggerSpecificSudoParty('bella')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🍕 Bella Napoli</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Dorf-Abriss &amp; Piazza</div>
-          </button>
-          <button type="button" onclick="triggerSpecificSudoParty('wolle')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🎸 Wolle Petry</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Flanell &amp; Stadion-Nacht</div>
-          </button>
-          <button type="button" onclick="triggerSpecificSudoParty('rammstein')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🔥 Rammstein – Sonne</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Pyro &amp; Industriestahl</div>
-          </button>
-          <button type="button" onclick="triggerSpecificSudoParty('biertornado')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🌪️ Biertornado</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Sturm &amp; Druckbetankung</div>
-          </button>
-          <button type="button" onclick="triggerSpecificSudoParty('ragecage')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🥤 Rage Cage</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Arena &amp; Becher-Chaos</div>
-          </button>
-          <button type="button" onclick="triggerSpecificSudoParty('schuettelkorn')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition">
-            <div class="font-bold text-rose-300">🌾 Schüttelkorn</div>
-            <div class="text-[10px] text-neutral-400 font-sans">Ahoi-Brause &amp; Heinz Erhardt</div>
-          </button>
-        </div>
+        <div id="sudoShowGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs"></div>
       </div>
     </div>
 
@@ -1302,7 +1251,7 @@
       >
         <div class="flex justify-between items-center border-b border-amber-800/80 pb-1.5 mb-3">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">
+            <h2 data-modal-title="trophies" class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">
               [🏆] TROPHÄEN
             </h2>
             <p id="trophySummary" class="text-[10px] text-amber-600">0 Trophäen</p>
@@ -1330,7 +1279,7 @@
         class="w-full max-w-md border-2 border-amber-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(245,158,11,0.3)] max-h-[96vh] overflow-y-auto"
       >
         <div class="flex justify-between items-center border-b border-amber-800/80 pb-1.5 mb-2">
-          <h2 class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">[🎡] GLÜCKSRAD-ROULETTE</h2>
+          <h2 data-modal-title="wheel" class="text-sm sm:text-base font-bold text-amber-300 tracking-wider">[🎡] GLÜCKSRAD-ROULETTE</h2>
           <button
             onclick="closeWheelModal()"
             class="text-amber-400 hover:text-amber-200 text-lg px-2 py-0.5 rounded border border-amber-800 active:scale-95 transition leading-none"
@@ -1367,7 +1316,7 @@
         class="w-full max-w-md border-2 border-rose-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(244,63,94,0.3)] max-h-[96vh] overflow-y-auto"
       >
         <div class="flex justify-between items-center border-b border-rose-800/80 pb-1.5 mb-2">
-          <h2 class="text-sm sm:text-base font-bold text-rose-300 tracking-wider">[💣] TRINKSPIELE</h2>
+          <h2 data-modal-title="drinkingGame" class="text-sm sm:text-base font-bold text-rose-300 tracking-wider">[💣] TRINKSPIELE</h2>
           <button
             onclick="closeDrinkingGameModal()"
             class="text-rose-400 hover:text-rose-200 text-lg px-2 py-0.5 rounded border border-rose-800 active:scale-95 transition leading-none"
@@ -1377,7 +1326,7 @@
         </div>
         <div class="grid grid-cols-2 gap-1 mb-3 text-[10px] font-mono">
           <button id="drinkTabBomb" onclick="setDrinkingGameMode('bomb')" class="py-1.5 rounded border border-rose-800 text-rose-300 active:scale-95 transition">💣 KERNEL-BOMBE</button>
-          <button id="drinkTabDuel" onclick="setDrinkingGameMode('duel')" class="py-1.5 rounded border border-rose-800 text-rose-300 active:scale-95 transition">⚔️ LOHHOF-DUELL</button>
+          <button id="drinkTabDuel" onclick="setDrinkingGameMode('duel')" class="py-1.5 rounded border border-rose-800 text-rose-300 active:scale-95 transition">⚔️ <span data-content="partyMode.duelTitle">LOHHOF-DUELL</span></button>
         </div>
 
         <div id="drinkBombPanel">
@@ -1424,7 +1373,7 @@
         class="w-full max-w-md border-2 border-fuchsia-500 bg-neutral-950 rounded-xl p-3 sm:p-4 shadow-[0_0_35px_rgba(217,70,239,0.3)] max-h-[96vh] overflow-y-auto"
       >
         <div class="flex justify-between items-center border-b border-fuchsia-800/80 pb-1.5 mb-2">
-          <h2 class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">[🎧] NEXT SONG (3er-LIVE-VOTE)</h2>
+          <h2 data-modal-title="nextSong" class="text-sm sm:text-base font-bold text-fuchsia-300 tracking-wider">[🎧] NEXT SONG (3er-LIVE-VOTE)</h2>
           <button
             onclick="closeNextSongModal()"
             class="text-fuchsia-400 hover:text-fuchsia-200 text-lg px-2 py-0.5 rounded border border-fuchsia-800 active:scale-95 transition leading-none"
@@ -1448,7 +1397,7 @@
         class="w-full max-w-sm border-2 border-cyan-500 bg-neutral-950 rounded-xl p-2.5 shadow-[0_0_35px_rgba(34,211,238,0.3)] max-h-[98vh] overflow-y-auto"
       >
         <div class="flex justify-between items-center border-b border-cyan-800/80 pb-1.5 mb-2">
-          <h2 class="text-sm font-bold text-cyan-300 tracking-wider">[📸] PARTY-SNAP</h2>
+          <h2 data-modal-title="snap" class="text-sm font-bold text-cyan-300 tracking-wider">[📸] PARTY-SNAP</h2>
           <div class="flex gap-1.5">
             <button onclick="switchSnapCamera()" class="text-cyan-300 text-[11px] px-2 py-1 rounded border border-cyan-800 active:scale-95 transition">🔄 Kamera wechseln</button>
             <button onclick="closeSnapModal()" class="text-cyan-400 text-lg px-2 py-0.5 rounded border border-cyan-800 active:scale-95 transition leading-none">✕</button>
@@ -1511,7 +1460,7 @@
       >
         <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2">
           <div>
-            <h2 class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">[🖼️] PARTY-GALERIE</h2>
+            <h2 data-modal-title="gallery" class="text-sm sm:text-base font-bold text-emerald-300 tracking-wider">[🖼️] PARTY-GALERIE</h2>
             <p id="galleryCount" class="text-[10px] text-emerald-600">0 Fotos</p>
           </div>
           <button onclick="closeGalleryModal()" class="text-emerald-400 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95 transition leading-none">✕</button>
@@ -1540,7 +1489,7 @@
         class="w-full max-w-sm border-2 border-emerald-500 bg-neutral-950 rounded-xl p-3 shadow-[0_0_35px_rgba(16,185,129,0.3)] max-h-[97vh] overflow-y-auto"
       >
         <div class="flex justify-between items-center border-b border-emerald-800/80 pb-1.5 mb-2">
-          <h2 class="text-sm font-bold text-emerald-300 tracking-wider">[🎟️] DEIN VIP-TICKET</h2>
+          <h2 data-modal-title="ticket" class="text-sm font-bold text-emerald-300 tracking-wider">[🎟️] DEIN VIP-TICKET</h2>
           <button onclick="closeTicketModal()" class="text-emerald-400 text-lg px-2 py-0.5 rounded border border-emerald-800 active:scale-95 transition leading-none">✕</button>
         </div>
         <canvas

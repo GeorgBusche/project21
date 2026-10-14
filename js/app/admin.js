@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { resolveDrinkCategory } from '../content.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { escapeHtml, showToast } from './ui.js';
 import {
@@ -126,7 +127,7 @@ function showAdminPinView() {
 export function verifyAdminPin() {
   const input = document.getElementById('adminPinInput');
   const entered = (input?.value || '').trim();
-  const correctPin = String(CONFIG.party.adminPin || '2121');
+  const correctPin = String(CONFIG.party.adminPin);
 
   if (entered === correctPin) {
     isAdminAuth = true;
@@ -181,13 +182,15 @@ async function refreshAdminStats() {
   const db = getDatabase();
   if (!db) return;
 
-  const [rsvpsSnap, songsSnap] = await Promise.all([
+  const [rsvpsSnap, songsSnap, snapsSnap] = await Promise.all([
     db.ref('rsvps').once('value'),
-    db.ref('songs').once('value')
+    db.ref('songs').once('value'),
+    db.ref('snaps').once('value')
   ]);
 
   const rsvps = rsvpsSnap.val() || {};
   const songs = songsSnap.val() || {};
+  const totalSnaps = Object.keys(snapsSnap.val() || {}).length;
 
   const rsvpsList = Object.values(rsvps);
   const totalGuests = rsvpsList.reduce((sum, r) => sum + 1 + (r.plusOne ? 1 : 0), 0);
@@ -196,7 +199,7 @@ async function refreshAdminStats() {
 
   const statsBadge = document.getElementById('adminHeaderStats');
   if (statsBadge) {
-    statsBadge.textContent = `${totalGuests} Personen (${rsvpsList.length} Zusagen) · ${totalSongs} Songs (${totalVotes} Votes)`;
+    statsBadge.textContent = `${totalGuests} Personen (${rsvpsList.length} Zusagen) · ${totalSongs} Songs (${totalVotes} Votes) · ${totalSnaps} Snaps`;
   }
 
   // Update announcement input
@@ -298,11 +301,10 @@ export async function adminShowDrinkCalculator() {
   list.forEach((r) => {
     const count = 1 + (r.plusOne ? 1 : 0);
     totalPeople += count;
-    const d = (r.drink || '').toLowerCase();
-    if (d.includes('pils') || d.includes('bier')) beerDrinkers += count;
-    else if (d.includes('korn') || d.includes('schüttelkorn') || d.includes('mische') || d.includes('omas')) kornDrinkers += count;
-    else if (d.includes('wein') || d.includes('sekt')) wineDrinkers += count;
-    else if (d.includes('fahrer') || d.includes('0,0') || d.includes('softdrink')) driverDrinkers += count;
+    const category = resolveDrinkCategory(r.drink);
+    if (category === 'korn') kornDrinkers += count;
+    else if (category === 'wine') wineDrinkers += count;
+    else if (category === 'driver') driverDrinkers += count;
     else beerDrinkers += count;
   });
 
@@ -379,15 +381,17 @@ export async function adminDownloadFullBackup() {
   const db = getDatabase();
   if (!db) return;
 
-  const [rsvpsSnap, songsSnap] = await Promise.all([
+  const [rsvpsSnap, songsSnap, snapsSnap] = await Promise.all([
     db.ref('rsvps').once('value'),
-    db.ref('songs').once('value')
+    db.ref('songs').once('value'),
+    db.ref('snaps').once('value')
   ]);
 
   const payload = {
     backupDate: new Date().toISOString(),
     rsvps: rsvpsSnap.val() || {},
     songs: songsSnap.val() || {},
+    snaps: snapsSnap.val() || {},
     announcement: currentAnnouncement
   };
 
@@ -410,13 +414,13 @@ export async function adminHandleRestoreUpload(event) {
     const text = await file.text();
     const data = JSON.parse(text);
 
-    if (!data.rsvps && !data.songs) {
+    if (!data.rsvps && !data.songs && !data.snaps) {
       showToast('❌ Ungültige Backup-Datei!');
       playBuzzerError();
       return;
     }
 
-    if (!confirm(`Soll das Backup vom ${data.backupDate || 'unbekannt'} mit ${Object.keys(data.rsvps || {}).length} RSVPs und ${Object.keys(data.songs || {}).length} Songs eingespielt werden?`)) {
+    if (!confirm(`Soll das Backup vom ${data.backupDate || 'unbekannt'} mit ${Object.keys(data.rsvps || {}).length} RSVPs und ${Object.keys(data.songs || {}).length} Songs und ${Object.keys(data.snaps || {}).length} Snaps eingespielt werden?`)) {
       return;
     }
 
@@ -425,6 +429,7 @@ export async function adminHandleRestoreUpload(event) {
 
     if (data.rsvps) await db.ref('rsvps').set(data.rsvps);
     if (data.songs) await db.ref('songs').set(data.songs);
+    if (data.snaps) await db.ref('snaps').set(data.snaps);
 
     showToast('✓ Backup erfolgreich wiederhergestellt! 🔄');
     playSuccessChime();

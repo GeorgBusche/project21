@@ -1,5 +1,132 @@
 import { CONFIG } from '../config.js';
+import { CONTENT, DRINKS_CONFIG, EVENT_CORE, locationFull } from '../content.js';
 import { getAudioContext, playTone } from './audio.js';
+
+function readPath(path) {
+  return path.split('.').reduce((value, key) => value?.[key], { ...CONTENT, event: { locationFull } });
+}
+
+function renderSudoShowGrid() {
+  const grid = document.getElementById('sudoShowGrid');
+  if (!grid) return;
+  grid.innerHTML = Object.entries(CONTENT.ui.commands.sudoShows)
+    .map(
+      ([key, show]) =>
+        `<button type="button" onclick="triggerSpecificSudoParty('${key}')" class="p-2 rounded-lg bg-neutral-900 border border-rose-900/70 hover:border-fuchsia-400 text-left active:scale-95 transition"><div class="font-bold text-rose-300">${escapeHtml(show.title)}</div><div class="text-[10px] text-neutral-400 font-sans">${escapeHtml(show.subtitle)}</div></button>`
+    )
+    .join('');
+}
+
+// Befüllt statische HTML-Elemente aus CONTENT:
+// data-content="ui.headerTitle" setzt den Text, data-modal-title="rsvp" den Modal-Header.
+function populateDrinkSelect() {
+  const select = document.getElementById('rsvpDrink');
+  if (!select) return;
+  select.innerHTML = '';
+  DRINKS_CONFIG.forEach((drink) => {
+    const option = document.createElement('option');
+    option.value = drink.label;
+    option.textContent = drink.label;
+    option.dataset.drinkId = drink.id;
+    select.appendChild(option);
+  });
+}
+
+const MODAL_CLOSERS = {
+  rsvpModal: () => window.closeRsvpModal?.(),
+  radarModal: () => window.closeRadarModal?.(),
+  musicModal: () => window.closeMusicModal?.(),
+  guestModal: () => window.closeGuestModal?.(),
+  guestStatsModal: () => window.closeGuestStatsModal?.(),
+  adminModal: () => window.closeAdminModal?.(),
+  sudoJukeboxModal: () => window.closeSudoJukebox?.(),
+  achievementsModal: () => window.closeTrophies?.(),
+  wheelModal: () => window.closeWheelModal?.(),
+  drinkingGameModal: () => window.closeDrinkingGameModal?.(),
+  nextSongModal: () => window.closeNextSongModal?.(),
+  snapModal: () => window.closeSnapModal?.(),
+  galleryModal: () => window.closeGalleryModal?.(),
+  ticketModal: () => window.closeTicketModal?.()
+};
+
+let modalUxReady = false;
+
+function isOpen(element) {
+  return Boolean(element) && !element.classList.contains('hidden');
+}
+
+export function initializeModalUx() {
+  if (modalUxReady) return;
+  modalUxReady = true;
+
+  // Klick auf das äußere Overlay schließt über die jeweilige Close-Funktion (stoppt Audio, Kamera, Timer).
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === 'galleryLightbox') {
+      window.closeGalleryLightbox?.();
+      return;
+    }
+    const close = MODAL_CLOSERS[target.id];
+    if (close && isOpen(target)) close();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    if (isOpen(document.getElementById('galleryLightbox'))) {
+      window.closeGalleryLightbox?.();
+      return;
+    }
+    if (isOpen(document.getElementById('guestStatsModal'))) {
+      window.closeGuestStatsModal?.();
+      return;
+    }
+    // Das zuletzt im DOM stehende sichtbare Modal liegt oben.
+    const open = Object.keys(MODAL_CLOSERS)
+      .map((id) => document.getElementById(id))
+      .filter(isOpen)
+      .sort((a, b) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+    const top = open[open.length - 1];
+    if (top) MODAL_CLOSERS[top.id]();
+  });
+}
+
+export function applyStaticContent() {
+  initializeModalUx();
+  document.title = CONTENT.ui.pageTitle;
+  const radarMapsLink = document.getElementById('radarMapsLink');
+  if (radarMapsLink) radarMapsLink.href = EVENT_CORE.mapsUrl;
+  renderSudoShowGrid();
+  populateDrinkSelect();
+  document.querySelectorAll('[data-content]').forEach((element) => {
+    const value = readPath(element.dataset.content);
+    if (typeof value === 'string') element.textContent = value;
+  });
+
+  document.querySelectorAll('[data-modal-title]').forEach((heading) => {
+    const entry = CONTENT.ui.modals[heading.dataset.modalTitle];
+    if (!entry) return;
+    heading.textContent = entry.title;
+
+    const subtitle = entry.subtitle || '';
+    let subtitleEl = document.querySelector(
+      `[data-content="ui.modals.${heading.dataset.modalTitle}.subtitle"]`
+    );
+    if (!subtitleEl && subtitle) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'min-w-0';
+      heading.replaceWith(wrapper);
+      wrapper.appendChild(heading);
+      subtitleEl = document.createElement('p');
+      subtitleEl.className = 'text-[10px] opacity-70';
+      wrapper.appendChild(subtitleEl);
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = subtitle;
+      subtitleEl.classList.toggle('hidden', !subtitle);
+    }
+  });
+}
 
 export function toggleCRT() {
   document.body.classList.toggle('crt-overlay');
@@ -65,7 +192,7 @@ function updatePartyCountdown() {
     return;
   }
   if (diff <= 0) {
-    badge.textContent = '🔥 ESKALATION LÄUFT!';
+    badge.textContent = CONTENT.ui.countdown.running;
     return;
   }
 
@@ -75,7 +202,7 @@ function updatePartyCountdown() {
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-  badge.textContent = `T-MINUS: ${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+  badge.textContent = `${CONTENT.ui.countdown.prefix} ${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
 }
 
 let countdownTimer = null;
@@ -84,33 +211,7 @@ export function startBootSequence() {
   updatePartyCountdown();
   clearInterval(countdownTimer);
   countdownTimer = setInterval(updatePartyCountdown, 1000);
-  const bootSequence = [
-    {
-      text: "<span class='text-emerald-500'>[SYS]</span> Lade Linux kernel 6.8.0-partyraum-generic...",
-      delay: 100
-    },
-    {
-      text: "<span class='text-emerald-500'>[MEM]</span> Initialisiere Hopfenspeicher & Mischen... <span class='text-emerald-400 font-bold'>[OK]</span>",
-      delay: 350
-    },
-    {
-      text: "<span class='text-cyan-400'>[AUDIO]</span> Druckkammer Lohhof: 120 dB eingemessen... <span class='text-emerald-400 font-bold'>[MAX]</span>",
-      delay: 750
-    },
-    {
-      text: `<span class='text-emerald-500'>[AUTH]</span> Host: <strong class='text-emerald-200'>${CONFIG.party.hostName}</strong> | Upgrade: <strong>v20.0 &rarr; v21.0</strong>`,
-      delay: 1700
-    },
-    { text: '------------------------------------------------------------', delay: 1950 },
-    {
-      text: `<span class='text-cyan-300 font-bold text-sm'>🚨 OFFIZIELLE EINLADUNG: ${CONFIG.party.hostName.toUpperCase()}'S 21. GEBURTSTAG 🚨</span>`,
-      delay: 2150
-    },
-    {
-      text: "Nutze die Action-Bar unten für <strong class='text-emerald-300 bg-emerald-950 px-1 rounded'>ZUSAGEN</strong> oder <strong class='text-amber-300'>SUDO</strong>.",
-      delay: 2550
-    }
-  ];
+  const bootSequence = CONTENT.bootSequence;
 
   bootSequence.forEach((item) => appendLine(item.text, item.delay));
   const unlockAudio = () => {

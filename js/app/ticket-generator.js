@@ -1,11 +1,16 @@
 import { ACHIEVEMENTS, getUnlockedIds } from './achievements.js';
 import { playSuccessChime } from './audio.js';
+import { CONTENT, EVENT_CORE, dateFormatted, locationFull } from '../content.js';
 import { getPartyContext, getPegelDescription, openRsvpModal } from './party-actions.js';
 import { showToast } from './ui.js';
 
 const W = 1080;
 const H = 1920;
 const TEAR_Y = 1480;
+const CONTENT_TOP = 290;
+const CONTENT_BOTTOM = 1455;
+const BOXES_DESIGN_TOP = 890;
+const BOXES_HEIGHT = 560;
 const BG = '#040807';
 const MONO = '"Share Tech Mono", "Courier New", monospace';
 
@@ -24,12 +29,13 @@ function getOwnRsvp() {
   }
 }
 
+const RANK_COLORS = ['#38bdf8', '#22c55e', '#06b6d4', '#f59e0b', '#f43f5e'];
+
 function getTheme(pegel) {
-  if (pegel <= 0) return { color: '#38bdf8', label: 'FAHRER-EINHEIT // 0,0‰' };
-  if (pegel <= 35) return { color: '#22c55e', label: 'WARM-UP CREW' };
-  if (pegel <= 75) return { color: '#06b6d4', label: 'PARTY-OPERATIVE' };
-  if (pegel <= 90) return { color: '#f59e0b', label: 'ESKALATIONS-STUFE' };
-  return { color: '#f43f5e', label: 'ABRISS-OVERDRIVE // MAX LEVEL' };
+  const ranks = CONTENT.ticket.ranks;
+  const found = ranks.findIndex((rank) => pegel <= rank.maxPegel);
+  const rankIndex = found === -1 ? ranks.length - 1 : found;
+  return { color: RANK_COLORS[Math.min(rankIndex, RANK_COLORS.length - 1)], label: ranks[rankIndex].label };
 }
 
 function hexToRgba(hex, alpha) {
@@ -202,27 +208,53 @@ function drawHeader(ctx, color) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = color;
-  fitFont(ctx, '🚨 KERNEL ACCESS PASS // PROJECT 21.0', 'bold', 34, 900);
-  ctx.fillText('🚨 KERNEL ACCESS PASS // PROJECT 21.0', W / 2, 115);
+  fitFont(ctx, CONTENT.ticket.headerLine, 'bold', 34, 900);
+  ctx.fillText(CONTENT.ticket.headerLine, W / 2, 115);
 
   ctx.save();
   ctx.shadowColor = color;
   ctx.shadowBlur = 24;
   ctx.fillStyle = '#ffffff';
-  fitFont(ctx, 'GEORGS 21. GEBURTSTAG', 'bold', 78, 920);
-  ctx.fillText('GEORGS 21. GEBURTSTAG', W / 2, 205);
+  const title = `${EVENT_CORE.hostName.toUpperCase()}S ${EVENT_CORE.age}. GEBURTSTAG`;
+  fitFont(ctx, title, 'bold', 78, 920);
+  ctx.fillText(title, W / 2, 205);
   ctx.restore();
 
   ctx.fillStyle = hexToRgba(color, 0.9);
-  fitFont(ctx, 'VIP BACKSTAGE & DRUCKKAMMER LOHHOF', 'bold', 30, 900);
-  ctx.fillText('VIP BACKSTAGE & DRUCKKAMMER LOHHOF', W / 2, 262);
+  fitFont(ctx, CONTENT.ticket.vipLine, 'bold', 30, 900);
+  ctx.fillText(CONTENT.ticket.vipLine, W / 2, 262);
 }
 
-function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons) {
+// Verteilt alle Sektionen oberhalb der Abreißlinie gleichmäßig zwischen Header und TEAR_Y.
+function computeLayout(rsvp, unlockedIcons) {
+  const hasPlusOne = rsvp.plusOne === true;
+  const hasTrophies = unlockedIcons.length > 0;
+  const r = hasPlusOne || hasTrophies ? (hasPlusOne && hasTrophies ? 95 : 102) : 110;
+  const heights = {
+    avatar: 2 * r + 20,
+    name: 84,
+    badge: 52,
+    plusOne: hasPlusOne ? 56 : 0,
+    trophies: hasTrophies ? 110 : 0,
+    boxes: BOXES_HEIGHT
+  };
+  const order = ['avatar', 'name', 'badge', 'plusOne', 'trophies', 'boxes'].filter((key) => heights[key] > 0);
+  const total = order.reduce((sum, key) => sum + heights[key], 0);
+  const gap = Math.max(12, (CONTENT_BOTTOM - CONTENT_TOP - total) / (order.length + 1));
+  const tops = {};
+  let y = CONTENT_TOP + gap;
+  order.forEach((key) => {
+    tops[key] = y;
+    y += heights[key] + gap;
+  });
+  return { r, tops, hasPlusOne, hasTrophies };
+}
+
+function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons, layout) {
   const { color } = theme;
+  const { r, tops } = layout;
   const cx = W / 2;
-  const cy = 410;
-  const r = 95;
+  const cy = tops.avatar + r + 10;
 
   ctx.save();
   ctx.shadowColor = color;
@@ -255,7 +287,7 @@ function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons) {
     );
   } else {
     const emoji = (rsvp.avatar && rsvp.avatar.value) || (typeof rsvp.avatar === 'string' ? rsvp.avatar : '😎');
-    ctx.font = '110px sans-serif';
+    ctx.font = `${Math.round(r * 1.16)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
@@ -271,13 +303,13 @@ function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons) {
   ctx.fillStyle = '#ffffff';
   const name = String(rsvp.name || 'Party-Gast').toUpperCase();
   fitFont(ctx, name, 'bold', 84, 900, 32);
-  ctx.fillText(name, cx, 580);
+  ctx.fillText(name, cx, tops.name + 66);
   ctx.restore();
 
   // Rang-Label
   ctx.font = `bold 28px ${MONO}`;
   const labelW = ctx.measureText(theme.label).width + 60;
-  roundedRectPath(ctx, cx - labelW / 2, 605, labelW, 52, 26);
+  roundedRectPath(ctx, cx - labelW / 2, tops.badge, labelW, 52, 26);
   ctx.fillStyle = hexToRgba(color, 0.18);
   ctx.fill();
   ctx.strokeStyle = color;
@@ -285,14 +317,14 @@ function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons) {
   ctx.stroke();
   ctx.fillStyle = color;
   ctx.textBaseline = 'middle';
-  ctx.fillText(theme.label, cx, 632);
+  ctx.fillText(theme.label, cx, tops.badge + 27);
   ctx.textBaseline = 'alphabetic';
 
-  if (rsvp.plusOne === true) {
+  if (layout.hasPlusOne) {
     const text = truncate(ctx, `👥 INKL. +1 BEGLEITUNG (${rsvp.plusOneName || 'VIP'})`, 840);
     ctx.font = `bold 28px ${MONO}`;
     const w = Math.min(920, ctx.measureText(text).width + 60);
-    roundedRectPath(ctx, cx - w / 2, 680, w, 56, 28);
+    roundedRectPath(ctx, cx - w / 2, tops.plusOne, w, 56, 28);
     ctx.save();
     ctx.shadowColor = '#22d3ee';
     ctx.shadowBlur = 16;
@@ -304,19 +336,19 @@ function drawProfile(ctx, rsvp, theme, avatarImg, unlockedIcons) {
     ctx.restore();
     ctx.fillStyle = '#67e8f9';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, cx, 709);
+    ctx.fillText(text, cx, tops.plusOne + 29);
     ctx.textBaseline = 'alphabetic';
   }
 
-  if (unlockedIcons.length > 0) {
+  if (layout.hasTrophies) {
     ctx.fillStyle = hexToRgba(color, 0.9);
     ctx.font = `bold 24px ${MONO}`;
-    ctx.fillText('🏆 FREIGESCHALTETE RÄNGE', cx, 788);
+    ctx.fillText(CONTENT.ticket.unlockedRanksTitle, cx, tops.trophies + 22);
     const gap = 96;
     const startX = cx - ((unlockedIcons.length - 1) * gap) / 2;
     ctx.font = '58px sans-serif';
     ctx.textBaseline = 'middle';
-    unlockedIcons.forEach((icon, i) => ctx.fillText(icon, startX + i * gap, 845));
+    unlockedIcons.forEach((icon, i) => ctx.fillText(icon, startX + i * gap, tops.trophies + 79));
     ctx.textBaseline = 'alphabetic';
   }
 }
@@ -327,34 +359,34 @@ function drawInfoBoxes(ctx, rsvp, theme, pegel, coverImg) {
   ctx.textBaseline = 'alphabetic';
 
   // Datum & Ort
-  drawBox(ctx, 70, 890, 450, 130, color, '📅 DATUM & ZEIT');
+  drawBox(ctx, 70, 890, 450, 130, color, CONTENT.ticket.boxes.date);
   ctx.fillStyle = '#ffffff';
-  fitFont(ctx, 'SAMSTAG, 19.12.2026', 'bold', 32, 400);
-  ctx.fillText('SAMSTAG, 19.12.2026', 94, 937);
+  fitFont(ctx, dateFormatted.toUpperCase(), 'bold', 32, 400);
+  ctx.fillText(dateFormatted.toUpperCase(), 94, 972);
   ctx.fillStyle = '#cbd5e1';
-  ctx.font = `bold 22px ${MONO}`;
-  wrapText(ctx, 'AB 19:30 UHR BIS SYSTEMABSTURZ', 400).forEach((line, i) =>
-    ctx.fillText(line, 94, 975 + i * 26)
+  ctx.font = `bold 20px ${MONO}`;
+  wrapText(ctx, EVENT_CORE.timeLabel.toUpperCase(), 400).forEach((line, i) =>
+    ctx.fillText(line, 94, 996 + i * 22)
   );
 
-  drawBox(ctx, 560, 890, 450, 130, color, '📍 SEKTOR / ORT');
+  drawBox(ctx, 560, 890, 450, 130, color, CONTENT.ticket.boxes.location);
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold 26px ${MONO}`;
-  wrapText(ctx, 'PARTYRAUM LOHHOF 49, 31600 UCHTE', 400).forEach((line, i) =>
-    ctx.fillText(line, 584, 937 + i * 32)
+  wrapText(ctx, locationFull.toUpperCase(), 400).forEach((line, i) =>
+    ctx.fillText(line, 584, 972 + i * 30)
   );
 
   // Kraftstoff
-  drawBox(ctx, 70, 1040, 940, 90, color, '⛽ KRAFTSTOFF');
+  drawBox(ctx, 70, 1040, 940, 90, color, CONTENT.ticket.boxes.drink);
   ctx.fillStyle = '#ffffff';
-  const drink = String(rsvp.drink || 'Überraschung').toUpperCase();
+  const drink = String(rsvp.drink || CONTENT.ticket.drinkFallback).toUpperCase();
   fitFont(ctx, drink, 'bold', 32, 600, 18);
   ctx.textAlign = 'right';
   ctx.fillText(truncate(ctx, drink, 600), 986, 1096);
   ctx.textAlign = 'left';
 
   // Pegel
-  drawBox(ctx, 70, 1150, 940, 150, color, '📈 ZIEL-PEGEL');
+  drawBox(ctx, 70, 1150, 940, 150, color, CONTENT.ticket.boxes.pegel);
   ctx.fillStyle = color;
   ctx.font = `bold 38px ${MONO}`;
   ctx.textAlign = 'right';
@@ -378,7 +410,7 @@ function drawInfoBoxes(ctx, rsvp, theme, pegel, coverImg) {
   ctx.fillText(truncate(ctx, pegelDesc, 890), 94, 1278);
 
   // Hymne
-  drawBox(ctx, 70, 1320, 940, 130, color, '🎵 PERSÖNLICHE HYMNE');
+  drawBox(ctx, 70, 1320, 940, 130, color, CONTENT.ticket.boxes.song);
   const coverX = 94;
   const coverY = 1342;
   const coverSize = 90;
@@ -408,11 +440,11 @@ function drawInfoBoxes(ctx, rsvp, theme, pegel, coverImg) {
     ctx.fillText(truncate(ctx, rsvp.song.title, maxW), textX, 1392);
     ctx.fillStyle = '#94a3b8';
     ctx.font = `24px ${MONO}`;
-    ctx.fillText(truncate(ctx, rsvp.song.artist || 'Unbekannter Interpret', maxW), textX, 1426);
+    ctx.fillText(truncate(ctx, rsvp.song.artist || CONTENT.ticket.unknownArtist, maxW), textX, 1426);
   } else {
     ctx.fillStyle = '#94a3b8';
     ctx.font = `24px ${MONO}`;
-    ctx.fillText('Noch keine Hymne gewählt – DJ entscheidet!', 94, 1410);
+    ctx.fillText(CONTENT.ticket.noSong, 94, 1410);
   }
 }
 
@@ -434,8 +466,8 @@ function drawCoupon(ctx, theme, deviceToken) {
   ctx.fillStyle = color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  fitFont(ctx, '✓ ZUTRITT GEWÄHRT', 'bold', 74, 740);
-  ctx.fillText('✓ ZUTRITT GEWÄHRT', 0, 4);
+  fitFont(ctx, CONTENT.ticket.stamp, 'bold', 74, 740);
+  ctx.fillText(CONTENT.ticket.stamp, 0, 4);
   ctx.restore();
 
   // Strichcode aus dem deviceToken
@@ -459,8 +491,8 @@ function drawCoupon(ctx, theme, deviceToken) {
 
   ctx.fillStyle = '#94a3b8';
   ctx.font = `20px ${MONO}`;
-  ctx.fillText('OFFIZIELLES ZUGANGSTICKET ·', cx, 1872);
-  ctx.fillText('SCREENSHOT ODER SPEICHERN FÜR INSTA / WHATSAPP', cx, 1898);
+  ctx.fillText(CONTENT.ticket.footerLines[0], cx, 1872);
+  ctx.fillText(CONTENT.ticket.footerLines[1], cx, 1898);
 }
 
 async function renderTicket() {
@@ -490,8 +522,13 @@ async function renderTicket() {
   ctx.clearRect(0, 0, W, H);
   drawBackground(ctx, theme.color);
   drawHeader(ctx, theme.color);
-  drawProfile(ctx, rsvp, theme, avatarImg, icons);
+  const layout = computeLayout(rsvp, icons);
+  drawProfile(ctx, rsvp, theme, avatarImg, icons, layout);
+  // Info-Boxen sind auf y = 890 gezeichnet und werden an die berechnete Position verschoben.
+  ctx.save();
+  ctx.translate(0, layout.tops.boxes - BOXES_DESIGN_TOP);
   drawInfoBoxes(ctx, rsvp, theme, pegel, coverImg);
+  ctx.restore();
   drawFrame(ctx, theme.color);
   drawCoupon(ctx, theme, deviceToken);
   rendered = true;

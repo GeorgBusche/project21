@@ -29,15 +29,17 @@ async function main() {
   const targetPath = path.join(backupsDir, filename);
 
   console.log('📡 Lade Daten von Firebase...');
-  const [rsvpsRes, songsRes] = await Promise.all([
+  const [rsvpsRes, songsRes, snapsRes] = await Promise.all([
     fetch(`${DB_URL}/rsvps.json`),
-    fetch(`${DB_URL}/songs.json`)
+    fetch(`${DB_URL}/songs.json`),
+    fetch(`${DB_URL}/snaps.json`)
   ]);
 
   const data = {
     backedUpAt: new Date().toISOString(),
     rsvps: (await rsvpsRes.json()) || {},
-    songs: (await songsRes.json()) || {}
+    songs: (await songsRes.json()) || {},
+    snaps: (await snapsRes.json()) || {}
   };
 
   fs.writeFileSync(targetPath, JSON.stringify(data, null, 2), 'utf-8');

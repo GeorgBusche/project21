@@ -1,45 +1,14 @@
 import { playBuzzerError, playSuccessChime, playTone } from '../audio.js';
+import { CONTENT } from '../../content.js';
 import { getPartyContext } from '../party-actions.js';
 import { appendLine, escapeHtml } from '../ui.js';
 
 const BOMB_MIN_MS = 15000;
 const BOMB_MAX_MS = 45000;
 
-const BOMB_QUESTIONS = [
-  'Nenne eine Biermarke',
-  'Nenne einen Song von Wolle Petry',
-  'Nenne einen Grund für Kater',
-  'Nenne ein Mischgetränk',
-  'Nenne einen Ort in Uchte oder Umgebung',
-  'Nenne einen Schlager-Hit',
-  'Nenne etwas, das man auf einer Party vergisst',
-  'Nenne einen Song von Rammstein',
-  'Nenne eine Ausrede fürs Zuspätkommen',
-  'Nenne ein Trinkspiel',
-  'Nenne etwas, das in einen Dönerteller gehört',
-  'Nenne einen Schnaps',
-  'Nenne ein Wort, das man nach 3 Uhr morgens sagt',
-  'Nenne eine Kneipe oder Disco',
-  'Nenne einen Kartoffel-Snack'
-];
+const BOMB_QUESTIONS = CONTENT.partyMode.bombPrompts;
 
-const DUEL_CHALLENGES = [
-  '⚡ Schere-Stein-Papier auf 1 – Verlierer trinkt!',
-  '🍻 Staring-Contest: Wer zuerst blinzelt, holt die nächste Runde!',
-  '🎤 Wer kann den Refrain von Bella Napoli lauter singen?',
-  '🦵 Wer hält länger auf einem Bein? Verlierer trinkt!',
-  '🤐 Wer zuerst lacht, trinkt – 30 Sekunden Blickkontakt!',
-  '🧠 Abwechselnd Biermarken nennen – wer stockt, trinkt!',
-  '🕺 Tanz-Battle zu Georgs nächstem Song – Publikum entscheidet!',
-  '🤏 Daumendrücken: Wer verliert, trinkt!',
-  '🎯 Wer würde eher nackt in den Teich springen? Zeigt auf einen, Mehrheit entscheidet!',
-  '🥇 Wer würde eher als Letzter die Party verlassen? Abstimmung per Fingerzeig!',
-  '🎭 Imitiert Georg – wer besser ist, darf einen Trinkspruch verteilen!',
-  '📵 Wer zuerst aufs Handy schaut, trinkt – 2 Minuten Handyverbot!',
-  '🍺 Wettrennen: Wer sein Glas zuerst leer hat, darf den anderen Shots zuteilen!',
-  '🗣️ Wer würde eher einen Ex-Anruf um 3 Uhr nachts machen? Gruppe entscheidet!',
-  '🎸 Luftgitarren-Duell zu Wolle Petry – Applaus entscheidet!'
-];
+const DUEL_CHALLENGES = CONTENT.partyMode.duelPrompts;
 
 const PLACEHOLDERS = ['Gast A', 'Gast B'];
 
@@ -154,7 +123,7 @@ export function startLohhofDuel() {
   playSuccessChime();
   const result = document.getElementById('duelResult');
   if (result) {
-    result.innerHTML = `<div class="text-xs text-rose-400 uppercase tracking-widest">⚔️ Lohhof-Duell</div><div class="text-lg font-extrabold text-rose-200 my-1">${escapeHtml(first)} <span class="text-neutral-500">vs</span> ${escapeHtml(second)}</div><div class="text-sm text-amber-200">${escapeHtml(challenge)}</div>`;
+    result.innerHTML = `<div class="text-xs text-rose-400 uppercase tracking-widest">⚔️ ${escapeHtml(CONTENT.partyMode.duelTitle)}</div><div class="text-lg font-extrabold text-rose-200 my-1">${escapeHtml(first)} <span class="text-neutral-500">vs</span> ${escapeHtml(second)}</div><div class="text-sm text-amber-200">${escapeHtml(challenge)}</div>`;
     result.classList.remove('hidden');
   }
   appendLine(

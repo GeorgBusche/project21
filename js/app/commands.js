@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { CONTENT } from '../content.js';
 import { openTrophies, trackCommand, trackFlag } from './achievements.js';
 import { playTone } from './audio.js';
 import { openSudoJukebox, triggerSpecificSudoParty } from './sudo.js';
@@ -11,14 +12,7 @@ let cliHistoryIndex = 0;
 
 const SUDO_SHOWS = ['bella', 'wolle', 'rammstein', 'biertornado', 'ragecage', 'schuettelkorn'];
 
-const VIRTUAL_FILES = {
-  'geheimplan.txt':
-    'PHASE 1: Ankommen & Pils.\nPHASE 2: Mischen.\nPHASE 3: ???\nPHASE 4: Profit (und Kater).\nStatus: Plan wird nicht eingehalten.',
-  'bierzelt_protokoll.log':
-    '[19:30] Erster Anstich. Stimmung: stabil.\n[21:12] Hubiturm auf Warnstufe Gelb.\n[23:47] Jemand hat "nur noch eins" gesagt.\n[03:00] lim Promille = 1.8. q.e.d.',
-  'georg_v21.conf':
-    'host=Georg\nversion=21.0\nbier_leitung=1\ndresscode=mir_doch_egal\nkater_modus=morgen_problem\nmax_pegel=ABRISS'
-};
+const VIRTUAL_FILES = CONTENT.secretCli.virtualFiles;
 
 export function initializeCommands() {
   if (window.matchMedia('(max-height: 720px)').matches) {
@@ -105,7 +99,7 @@ function toggleBodyClass(className) {
 
 function runSecretCommand(rawInput) {
   appendLine(
-    `<span class='text-emerald-500'>gast@lohhof49:~$</span> <span class='text-emerald-200'>${escapeHtml(rawInput)}</span>`
+    `<span class='text-emerald-500'>${escapeHtml(CONTENT.secretCli.prompt)}</span> <span class='text-emerald-200'>${escapeHtml(rawInput)}</span>`
   );
   if (!rawInput) return;
 
@@ -116,7 +110,7 @@ function runSecretCommand(rawInput) {
   const COMMAND_ALIASES = { barrelroll: 'flip', cls: 'clear', su: 'root', achievements: 'trophies' };
   const KNOWN_COMMANDS = ['help', 'sudo', 'drunk', 'flip', 'ls', 'cat', 'whoami', 'ping', 'clear', 'root', 'trophies'];
   const canonical = COMMAND_ALIASES[name] || name;
-  if (KNOWN_COMMANDS.includes(canonical) && (canonical !== 'ping' || argument === 'lohhof')) {
+  if (KNOWN_COMMANDS.includes(canonical) && (canonical !== 'ping' || argument === CONTENT.secretCli.pingTarget)) {
     trackCommand(canonical);
   }
 
@@ -127,20 +121,7 @@ function runSecretCommand(rawInput) {
       break;
     case 'help':
       cliOut(
-        [
-          'Verfügbare Kernel-Befehle:',
-          '  help               diese Hilfe',
-          '  sudo [show]        SUDO-Show starten (bella, wolle, rammstein, biertornado, ragecage, schuettelkorn)',
-          '  drunk              Promille-Simulation an/aus',
-          '  flip | barrelroll  Bildschirm drehen',
-          '  ls | cat <datei>   virtuelle Dateien',
-          '  whoami             dein Gast-Profil',
-          '  ping lohhof        Verbindung zum Partyraum',
-          '  trophies           deine Trophäen',
-          '  clear | cls        Terminal leeren',
-          '  root | su          Admin-Login',
-          '  exit               Eingabezeile schließen'
-        ].join('\n'),
+        CONTENT.secretCli.helpLines.map(escapeHtml).join('\n'),
         'text-cyan-300'
       );
       break;
@@ -162,8 +143,8 @@ function runSecretCommand(rawInput) {
     case 'drunk':
       cliOut(
         toggleBodyClass('egg-drunk')
-          ? '[KERNEL] Promille-Simulation aktiviert'
-          : '[KERNEL] Promille-Simulation deaktiviert. Nüchtern. Langweilig.',
+          ? CONTENT.secretCli.drunkOn
+          : CONTENT.secretCli.drunkOff,
         'text-amber-300'
       );
       break;
@@ -171,8 +152,8 @@ function runSecretCommand(rawInput) {
     case 'barrelroll':
       cliOut(
         toggleBodyClass('egg-flip')
-          ? '[KERNEL] Gravitation invertiert. Viel Spaß!'
-          : '[KERNEL] Gravitation wiederhergestellt.',
+          ? CONTENT.secretCli.flipOn
+          : CONTENT.secretCli.flipOff,
         'text-amber-300'
       );
       break;
@@ -204,10 +185,10 @@ function runSecretCommand(rawInput) {
       break;
     }
     case 'ping':
-      if (argument === 'lohhof') {
+      if (argument === CONTENT.secretCli.pingTarget) {
         cliOut(
           [1, 2, 3]
-            .map(() => '64 bytes from lohhof49 (Bierleitung_1): time=0.21ms - Pegel stabil')
+            .map(() => CONTENT.secretCli.pingReply)
             .join('\n')
         );
       } else {
@@ -226,7 +207,7 @@ function runSecretCommand(rawInput) {
       break;
     case 'mathe':
       appendLine(
-        "<div class='bg-neutral-900 p-3 rounded border border-yellow-600/70 text-xs text-yellow-300 font-mono'>Sei N die Menge aller Gäste. &forall; x &isin; N gilt: lim<sub>t &rarr; 03:00</sub> Promille(x) &ge; 1.8. q.e.d.</div>"
+        "<div class='bg-neutral-900 p-3 rounded border border-yellow-600/70 text-xs text-yellow-300 font-mono'>" + CONTENT.secretCli.matheFormula + "</div>"
       );
       break;
     case 'exit':
@@ -243,8 +224,8 @@ function setCommandsCollapsed(collapsed) {
   if (!grid || !toggleButton) return;
 
   if (commandsCollapsed) {
-    grid.className = 'grid grid-cols-8 gap-1 relative';
-    toggleButton.innerHTML = '<span>▲</span> AUSKLAPPEN';
+    grid.className = 'grid grid-cols-6 gap-1 relative';
+    toggleButton.textContent = CONTENT.ui.commandsExpand;
     document.querySelectorAll('.cmd-text').forEach((text) => text.classList.add('hidden'));
     document.querySelectorAll('.cmd-btn').forEach((button) => {
       button.classList.remove('py-2');
@@ -252,7 +233,7 @@ function setCommandsCollapsed(collapsed) {
     });
   } else {
     grid.className = `${expandedGridClass} transition-all relative`;
-    toggleButton.innerHTML = '<span>▼</span> EINKLAPPEN';
+    toggleButton.textContent = CONTENT.ui.commandsCollapse;
     document.querySelectorAll('.cmd-text').forEach((text) => text.classList.remove('hidden'));
     document.querySelectorAll('.cmd-btn').forEach((button) => {
       button.classList.remove('py-1.5');

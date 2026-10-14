@@ -1,26 +1,16 @@
 import { playSuccessChime, playTone } from '../audio.js';
+import { CONTENT } from '../../content.js';
 import { getPartyContext } from '../party-actions.js';
 import { showToast } from '../ui.js';
 
 const W = 540;
 const H = 720;
 
-export const SNAP_FILTERS = [
-  { id: 'scanner', label: '🤖 PEGEL-SCANNER' },
-  { id: 'wolle', label: '🎸 WOLLE-MODUS' },
-  { id: 'rammstein', label: '🔥 RAMMSTEIN-PYRO' },
-  { id: 'schuettelkorn', label: '🎊 SCHÜTTELKORN-BRAUSE' },
-  { id: 'polaroid', label: '📸 POLAROID LOHHOF' }
-];
+const FILTER_TEXT = Object.fromEntries(CONTENT.partyMode.snapFilters.map((filter) => [filter.id, filter]));
 
-const SCAN_TEXTS = [
-  'SCAN: PEGEL KRITISCH 🚨',
-  'SCAN: PEGEL STABIL 🍻',
-  'SCAN: DURST ERKANNT 💧',
-  'SCAN: SCHÜTTELKORN-ALARM 🌾',
-  'SCAN: TANZBEIN AKTIV 🕺'
-];
+export const SNAP_FILTERS = CONTENT.partyMode.snapFilters.map(({ id, label }) => ({ id, label }));
 
+const SCAN_TEXTS = FILTER_TEXT.scanner.stamps;
 let stream = null;
 let video = null;
 let rafId = null;
@@ -152,7 +142,7 @@ function filterScanner(ctx, now) {
   ctx.fillStyle = '#34ff9b';
   ctx.textAlign = 'left';
   const clock = new Date().toLocaleTimeString('de-DE');
-  ctx.fillText('LOHHOF_49 // CAM_01', 26, 48);
+  ctx.fillText(FILTER_TEXT.scanner.hud, 26, 48);
   ctx.fillText(clock, 26, 74);
   ctx.textAlign = 'center';
   ctx.font = 'bold 24px "Courier New", monospace';
@@ -184,7 +174,7 @@ function filterWolle(ctx) {
   ctx.fillStyle = '#e8b64a';
   ctx.fillRect(0, band - 4, W, 4);
   ctx.fillRect(0, H - band, W, 4);
-  stamp(ctx, 'WAHNSINN! 🎸', 150, '#ffd24a', 52);
+  stamp(ctx, FILTER_TEXT.wolle.stamps[0], 150, '#ffd24a', 52);
   ctx.restore();
 }
 
@@ -220,7 +210,7 @@ function filterRammstein(ctx, now) {
 
   ctx.fillStyle = 'rgba(10,10,10,0.8)';
   ctx.fillRect(0, 36, W, 56);
-  stamp(ctx, 'FEUER FREI // GEORG 21', 64, '#ff5a1f', 32, 0);
+  stamp(ctx, FILTER_TEXT.rammstein.stamps[0], 64, '#ff5a1f', 32, 0);
   ctx.restore();
 }
 
@@ -275,7 +265,7 @@ function filterSchuettelkorn(ctx, now) {
 
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(0, 44, W, 56);
-  stamp(ctx, 'ERST SCHÜTTELN, DANN TRINKEN! 🌾', 72, '#fde047', 28, 0);
+  stamp(ctx, FILTER_TEXT.schuettelkorn.stamps[0], 72, '#fde047', 28, 0);
   ctx.restore();
 }
 
@@ -296,9 +286,9 @@ function drawPolaroidFrame(ctx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.font = 'bold 26px "Courier New", monospace';
-  ctx.fillText('GEORGS 21. GEBURTSTAG', W / 2, H - frameBottom + 48);
+  ctx.fillText(FILTER_TEXT.polaroid.stamps[0], W / 2, H - frameBottom + 48);
   ctx.font = '22px "Courier New", monospace';
-  ctx.fillText('19.12.2026 · LOHHOF', W / 2, H - frameBottom + 84);
+  ctx.fillText(FILTER_TEXT.polaroid.subStamp, W / 2, H - frameBottom + 84);
   ctx.restore();
 }
 

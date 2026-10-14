@@ -1,5 +1,6 @@
 import { playSuccessChime, playTone } from './audio.js';
 import { appendLine, showToast } from './ui.js';
+import { CONTENT } from '../content.js';
 
 const STORAGE_KEY = 'party_achievements';
 
@@ -19,52 +20,37 @@ export const ACHIEVEMENTS = [
   {
     id: 'legende',
     icon: '👑',
-    title: 'Party-Legende',
-    desc: 'Alle 5 anderen Trophäen freigeschaltet. Absoluter Endgegner!',
-    hint: 'Schalte alle 5 anderen Trophäen frei.',
     secret: false
   },
   {
     id: 'eskalierer',
     icon: '🔥',
-    title: 'Vollzeit-Eskalierer',
-    desc: 'Alle 6 SUDO-Shows komplett durchgezogen.',
-    hint: 'Sechs Shows. Eine Jukebox (SUDO gedrückt halten). Kein Entkommen.',
     secret: false
   },
   {
     id: 'sturkopf',
     icon: '👹',
-    title: 'Fiech-Bändiger',
-    desc: 'Das Absage-Fiech durch alle Phasen bis zum Boss-Fight gejagt.',
-    hint: 'Nein heißt nein? Versuch mal hartnäckig abzusagen.',
     secret: true
   },
   {
     id: 'hacker',
     icon: '🕵️',
-    title: 'System-Hacker',
-    desc: 'Geheimes Terminal geknackt, vertrauliche Datei gelesen und System-Physik manipuliert.',
-    hint: 'Klicke auf SERVER: LOHHOF_49, lies eine Datei (cat) und verdreh die Optik (drunk/flip).',
     secret: true
   },
   {
     id: 'dj',
     icon: '🎧',
-    title: 'Resident-DJ',
-    desc: 'Mindestens 3 Songs für die Party-Playlist gevotet und eine Hörprobe gecheckt.',
-    hint: 'Hör in einen Track rein (▶️) und gib mindestens 3 Songs deine Stimme.',
     secret: false
   },
   {
     id: 'vollgas',
     icon: '🍻',
-    title: 'Vollgas-Pionier',
-    desc: '100% Ziel-Pegel bei der Zusage eingeloggt oder 5 Runden Shot-Roulette überlebt.',
-    hint: 'Dreh den Pegel-Regler auf Anschlag (100%) oder zieh 5x am Shot-Roulette.',
     secret: false
   }
-];
+].map((achievement) => ({
+  ...achievement,
+  ...CONTENT.achievements[achievement.id]
+}));
 
 const ACHIEVEMENT_MAP = Object.fromEntries(ACHIEVEMENTS.map((a) => [a.id, a]));
 
@@ -221,7 +207,7 @@ function getProgressInfo(id) {
         state.flags.includes('preview') ? ' · 🎧✓' : ''
       })`;
     case 'vollgas':
-      return state.shotsCount > 0 ? ` (${Math.min(5, state.shotsCount)}/5 Shots)` : '';
+      return state.shotsCount > 0 ? ` (${Math.min(5, state.shotsCount)}/5)` : '';
     default:
       return '';
   }

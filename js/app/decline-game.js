@@ -1,4 +1,5 @@
 import { CONFIG } from '../config.js';
+import { CONTENT } from '../content.js';
 import { trackFlag } from './achievements.js';
 import { playBuzzerError, playTone } from './audio.js';
 import { startBossFight } from './boss-fight.js';
@@ -43,10 +44,10 @@ export function handleDeclineClick() {
     setTimeout(() => button.classList.remove('shake-denied'), 350);
   }
 
-  const phrases = CONFIG.declinePhrases;
+  const phrases = CONTENT.declineGame.declinePhrases;
   const phrase = phrases[Math.floor(Math.random() * phrases.length)];
   appendLine(
-    `<span class='text-rose-400 font-bold'>[ABGELEHNT #${declineCount}] ${phrase}</span>`
+    `<span class='text-rose-400 font-bold'>[${CONTENT.declineGame.declinedTag} #${declineCount}] ${phrase}</span>`
   );
 
   if (declineCount >= CONFIG.game.phase2_clicks && declineCount < CONFIG.game.phase3_clicks) {
@@ -73,14 +74,14 @@ export function handleDeclineClick() {
       moveDeclineButton();
     });
     appendLine(
-      "<span class='text-cyan-400 font-extrabold text-sm mt-2'>[PHASE 2] Fiech ist erwacht. Fang es!</span>"
+      `<span class='text-cyan-400 font-extrabold text-sm mt-2'>${CONTENT.declineGame.phaseLogs.phase2}</span>`
     );
     return;
   }
 
   if (declineCount === CONFIG.game.phase3_clicks) {
     appendLine(
-      "<span class='text-fuchsia-400 font-extrabold text-sm mt-2'>[PHASE 3] GRAVITATIONS-ANOMALIE ENTDECKT!</span>"
+      `<span class='text-fuchsia-400 font-extrabold text-sm mt-2'>${CONTENT.declineGame.phaseLogs.phase3}</span>`
     );
     fleeInterval = setInterval(() => {
       moveDeclineButton();
@@ -91,7 +92,7 @@ export function handleDeclineClick() {
 
   if (declineCount === CONFIG.game.phase4_clicks) {
     appendLine(
-      "<span class='text-amber-400 font-extrabold text-sm mt-2'>[PHASE 4] PANIK-MODUS! BILDSCHIRM WIRD INSTABIL!</span>"
+      `<span class='text-amber-400 font-extrabold text-sm mt-2'>${CONTENT.declineGame.phaseLogs.phase4}</span>`
     );
     root.classList.add('egg-drunk');
     button.classList.remove('flee-slow');
@@ -108,9 +109,9 @@ export function handleDeclineClick() {
     trackFlag('boss');
     clearInterval(fleeInterval);
     appendLine(
-      "<span class='text-emerald-400 font-extrabold text-sm mt-2'>[PHASE 5] BOSS FIGHT INITIIERT...</span>"
+      `<span class='text-emerald-400 font-extrabold text-sm mt-2'>${CONTENT.declineGame.phaseLogs.phase5}</span>`
     );
-    showToast('BOSS FIGHT INITIATED');
+    showToast(CONTENT.declineGame.bossToast);
 
     root.classList.remove('egg-rotate', 'egg-drunk');
     currentRotation = 0;
@@ -122,11 +123,11 @@ export function handleDeclineClick() {
       restoreDeclineButton(button);
       if (event.detail.won) {
         appendLine(
-          "<span class='text-emerald-400 font-bold'>[BOSS-KILL] Das Absage-Fiech wurde vernichtet!</span>"
+          `<span class='text-emerald-400 font-bold'>${CONTENT.declineGame.bossKillLog}</span>`
         );
       } else {
         appendLine(
-          "<span class='text-rose-400 font-bold'>[BOSS] Das Omega-Fiech hat gewonnen. Du ergibst dich.</span>"
+          `<span class='text-rose-400 font-bold'>${CONTENT.declineGame.bossLostLog}</span>`
         );
       }
       window.openRsvpModal?.();
@@ -141,7 +142,7 @@ function restoreDeclineButton(button) {
   button.classList.remove('btn-fiech', 'awake', 'flee-slow', 'flee-fast');
   button.removeAttribute('style');
   wrapper.appendChild(button);
-  button.innerHTML = '<span id="declineIcon">❌</span> <span id="declineText">ABSAGEN</span>';
+  button.innerHTML = `<span id="declineIcon">${CONTENT.ui.actionBar.decline.icon}</span> <span id="declineText">${CONTENT.ui.actionBar.decline.label}</span>`;
   button.className =
     'absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm z-[60] shadow-md';
   wrapper.classList.remove('w-14', 'shrink-0');

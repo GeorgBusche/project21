@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { CONTENT } from './content.js';
 import {
   adminAppendPin,
   adminClearPin,
@@ -134,6 +135,7 @@ import {
 } from './app/sudo.js';
 import {
   appendLine,
+  applyStaticContent,
   escapeHtml,
   showToast,
   startBootSequence,
@@ -259,6 +261,7 @@ Object.assign(window, {
 });
 
 function initializeApp() {
+  applyStaticContent();
   initializePartyBackend();
   initializeAdmin();
   initializeSudo();
@@ -271,17 +274,10 @@ function initializeApp() {
 
 // Für Kenner: Wer die Konsole öffnet, findet den Weg zum geheimen Terminal.
 console.log(
-  '%c gast@lohhof49:~$ ',
+  '%c ' + CONTENT.secretCli.prompt + ' ',
   'background:#022c22;color:#34d399;font:bold 14px monospace;padding:4px'
 );
-console.log(
-  [
-    'Psst. Es gibt ein geheimes Terminal.',
-    '  1) Klick oben im Terminal auf "SERVER: LOHHOF_49" (oder tipp am Desktop einfach los).',
-    '  2) Befehle: help | sudo [bella|wolle|rammstein|biertornado|ragecage|schuettelkorn] | drunk | flip | ls | cat <datei> | whoami | ping lohhof | trophies | clear | root | exit',
-    '  Tipp: Sammle alle Trophäen.'
-  ].join('\n')
-);
+console.log(CONTENT.secretCli.consoleHint.join('\n'));
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp, { once: true });

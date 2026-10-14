@@ -1,12 +1,21 @@
 import { CONFIG } from '../config.js';
 import {
+  CONTENT,
+  DRINKS_CONFIG,
+  DRINK_CATEGORY_EMOJI,
+  findDrinkConfig,
+  resolveDrinkCategory
+} from '../content.js';
+import {
   getUnlockedIds,
   onAchievementsChange,
   renderBadgeIcons,
   trackFlag,
+  trackShot,
   trackVote
 } from './achievements.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
+import { isPartyModeLive } from './party-mode/mode-controller.js';
 import { showRadarMap } from './radar-map.js';
 import { appendLine, escapeHtml, showToast } from './ui.js';
 
@@ -610,7 +619,12 @@ export function openRsvpModal() {
     if (nameInput) nameInput.value = existing.name;
 
     const drinkInput = document.getElementById('rsvpDrink');
-    if (drinkInput && existing.drink) drinkInput.value = existing.drink;
+    if (drinkInput && existing.drink) {
+      const match =
+        findDrinkConfig(existing.drink) ||
+        DRINKS_CONFIG.find((d) => d.category === resolveDrinkCategory(existing.drink));
+      if (match) drinkInput.value = match.label;
+    }
 
     const plusOneToggle = document.getElementById('rsvpPlusOneToggle');
     if (plusOneToggle) {
@@ -772,11 +786,11 @@ export function handlePlusOneInput(value) {
 
 export function getPegelDescription(value) {
   const val = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
-  const thresholds = Object.keys(CONFIG.pegelDescriptions)
+  const thresholds = Object.keys(CONTENT.pegelDescriptions)
     .map(Number)
     .sort((a, b) => a - b);
   const match = thresholds.find((threshold) => val <= threshold);
-  return CONFIG.pegelDescriptions[match ?? thresholds[thresholds.length - 1]];
+  return CONTENT.pegelDescriptions[match ?? thresholds[thresholds.length - 1]];
 }
 
 export function updatePegelDisplay(value) {
@@ -814,12 +828,15 @@ export function rollRandomPegel() {
   playTone(450, 'square', 0.04);
   setTimeout(() => playTone(650, 'square', 0.04), 50);
   setTimeout(() => playTone(900, 'sawtooth', 0.06), 100);
-  const randomPegel = Math.floor(Math.random() * 80) + 21; // 21 bis 100%
+  // 20 % Chance auf direkt 100 %, sonst 21 bis 99 %
+  const randomPegel = Math.random() < 0.2 ? 100 : Math.floor(Math.random() * 79) + 21;
   const slider = document.getElementById('rsvpPegel');
   if (slider) {
     slider.value = randomPegel;
     updatePegelDisplay(randomPegel);
   }
+  if (randomPegel === 100) trackFlag('pegel100');
+  trackShot();
 }
 
 export function selectRsvpSong(trackId) {
@@ -964,7 +981,7 @@ export function saveRsvp() {
 
   const hasPlusOne = document.getElementById('rsvpPlusOneToggle')?.checked || false;
   const plusOneName = document.getElementById('rsvpPlusOneName')?.value.trim() || '';
-  const drink = document.getElementById('rsvpDrink')?.value || 'Kühles Pils';
+  const drink = document.getElementById('rsvpDrink')?.value || DRINKS_CONFIG[0].label;
   const pegelValue = document.getElementById('rsvpPegel')?.value || 75;
   const note = (document.getElementById('rsvpNote')?.value || '').trim();
 
@@ -1072,16 +1089,19 @@ export function saveRsvp() {
   updateBottomRsvpButton();
   updateGuestModalFooter();
   const pegelText = getPegelDescription(pegelValue);
-  let message = wasExisting
-    ? `🚨 Zusage-Update für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nhier ist ein Update zu meiner Zusage:\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja (+1)' : 'Nein'}\n⛽ Kraftstoff: ${drink}\n📊 Pegel: ${pegelValue}% (${pegelText})`
-    : `🚨 Zusage für deinen 21. Geburtstag! 🚨\nMoin ${CONFIG.party.hostName},\n\nBin dabei!\n👤 Name: ${name}\n👥 Begleitung: ${hasPlusOne ? plusOneName || 'Ja (+1)' : 'Nein'}\n⛽ Kraftstoff: ${drink}\n📊 Pegel: ${pegelValue}% (${pegelText})`;
-
-  if (songPayload) {
-    message += `\n🎵 Party-Playlist: ${songPayload.title}${songPayload.artist ? ` - ${songPayload.artist}` : ''}`;
-  }
-  if (note) {
-    message += `\n💬 Ansage / Wunsch: ${note}`;
-  }
+  let message = CONTENT.whatsappTemplate({
+    wasExisting,
+    hostName: CONFIG.party.hostName,
+    age: CONFIG.event.age,
+    name,
+    hasPlusOne,
+    plusOneName,
+    drink,
+    pegelValue,
+    pegelText,
+    songPayload,
+    note
+  });
 
   pendingWhatsAppMessage = message;
 
@@ -1160,11 +1180,11 @@ export function downloadPartyCalendar() {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',
-    `UID:georg21-party-${toIcsLocal(startIso)}@lohhof49`,
+    `UID:georg21-party-${toIcsLocal(startIso)}@${CONTENT.calendar.uidDomain}`,
     `DTSTAMP:${toIcsUtcNow()}`,
     `DTSTART:${toIcsLocal(startIso)}`,
     `DTEND:${toIcsLocal(endIso)}`,
-    `SUMMARY:${escapeIcsText('🚨 Georgs 21. Geburtstag (Partyraum Lohhof 49)')}`,
+    `SUMMARY:${escapeIcsText(CONTENT.calendar.summary)}`,
     `LOCATION:${escapeIcsText(location)}`,
     `DESCRIPTION:${escapeIcsText(description)}`,
     `URL:${mapsUrl}`,
@@ -1484,11 +1504,9 @@ function getGuestAvatarEmoji(guest) {
   const pegel = parseInt(guest.pegel, 10) || 0;
   if (pegel === 100) return '👑';
   if (pegel >= 85) return '⚡';
-  if (pegel === 0 || (guest.drink && guest.drink.toLowerCase().includes('fahrer'))) return '🚗';
-  if (guest.drink && (guest.drink.includes('Korn') || guest.drink.includes('SCHÜTTELKORN'))) return '🥃';
-  if (guest.drink && guest.drink.includes('Pils')) return '🍺';
-  if (guest.drink && guest.drink.includes('Wein')) return '🍷';
-  return '🕺';
+  const category = resolveDrinkCategory(guest.drink);
+  if (pegel === 0 || category === 'driver') return DRINK_CATEGORY_EMOJI.driver;
+  return DRINK_CATEGORY_EMOJI[category] || '🕺';
 }
 
 function getPegelBadgeStyle(pegel) {
@@ -1610,14 +1628,14 @@ function renderGuestListModal() {
 
     // Kategorien-Filter
     if (currentGuestFilter === 'beer') {
-      return g.drink && /pils|bier/i.test(g.drink);
+      return Boolean(g.drink) && resolveDrinkCategory(g.drink) === 'beer';
     }
     if (currentGuestFilter === 'korn') {
-      return g.drink && /korn|mische/i.test(g.drink);
+      return Boolean(g.drink) && resolveDrinkCategory(g.drink) === 'korn';
     }
     if (currentGuestFilter === 'driver') {
       return (
-        (g.drink && /fahrer|0,0/i.test(g.drink)) ||
+        (Boolean(g.drink) && resolveDrinkCategory(g.drink) === 'driver') ||
         parseInt(g.pegel, 10) === 0
       );
     }
@@ -1800,15 +1818,37 @@ export function updateBottomRsvpButton() {
 
   const myRsvp = cachedRsvps[deviceToken] || getSavedLocalRsvp();
   const hasRsvp = Boolean(myRsvp && myRsvp.name);
+  const live = isPartyModeLive() && hasRsvp;
+  const voteBtn = document.getElementById('bottomLiveVoteBtn');
+  const declineWrapper = document.getElementById('declineWrapper');
+  declineWrapper?.classList.toggle('hidden', live);
+  if (voteBtn) {
+    voteBtn.classList.toggle('hidden', !live);
+    voteBtn.classList.toggle('flex', live);
+    const voteIcon = document.getElementById('bottomLiveVoteBtnIcon');
+    const voteText = document.getElementById('bottomLiveVoteBtnText');
+    if (voteIcon) voteIcon.textContent = CONTENT.ui.actionBar.liveVote.icon;
+    if (voteText) voteText.textContent = CONTENT.ui.actionBar.liveVote.label;
+  }
+
+  if (live) {
+    bottomRsvpBtn.setAttribute('onclick', 'openSnapModal()');
+    if (iconEl) iconEl.textContent = CONTENT.ui.actionBar.liveSnap.icon;
+    if (textEl) textEl.textContent = CONTENT.ui.actionBar.liveSnap.label;
+    bottomRsvpBtn.className =
+      'flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold text-sm sm:text-base shadow-[0_0_18px_rgba(6,182,212,0.4)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2';
+    return;
+  }
+  bottomRsvpBtn.setAttribute('onclick', 'openRsvpModal()');
 
   if (hasRsvp) {
-    if (iconEl) iconEl.textContent = '✏️';
-    if (textEl) textEl.textContent = 'ZUSAGE ANPASSEN';
+    if (iconEl) iconEl.textContent = CONTENT.ui.actionBar.rsvpEdit.icon;
+    if (textEl) textEl.textContent = CONTENT.ui.actionBar.rsvpEdit.label;
     bottomRsvpBtn.className =
       'flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold text-sm sm:text-base shadow-[0_0_18px_rgba(6,182,212,0.4)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2';
   } else {
-    if (iconEl) iconEl.textContent = '👍';
-    if (textEl) textEl.textContent = 'ZUSAGEN';
+    if (iconEl) iconEl.textContent = CONTENT.ui.actionBar.rsvp.icon;
+    if (textEl) textEl.textContent = CONTENT.ui.actionBar.rsvp.label;
     bottomRsvpBtn.className =
       'flex-1 py-3 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 text-black font-extrabold text-sm sm:text-base shadow-[0_0_15px_rgba(34,197,94,0.3)] active:scale-95 transition-all duration-300 flex items-center justify-center gap-2';
   }

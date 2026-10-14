@@ -1,4 +1,7 @@
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
+import { CONTENT } from '../content.js';
+
+const BOSS = CONTENT.declineGame.boss;
 
 const BOSS_MAX_HP = 300;
 const HIT_DAMAGE = 15;
@@ -11,20 +14,12 @@ const BOMB_DAMAGE = 20;
 const CLONE_COUNT = 3;
 const PHASE_C_SHIELD_DRAIN_PER_SEC = 3;
 
-const EXCUSES = [
-  '🛋️ Sofa ruft',
-  '🤕 Kopfweh',
-  '👵 Oma-Geburtstag',
-  '🌧️ Es regnet',
-  '🐕 Hund hat Hausaufgaben',
-  '📺 Serie läuft',
-  '🥱 Zu müde'
-];
+const EXCUSES = BOSS.excuseBombs;
 
 const OVERLAY_HTML = `
   <div class="absolute inset-0 flex flex-col p-2 sm:p-3 max-w-3xl mx-auto">
     <div class="flex-shrink-0 border border-rose-700 bg-black/70 rounded-lg p-2 shadow-[0_0_25px_rgba(244,63,94,0.45)]">
-      <div class="text-[11px] sm:text-sm font-extrabold text-rose-400 tracking-wide text-center">☠️ ENDGEGNER: OMEGA-FIECH v21.0 (AUSREDEN-WÄCHTER)</div>
+      <div class="text-[11px] sm:text-sm font-extrabold text-rose-400 tracking-wide text-center">${BOSS.name}</div>
       <div id="bossPhaseStatus" class="text-[10px] sm:text-xs text-amber-300 text-center font-mono mt-0.5 min-h-[1.2em]"></div>
       <div class="mt-1.5 h-4 rounded-full bg-neutral-900 border border-rose-900 overflow-hidden">
         <div id="bossHpBar" class="h-full w-full bg-gradient-to-r from-orange-500 to-rose-600 shadow-[0_0_14px_rgba(244,63,94,0.9)] transition-all duration-150"></div>
@@ -36,7 +31,7 @@ const OVERLAY_HTML = `
 
     <div class="flex-shrink-0 border border-cyan-700 bg-black/70 rounded-lg p-2">
       <div class="flex justify-between text-[11px] text-cyan-300 font-bold mb-1">
-        <span>🛡️ DEIN AUSREDEN-SCHILD</span>
+        <span>${BOSS.shieldLabel}</span>
         <span id="bossTimer" class="font-mono text-amber-300">25s</span>
       </div>
       <div class="h-3 rounded-full bg-neutral-900 border border-cyan-900 overflow-hidden">
@@ -274,10 +269,10 @@ export function startBossFight({ onExit }) {
 
   function enterPhaseB() {
     phase = 'B';
-    setStatus('PHASE B: SCHATTEN-KLONE – nur das 👑-Fiech ist echt!');
+    setStatus(BOSS.status.phaseB);
     playTone(160, 'sawtooth', 0.4, 0.06);
     floatText(
-      '[WARNUNG] OMEGA-FIECH NUTZT SCHATTEN-KLONE!',
+      BOSS.phaseCall,
       arena.getBoundingClientRect().left + arenaSize().w / 2,
       arena.getBoundingClientRect().top + 40,
       'boss-float-warn'
@@ -292,7 +287,7 @@ export function startBossFight({ onExit }) {
     clones = [];
     bombs.forEach((b) => b.remove());
     bombs.clear();
-    setStatus('⚡ SCHILD GEBROCHEN! SPAM-KLICK AUF DAS FIECH ZUM FINISHER!');
+    setStatus(BOSS.status.phaseC);
     boss.classList.add('omega-berserk');
     const { w, h } = arenaSize();
     boss.style.left = `${w / 2 - 45}px`;
@@ -334,30 +329,28 @@ export function startBossFight({ onExit }) {
     endPanel.classList.remove('hidden');
     endPanel.classList.add('flex');
     if (won) {
-      setStatus('🏆 OMEGA-FIECH BESIEGT');
+      setStatus(BOSS.status.won);
       boss.remove();
       playSuccessChime();
       explode();
       endText.className = 'text-sm sm:text-base font-bold leading-relaxed max-w-md text-emerald-300 boss-slowmo';
-      endText.textContent =
-        '🏆 OMEGA-FIECH ZERSTÖRT! ... Leider ist bei der Explosion auch das Absage-Modul der Webseite komplett abgebrannt.';
+      endText.textContent = BOSS.win.text;
       endBtn.className =
         'px-5 py-3 rounded-lg font-extrabold text-sm active:scale-95 transition bg-gradient-to-r from-emerald-500 to-cyan-400 text-black';
-      endBtn.textContent = '👍 Na gut, dann halt ZUSAGEN (Ehren-Gast)';
+      endBtn.textContent = BOSS.win.button;
       endBtn.onclick = () => {
         finish();
         window.dispatchEvent(new CustomEvent('boss-fight-result', { detail: { won: true } }));
       };
     } else {
-      setStatus('💀 NIEDERLAGE');
+      setStatus(BOSS.status.lost);
       playBuzzerError();
       shake(500);
       endText.className = 'text-sm sm:text-base font-bold leading-relaxed max-w-md text-rose-300';
-      endText.textContent =
-        '👹 AUSREDEN-SCHILD GEBROCHEN! Widerstand gegen Georgs 21. Geburtstag ist zwecklos!';
+      endText.textContent = BOSS.lose.text;
       endBtn.className =
         'px-5 py-3 rounded-lg font-extrabold text-sm active:scale-95 transition bg-gradient-to-r from-rose-600 to-orange-500 text-white';
-      endBtn.textContent = '🏳️ Ich ergebe mich & sage zu';
+      endBtn.textContent = BOSS.lose.button;
       endBtn.onclick = () => {
         finish();
         window.dispatchEvent(new CustomEvent('boss-fight-result', { detail: { won: false } }));
@@ -388,7 +381,7 @@ export function startBossFight({ onExit }) {
   // Intro: Sirene, Kamerawackeln, dann Kampfstart
   overlay.classList.remove('hidden');
   shake(1500);
-  setStatus('⚠️ ALARM! ENDGEGNER ERSCHEINT...');
+  setStatus(BOSS.status.intro);
   playTone(55, 'sawtooth', 1.4, 0.1);
   for (let i = 0; i < 10; i++) {
     later(() => playTone(300 + i * 70 + (i % 2) * 60, 'sawtooth', 0.12, 0.05), i * 140);
@@ -397,7 +390,7 @@ export function startBossFight({ onExit }) {
 
   later(() => {
     phase = 'A';
-    setStatus('PHASE A: TELEPORT & AUSREDEN-HAGEL – klick die Bomben weg!');
+    setStatus(BOSS.status.phaseA);
     boss = makeFiech(true);
     placeAt(boss, randomSpot());
     every(spawnBomb, BOMB_INTERVAL_MS);

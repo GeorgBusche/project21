@@ -24,6 +24,7 @@ export function initializeSudo() {
     const testButton = document.getElementById('sudoPartyBtn');
     if (testButton) {
       testButton.title = `Testmodus: spielt nur ${CONFIG.sudoTestSong}`;
+      testButton.dataset.testMode = 'true';
       const icon = testButton.querySelector('.cmd-icon');
       const label = testButton.querySelector('.cmd-text');
       if (icon) icon.textContent = '🎧';

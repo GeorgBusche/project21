@@ -1,4 +1,4 @@
-import { CONFIG } from '../../config.js';
+import { CONTENT } from '../../content.js';
 import { trackShot } from '../achievements.js';
 import { playSuccessChime, playTone } from '../audio.js';
 import { getPartyContext } from '../party-actions.js';
@@ -8,16 +8,7 @@ const TAU = Math.PI * 2;
 const SPIN_DURATION_MS = 4200;
 const COLORS = ['#f59e0b', '#ef4444', '#d946ef', '#06b6d4', '#10b981', '#6366f1', '#f97316', '#ec4899'];
 const PLACEHOLDER_NAMES = ['Gast 1', 'Gast 2', 'Gast 3', 'Gast 4', 'Gast 5', 'Gast 6'];
-const COMBO_ACTIONS = [
-  'Trinkt einen Schüttelkorn mit Georg',
-  'Muss den nächsten Song ansagen',
-  'Ex oder Trichter!',
-  'Verteilt 2 Shots',
-  'Erzählt die peinlichste Party-Story',
-  'Darf jemandem einen Schluck zuteilen',
-  'Muss 30 Sekunden lang Wolle Petry singen',
-  'Prostet allen mit einem Trinkspruch zu'
-];
+const COMBO_ACTIONS = CONTENT.partyMode.wheelCombos;
 
 const MODE_META = {
   shots: { tab: 'wheelTabShots', title: '🥃 SHOT-RAD' },
@@ -43,7 +34,7 @@ function getGuestNames() {
 }
 
 function buildSegments() {
-  segments = mode === 'shots' ? [...CONFIG.shotsList] : getGuestNames();
+  segments = mode === 'shots' ? [...CONTENT.partyMode.shotsList] : getGuestNames();
 }
 
 function shortLabel(text) {

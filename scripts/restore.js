@@ -43,15 +43,17 @@ async function main() {
   const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   const rsvps = content.rsvps || {};
   const songs = content.songs || {};
+  const snaps = content.snaps || {};
 
   const rsvpCount = Object.keys(rsvps).length;
   const songCount = Object.keys(songs).length;
+  const snapCount = Object.keys(snaps).length;
 
   console.log('\n========================================');
   console.log('   🔄 GEORG_v21.0 - BACKUP WIEDERHERSTELLEN');
   console.log('========================================\n');
   console.log(`Datei: ${fileArg}`);
-  console.log(`Enthält: ${rsvpCount} RSVPs, ${songCount} Songs\n`);
+  console.log(`Enthält: ${rsvpCount} RSVPs, ${songCount} Songs, ${snapCount} Snaps\n`);
 
   const confirm = await askQuestion('⚠️  Sollen die Daten jetzt nach Firebase eingespielt werden? (j/N): ');
   if (confirm.toLowerCase() !== 'j' && confirm.toLowerCase() !== 'ja' && confirm.toLowerCase() !== 'y') {
@@ -71,6 +73,13 @@ async function main() {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(songs)
+  });
+
+  console.log('Schreibe Snaps...');
+  await fetch(`${DB_URL}/snaps.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(snaps)
   });
 
   console.log('\n✓ Wiederherstellung erfolgreich abgeschlossen!\n');

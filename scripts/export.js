@@ -11,6 +11,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { resolveDrinkCategory } from '../js/content.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,18 +40,11 @@ function calculateDrinkEstimate(rsvpsList) {
   rsvpsList.forEach((r) => {
     const count = 1 + (r.plusOne ? 1 : 0);
     totalPeople += count;
-    const d = (r.drink || '').toLowerCase();
-    if (d.includes('pils') || d.includes('bier')) {
-      beerDrinkers += count;
-    } else if (d.includes('korn') || d.includes('schüttelkorn') || d.includes('mische') || d.includes('omas')) {
-      kornDrinkers += count;
-    } else if (d.includes('wein') || d.includes('sekt')) {
-      wineDrinkers += count;
-    } else if (d.includes('fahrer') || d.includes('0,0') || d.includes('softdrink')) {
-      driverDrinkers += count;
-    } else {
-      beerDrinkers += count;
-    }
+    const category = resolveDrinkCategory(r.drink);
+    if (category === 'korn') kornDrinkers += count;
+    else if (category === 'wine') wineDrinkers += count;
+    else if (category === 'driver') driverDrinkers += count;
+    else beerDrinkers += count;
   });
 
   const beerCrates = Math.ceil((beerDrinkers * 4.5) / 24);
@@ -85,13 +79,15 @@ async function runExport() {
   const timestamp = formatDate(new Date());
 
   console.log('📡 Lade Daten von Firebase...');
-  const [rsvpsRes, songsRes] = await Promise.all([
+  const [rsvpsRes, songsRes, snapsRes] = await Promise.all([
     fetch(`${DB_URL}/rsvps.json`),
-    fetch(`${DB_URL}/songs.json`)
+    fetch(`${DB_URL}/songs.json`),
+    fetch(`${DB_URL}/snaps.json`)
   ]);
 
   const rawRsvps = (await rsvpsRes.json()) || {};
   const rawSongs = (await songsRes.json()) || {};
+  const rawSnaps = (await snapsRes.json()) || {};
 
   const rsvpsList = Object.entries(rawRsvps).map(([id, val]) => ({ id, ...val }));
   const songsList = Object.entries(rawSongs)
@@ -102,13 +98,14 @@ async function runExport() {
   const totalVotes = songsList.reduce((sum, s) => sum + (s.votesCount || 0), 0);
 
   console.log(`✓ Geladen: ${rsvpsList.length} Anmeldungen (${totalGuests} Personen)`);
-  console.log(`✓ Geladen: ${songsList.length} Songs (${totalVotes} Votes)\n`);
+  console.log(`✓ Geladen: ${songsList.length} Songs (${totalVotes} Votes)`);
+  console.log(`✓ Geladen: ${Object.keys(rawSnaps).length} Party-Snaps\n`);
 
   // 1. JSON Backup
   const backupPath = path.join(exportsDir, `backup_${timestamp}.json`);
   fs.writeFileSync(
     backupPath,
-    JSON.stringify({ exportedAt: new Date().toISOString(), rsvps: rawRsvps, songs: rawSongs }, null, 2),
+    JSON.stringify({ exportedAt: new Date().toISOString(), rsvps: rawRsvps, songs: rawSongs, snaps: rawSnaps }, null, 2),
     'utf-8'
   );
   console.log(`💾 Backup gespeichert: ${path.relative(rootDir, backupPath)}`);

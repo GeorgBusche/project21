@@ -1,8 +1,9 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import '../../css/radar.css';
+import { EVENT_CORE } from '../content.js';
 
-const TARGET = [52.4832492, 8.8754388];
+const TARGET = EVENT_CORE.coords;
 const HOME_ZOOM = 17;
 
 let map;
