@@ -9,7 +9,7 @@ import { fetchTopTen, getLocalBest, submitRun } from './arcade-scoreboard.js';
 import { createStage1 } from './stages/stage1-cube.js';
 import { createStage2 } from './stages/stage2-flappy.js';
 import { createStage3 } from './stages/stage3-pyro.js';
-import { createStage4 } from './stages/stage4-boss.js';
+import { createStage4 } from './stages/stage4-wave.js';
 import { drawFiech } from './fiech-rig.js';
 
 export { drawFiech };

@@ -220,18 +220,22 @@ export const CONTENT = {
         name: 'OMEGA-FIECH',
         subtitle: 'DER DURSTIGE KOLOSS',
         phases: [
-          { name: 'PHASE 1 // SCHNAPSLATTEN-SWEEP', hint: 'Lücke finden · Korn-Granaten meiden · Kronkorken fangen' },
-          { name: 'PHASE 2 // SCHÜTTELKORN & AHOI', hint: 'Brause-Geysire brodeln · Boden beobachten' },
-          { name: 'PHASE 3 // BIER-FLUT', hint: 'Schaum steigt · Kronkorken-Sägen prallen ab' },
-          { name: 'PHASE 4 // TRESEN-MELTDOWN', hint: 'Zapfhahn-Laser & Schockwellen · DASH nutzen!' }
+          { name: 'PHASE 1 // SCHNAPSLATTE & KORN-LASER', hint: 'Rot = Gefahr · Grün = Lücke · Gold = Konter' },
+          { name: 'PHASE 2 // SCHÜTTELKORN & KRONKORKEN', hint: 'Fiech-Sturzflug · Sägen rollen · Gold einsammeln' },
+          { name: 'PHASE 3 // TAKT-BLITZ', hint: 'Gerade / ungerade Spuren im Beat wechseln' },
+          { name: 'PHASE 4 // STAMMTISCH-MELTDOWN', hint: 'Zweite Lücke: FINAL SMASH-Ring treffen!' }
         ],
         calls: {
-          plank: 'SCHNAPSLATTE!',
-          shake: 'SCHÜTTELN!!',
-          laser: 'ZAPFHAHN!',
-          prost: 'PROST, DU SACK!',
-          smash: 'SMASH FIECH!',
-          ko: 'K.O. // FIECH ZERLEGT!'
+          slam: 'SCHNAPSLATTE!',
+          beam: 'KORN-STRAHL!',
+          shake: 'SCHÜTTELKORN!!',
+          saw: 'KRONKORKEN!',
+          blitz: 'TAKT-BLITZ!',
+          counter: ['PROST!', 'EX ODER KELLER!', 'SCHÜTTELN!'],
+          safe: '✓ SAFE',
+          hit: '⚡ HIT BOSS!',
+          smash: 'FINAL SMASH!',
+          ko: 'BOSS ZERLEGT // 100%'
         }
       },      toast: 'FIECH ARCADE GESTARTET',
       title: '👾 FIECH ARCADE',
@@ -245,7 +249,7 @@ export const CONTENT = {
         'Tippen / Leertaste = Springen',
         'Halten = Schub · Loslassen = Sinken',
         'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
-        'Ziehen/WASD · Doppel-Tap/Leertaste = DASH · Kronkorken sammeln!'
+        'Spur per Pad/Tap wählen · Rot = Gefahr · Gold = Konter'
       ],
       excuses: [
         '🛋️ Sofa ruft',
