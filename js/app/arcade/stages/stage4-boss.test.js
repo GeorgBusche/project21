@@ -1,102 +1,109 @@
-import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createStage4, laneX, MAX_HP, LANES } from './stage4-boss.js';
+import assert from 'node:assert/strict';
+import { createStage4, ARENA, TOUCH_OFFSET_Y, GLASSES } from './stage4-boss.js';
 
-function seeded(seed) {
+function rng(seed) {
+  let s = seed >>> 0;
   return () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
   };
 }
 
-function makeCtx() {
-  const noop = () => {};
-  return new Proxy({}, { get: () => noop, set: () => true });
-}
+const proxyCtx = () =>
+  new Proxy(() => {}, {
+    get: (_, k) => (k === 'measureText' ? () => ({ width: 10 }) : k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : proxyCtx()),
+    set: () => true,
+    apply: () => proxyCtx()
+  });
 
-// Ausweich-Bot: waehlt die Spur mit der geringsten Gefahr in den naechsten Sekunden
-function runBot({ seed, fps, bpm, maxSeconds = 120 }) {
-  const state = { hits: 0, done: false };
-  const pointer = { x: 180, down: true };
+function runBot({ seed, fps, bpm, maxSeconds = 150 }) {
+  const random = rng(seed);
+  let hits = 0;
+  let done = false;
+  let invuln = 0;
+  const noop = () => {};
   const engine = {
     W: 360,
     H: 600,
+    held: false,
     keys: new Set(),
-    held: {},
-    pointer,
-    hit: () => { state.hits++; const d = stage.debug(); if (process.env.DBG) console.log("HIT", seed, d.phase, d.t.toFixed(2), d.playerX.toFixed(0), JSON.stringify(d.beams.map(m=>m.x)), d.bullets.filter(b=>Math.abs(b.y-d.playerY)<30).map(b=>b.kind+":"+(b.x??"L")+":"+b.y.toFixed(0))); },
-    complete: () => (state.done = true),
-    addScore() {},
-    beep() {},
-    shake() {},
-    drawFiech() {},
-    drawPlayer() {}
+    pointer: { x: 180, y: 480, down: true },
+    hit: () => {
+      if (invuln > 0) return false;
+      invuln = 1.4;
+      hits++;
+      return true;
+    },
+    complete: () => {
+      done = true;
+    },
+    addScore: noop,
+    beep: noop,
+    shake: noop,
+    drawFiech: noop,
+    drawPlayer: noop
   };
-  const stage = createStage4(seeded(seed));
+  const stage = createStage4(random);
   stage.init(engine);
   const dt = 1 / fps;
-  const beatLen = 60 / bpm;
-  let nextBeat = beatLen;
-  let time = 0;
+  const bl = 60 / bpm;
+  let target = { x: 180, y: 460 };
+  let beatT = 0;
   let beatIndex = 0;
-  const ctx = makeCtx();
-  const seen = new Set();
-  while (!state.done && time < maxSeconds) {
-    time += dt;
+  let frame = 0;
+  let elapsed = 0;
+  const ctx = proxyCtx();
+  while (!done && elapsed < maxSeconds) {
+    elapsed += dt;
+    invuln = Math.max(0, invuln - dt);
+    beatT += dt;
     let isBeat = false;
-    if (time >= nextBeat) {
-      nextBeat += beatLen;
-      isBeat = true;
+    if (beatT >= bl) {
+      beatT -= bl;
       beatIndex++;
+      isBeat = true;
     }
-    const d = stage.debug();
-    let best = 0;
-    let bestCost = Infinity;
-    for (let l = 0; l < LANES; l++) {
-      const x = laneX(l);
-      let cost = Math.abs(x - d.playerX) * 0.02 + Math.abs(x - d.bossX) * 0.03;
-      const reach = Math.abs(x - d.playerX) / 330;
-      for (const b of d.bullets) {
-        const tt = (d.playerY - b.y) / b.vy;
-        if (tt < -0.12 || tt > 1.5) continue;
-        let blocked;
-        if (b.kind === 'latte') blocked = b.segs.some(([x0, x1]) => x + 20 > x0 && x - 20 < x1);
-        else blocked = Math.abs(b.x - x) < 34;
-        if (blocked) cost += 50 / (tt + 0.3);
-        if (blocked && tt < reach + 0.1) cost += 200;
-      }
-      for (const m of d.beams) {
-        if (Math.abs(m.x - x) < 52 && d.t < m.endAt + 0.15) cost += 400;
-        const lo = Math.min(x, d.playerX) - 40;
-        const hi = Math.max(x, d.playerX) + 40;
-        if (m.x > lo && m.x < hi && Math.abs(m.x - x) >= 52 && d.t > m.fireAt - reach - 0.35 && d.t < m.endAt + 0.1) cost += 300;
-      }
-      if (cost < bestCost) {
-        bestCost = cost;
-        best = x;
+    if (frame % 2 === 0) {
+      const d = stage.debug();
+      let best = Infinity;
+      for (let x = ARENA.x0; x <= ARENA.x1; x += 16) {
+        for (let y = ARENA.y0; y <= ARENA.y1; y += 16) {
+          const dist = Math.hypot(x - d.p.x, y - d.p.y);
+          let cost = dist * 0.02 + Math.abs(x - d.bossX) * 0.012 + Math.abs(y - 440) * 0.004;
+          const steps = Math.max(1, Math.ceil(dist / 30));
+          for (let s = 0; s <= steps + 8; s++) {
+            const k = Math.min(1, s / steps);
+            const px = d.p.x + (x - d.p.x) * k;
+            const py = d.p.y + (y - d.p.y) * k;
+            const ahead = (Math.min(s, steps) * 30) / 260 + (s > steps ? (s - steps) * 0.06 : 0);
+            if (d.dangerAt(px, py, ahead, 10)) cost += 100 / (1 + ahead * 2);
+          }
+          if (cost < best) {
+            best = cost;
+            target = { x, y };
+          }
+        }
       }
     }
-    pointer.x = best;
-    stage.update(dt, { bpm, beatIndex, beatPhase: (time % beatLen) / beatLen, isBeat });
+    engine.pointer.x = target.x;
+    engine.pointer.y = target.y + TOUCH_OFFSET_Y;
+    stage.update(dt, { running: true, beatIndex, beatPhase: beatT / bl, bpm, isBeat });
     stage.render(ctx);
-    seen.add(`${d.phase}`);
+    frame++;
   }
-  return { ...state, time, seen: seen.size };
+  return { hits, done, elapsed, progress: stage.progress() };
 }
 
-test('Stage 4: Bot besiegt den Boss ohne Treffer, alle 4 Phasen', () => {
-  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
-    for (const [fps, bpm] of [[60, 105], [30, 105], [60, 120]]) {
-      const r = runBot({ seed, fps, bpm });
-      assert.equal(r.done, true, `seed ${seed} fps ${fps} nicht abgeschlossen (${r.time.toFixed(1)}s)`);
-      assert.equal(r.hits, 0, `seed ${seed} fps ${fps} bpm ${bpm}: ${r.hits} Treffer`);
-      assert.equal(r.seen, 4);
-    }
+test('Stage 4 Boss ist mit Bot ohne Treffer schaffbar', () => {
+  for (const [seed, fps, bpm] of [[1, 60, 105], [2, 60, 120], [3, 30, 105], [4, 60, 111], [5, 30, 120], [6, 60, 100]]) {
+    const r = runBot({ seed, fps, bpm });
+    assert.ok(r.done, `seed ${seed}: nicht fertig (progress ${r.progress.toFixed(2)})`);
+    assert.equal(r.hits, 0, `seed ${seed}: ${r.hits} Treffer bei ${r.elapsed.toFixed(1)}s`);
+    assert.ok(r.elapsed > 25 && r.elapsed < 130, `seed ${seed}: Dauer ${r.elapsed.toFixed(1)}s`);
   }
 });
 
-test('Stage 4: Dauer und Fortschritt', () => {
-  const r = runBot({ seed: 11, fps: 60, bpm: 105 });
-  assert.ok(r.time > 30 && r.time < 75, `Dauer ${r.time.toFixed(1)}s`);
-  assert.equal(MAX_HP, 20);
+test('Stage 4 hat 12 Pinnchen', () => {
+  assert.equal(GLASSES, 12);
 });

@@ -220,14 +220,20 @@ export const CONTENT = {
         name: 'OMEGA-FIECH',
         subtitle: 'DER DURSTIGE KOLOSS',
         phases: [
-          { name: 'PHASE 1 // BIER-KANONE', hint: 'Schaumkugeln · weich aus, schieße im Beat' },
-          { name: 'PHASE 2 // KORN-FLASCHE', hint: 'Schüttelkorn-Strahl folgt dir · schnell die Spur wechseln' },
-          { name: 'PHASE 3 // AHOI-BRAUSE', hint: 'Wackelnde Brause-Blasen · jeder Beat zählt' },
-          { name: 'PHASE 4 // SCHNAPSLATTE', hint: 'Latte rast an · Lücken & Strahl · LETZTE RUNDE!' }
+          { name: 'PHASE 1 // SCHNAPSLATTEN-SWEEP', hint: 'Lücke finden · Korn-Granaten meiden · Kronkorken fangen' },
+          { name: 'PHASE 2 // SCHÜTTELKORN & AHOI', hint: 'Brause-Geysire brodeln · Boden beobachten' },
+          { name: 'PHASE 3 // BIER-FLUT', hint: 'Schaum steigt · Kronkorken-Sägen prallen ab' },
+          { name: 'PHASE 4 // TRESEN-MELTDOWN', hint: 'Zapfhahn-Laser & Schockwellen · DASH nutzen!' }
         ],
-        dying: 'SYSTEM ÜBERSCHÄUMT'
-      },
-      toast: 'FIECH ARCADE GESTARTET',
+        calls: {
+          plank: 'SCHNAPSLATTE!',
+          shake: 'SCHÜTTELN!!',
+          laser: 'ZAPFHAHN!',
+          prost: 'PROST, DU SACK!',
+          smash: 'SMASH FIECH!',
+          ko: 'K.O. // FIECH ZERLEGT!'
+        }
+      },      toast: 'FIECH ARCADE GESTARTET',
       title: '👾 FIECH ARCADE',
       stageNames: [
         'STAGE 1 · FIECH-RUN',
@@ -239,7 +245,7 @@ export const CONTENT = {
         'Tippen / Leertaste = Springen',
         'Halten = Schub · Loslassen = Sinken',
         'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
-        'Ausweichen & im Beat zurückfeuern!'
+        'Ziehen/WASD · Doppel-Tap/Leertaste = DASH · Kronkorken sammeln!'
       ],
       excuses: [
         '🛋️ Sofa ruft',
