@@ -240,6 +240,14 @@ export const CONTENT = {
           tornado: 'BIER-TORNADO!',
           cage: 'RAGE CAGE // GAS!',
           medals: ['BRONZE!', 'SILBER!', 'GOLD!'],
+          songs: {
+            sonne: { name: '♪ RAMMSTEIN-SHOW // SONNE', count: ['EINS!', 'ZWEI!', 'DREI!'] },
+            tornado: { name: '♪ BIERTORNADO // STURM', storm: 'STURM-FRONT!' },
+            gas: { name: '♪ RAGE CAGE // GAS GEBEN', pedal: 'GAS! GAS! GAS!' },
+            schuetteln: { name: '♪ SCHÜTTELKORN // AHOI BRAUSE', latte: 'SHOT-LATTE!' },
+            wolle: { name: '♪ MEDAILLEN-SHOW // WOLLE', stadium: 'FIECH-STADION!' }
+          },
+          nextTrack: 'NEXT TRACK!',
           sudoCap: '[ sudo ! ]',
           cmd: ['> sudo ...', '> sudo kill -9 ...', '> sudo kill -9 FIECH.exe [EXECUTING!]'],
           enough: 'GENUG GESPIELT!',

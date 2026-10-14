@@ -1,5 +1,6 @@
 import { CONTENT } from '../../content.js';
 import { getAudioContext } from '../audio.js';
+import { SONGS } from './arcade-songs.js';
 
 // Adaptive Soundtrack-Engine: EIN durchgehender Stream des echten Tracks. Stage-Wechsel und Stress
 // verändern nur Tempo (playbackRate) und Filter per Rampe, es gibt nie einen Neustart oder Sprung.
@@ -540,21 +541,11 @@ export function triggerSudoSound(kind) {
 
 const IDLE = { bpm: 0, beatIndex: 0, beatPhase: 0, isBeat: false, bassEnergy: 0, running: false };
 
-// Kurze Schnipsel aus den SUDO-Show-MP3s (Start/Dauer in Sekunden)
-const SUDO_SAMPLES = {
-  bronze: ['wolle.mp3', 0.08, 0.42],
-  silber: ['wolle.mp3', 0.48, 0.42],
-  gold: ['wolle.mp3', 0.88, 0.6],
-  tornado: ['biertornado.mp3', 2.05, 1.1],
-  sonne: ['sonne.mp3', 8.25, 1.7],
-  gas: ['gas.mp3', 0.05, 0.5],
-  schuetteln: ['schuettelkorn.mp3', 10.95, 0.9]
-};
 const sampleBuffers = new Map();
 
 export function warmSudoSamples() {
   if (!a.ctx) return;
-  for (const file of new Set(Object.values(SUDO_SAMPLES).map((s) => s[0]))) {
+  for (const file of new Set(Object.values(SONGS).map((s) => s.file))) {
     if (sampleBuffers.has(file)) continue;
     sampleBuffers.set(file, null);
     fetch(new URL(`../../../assets/audio/${file}`, import.meta.url).href)
@@ -565,27 +556,36 @@ export function warmSudoSamples() {
   }
 }
 
+// Spielt einen Song-Ausschnitt; die Arcade-Musik wird dumpf gezogen und kommt danach mit Drop zurueck
 export function triggerSudoSample(name) {
-  const def = SUDO_SAMPLES[name];
+  const def = SONGS[name];
   if (!def || !a.running || !a.ctx || window.isMuted) return;
-  const buf = sampleBuffers.get(def[0]);
+  const buf = sampleBuffers.get(def.file);
   if (!buf) {
     warmSudoSamples();
     return;
   }
   const now = a.ctx.currentTime;
+  const fade = 0.8;
   const src = a.ctx.createBufferSource();
   src.buffer = buf;
+  const lp = a.ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(18000, now);
+  lp.frequency.setValueAtTime(18000, now + def.len - fade);
+  lp.frequency.exponentialRampToValueAtTime(500, now + def.len);
   const g = a.ctx.createGain();
   g.gain.setValueAtTime(0.0001, now);
-  g.gain.linearRampToValueAtTime(0.55, now + 0.02);
-  g.gain.setValueAtTime(0.55, now + def[2] - 0.1);
-  g.gain.linearRampToValueAtTime(0.0001, now + def[2]);
-  src.connect(g);
+  g.gain.linearRampToValueAtTime(0.85, now + 0.04);
+  g.gain.setValueAtTime(0.85, now + def.len - fade);
+  g.gain.linearRampToValueAtTime(0.0001, now + def.len);
+  src.connect(lp);
+  lp.connect(g);
   g.connect(a.comp);
-  src.start(now, def[1], def[2]);
+  src.start(now, def.start, def.len);
+  rampFilter(380, 0.15);
+  a.djHold = { beat: Infinity, until: now + def.len };
 }
-
 // Pro Frame abfragen. isBeat ist genau in dem Frame true, in dem ein neuer Schlag begann.
 export function getBeatInfo() {
   if (!a.running || !a.ctx) return IDLE;
