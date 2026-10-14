@@ -36,6 +36,7 @@ const a = {
   // Rate-Modell: lineare Rampe, identisch zur AudioParam-Rampe
   ramp: { t0: 0, t1: 0, r0: 1, r1: 1 },
   rampLock: 0,
+  djHold: null,
   filterTarget: 0,
   filterOpened: false,
   totalBeats: 0,
@@ -303,6 +304,13 @@ function tick() {
   }
   advance();
 
+  // DJ-Scratch: Filter bleibt bis zum nächsten Beat zu, dann Drop und wieder auf
+  if (a.djHold && (a.totalBeats >= a.djHold.beat || now >= a.djHold.until)) {
+    a.djHold = null;
+    stageDrop(now + 0.01);
+    rampFilter(desiredFilter(), 0.08);
+  }
+
   // Während eine Stage-Rampe läuft, wird nichts überschrieben.
   if (now >= a.rampLock) {
     const boost = clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST;
@@ -313,7 +321,7 @@ function tick() {
     if (opening) {
       a.filterOpened = true;
       rampFilter(hz, 0.6);
-    } else if (Math.abs(hz - a.filterTarget) / a.filterTarget > 0.03) {
+    } else if (!a.djHold && Math.abs(hz - a.filterTarget) / a.filterTarget > 0.03) {
       rampFilter(hz, STRESS_RAMP);
     }
   }
@@ -359,6 +367,7 @@ async function launch(stage, startBeat = 0) {
   a.stress = 0;
   a.filterOpened = false;
   a.rampLock = 0;
+  a.djHold = null;
   a.heartScheduled = -1;
   a.kickScheduled = -1;
   a.cached = null;
@@ -460,6 +469,73 @@ export function sfx(freq, type = 'sine', dur = 0.08, gain = 0.05, slideTo = 0) {
   g.connect(a.comp);
   o.start(t);
   o.stop(t + dur + 0.05);
+}
+
+function tone(t, freq, type, dur, gain, slideTo = 0) {
+  const o = a.ctx.createOscillator();
+  const g = a.ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  g.gain.setValueAtTime(gain, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g);
+  g.connect(a.comp);
+  o.start(t);
+  o.stop(t + dur + 0.05);
+}
+
+// Vinyl-Scratch (Bandpass-Chirp 180 -> 720 -> 120 Hz in 0,18 s). Der Musik-Lowpass geht auf 450 Hz zu
+// und wird auf dem nächsten Beat mit stageDrop() wieder aufgerissen. Der Stream läuft ungestört weiter.
+export function triggerDjScratch() {
+  if (!a.running || !a.ctx || window.isMuted) return;
+  advance();
+  const now = a.ctx.currentTime;
+  const o = a.ctx.createOscillator();
+  const bp = a.ctx.createBiquadFilter();
+  const g = a.ctx.createGain();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(180, now);
+  o.frequency.exponentialRampToValueAtTime(720, now + 0.09);
+  o.frequency.exponentialRampToValueAtTime(120, now + 0.18);
+  bp.type = 'bandpass';
+  bp.Q.value = 4;
+  bp.frequency.setValueAtTime(360, now);
+  bp.frequency.exponentialRampToValueAtTime(1200, now + 0.09);
+  bp.frequency.exponentialRampToValueAtTime(240, now + 0.18);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+  o.connect(bp);
+  bp.connect(g);
+  g.connect(a.comp);
+  o.start(now);
+  o.stop(now + 0.25);
+  rampFilter(450, 0.04);
+  a.djHold = { beat: Math.floor(a.totalBeats) + 1, until: now + 1.5 };
+}
+
+// SUDO-/Terminal-Sounds: 'type' Keyclick, 'hack' 3-Ton-Chime, 'execute' Root-Impact mit Tape-Stop
+export function triggerSudoSound(kind) {
+  if (!a.running || !a.ctx || window.isMuted) return;
+  const now = a.ctx.currentTime;
+  if (kind === 'type') {
+    tone(now, 1400, 'square', 0.025, 0.035);
+  } else if (kind === 'hack') {
+    [440, 660, 880].forEach((f, i) => tone(now + i * 0.07, f, 'triangle', 0.1, 0.06));
+  } else if (kind === 'execute') {
+    advance();
+    tone(now, 70, 'sine', 0.55, 0.5, 28);
+    tone(now, 220, 'sawtooth', 0.18, 0.08, 55);
+    rampRate(0.85, 0.05);
+    a.rampLock = now + 0.25;
+    setTimeout(() => {
+      if (!a.running || !a.ctx) return;
+      a.rampLock = 0;
+      rampRate(stageCfg(a.stage).rate * (1 + clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST), 0.08);
+      stageDrop(a.ctx.currentTime + 0.01);
+    }, 250);
+  }
 }
 
 const IDLE = { bpm: 0, beatIndex: 0, beatPhase: 0, isBeat: false, bassEnergy: 0, running: false };

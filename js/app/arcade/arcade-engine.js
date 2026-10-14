@@ -4,7 +4,7 @@ import { playSuccessChime } from '../audio.js';
 import { escapeHtml } from '../ui.js';
 import { getPartyContext } from '../party-actions.js';
 import { createPlayerAppearance, drawPlayer, readLocalPlayerRsvp } from './player-rig.js';
-import { getBeatInfo, preloadArcadeAudio, setStage, setStressLevel, sfx, startArcadeAudio, stopArcadeAudio } from './arcade-audio.js';
+import { getBeatInfo, preloadArcadeAudio, setStage, setStressLevel, sfx, startArcadeAudio, triggerDjScratch, triggerSudoSound, stopArcadeAudio } from './arcade-audio.js';
 import { fetchTopTen, getLocalBest, submitRun } from './arcade-scoreboard.js';
 import { createStage1 } from './stages/stage1-cube.js';
 import { createStage2 } from './stages/stage2-flappy.js';
@@ -116,6 +116,12 @@ export const engine = {
   },
   beep(freq, type = 'square', dur = 0.06, gain = 0.03) {
     sfx(freq, type, dur, Math.min(gain, 0.05));
+  },
+  triggerDjScratch() {
+    triggerDjScratch();
+  },
+  triggerSudoSound(kind) {
+    triggerSudoSound(kind);
   },
   shake(t = 0.15) {
     state.shakeT = Math.max(state.shakeT, t);

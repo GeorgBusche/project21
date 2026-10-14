@@ -220,23 +220,39 @@ export const CONTENT = {
         name: 'DER TEUFELS-BIERDECKEL',
         subtitle: 'ORBIT OVERDRIVE',
         phases: [
-          { name: 'PHASE 1 // SCHNAPSLATTEN-SPEICHEN', hint: 'Rot = Gefahr · Grün = Lücke · Gold = Konter' },
-          { name: 'PHASE 2 // SCHÜTTELKORN-HALBKREIS', hint: 'Rote Hälfte meiden · Brause-Geysire umfahren' },
-          { name: 'PHASE 3 // ZAPFHAHN-UHRZEIGER', hint: 'Mit dem Laser mitfahren · Tap = Richtung wechseln' },
-          { name: 'PHASE 4 // KERN-SMASH', hint: 'Grüne Finale-Kapsel einsammeln!' }
+          { name: 'PHASE 1 // SCHNAPSLATTEN-SPEICHEN', hint: 'Rot = Gefahr · Grün = sicher · Gold = Konter' },
+          { name: 'PHASE 2 // DUAL-ORBIT', hint: 'Mitte-Button / Leertaste = Ring wechseln' },
+          { name: 'PHASE 3 // DJ SUDO OVERRIDE', hint: 'Sammle 3x [ sudo ! ] für den Root-Hack' },
+          { name: 'PHASE 4 // GENUG GESPIELT!', hint: 'Letztes Pinnchen = Überlebens-Sprint' }
         ],
         calls: {
           spokes: 'SCHNAPSLATTE!',
           mortar: 'KORN-MÖRSER!',
           shake: 'SCHÜTTELN!!',
           geysir: 'AHOI-BRAUSE!',
-          laser: 'ZAPFHAHN!',
+          foam: 'BIERSCHAUM-FLUT!',
+          fraese: 'KRONKORKEN-FRÄSE!',
+          unlock: 'DUAL-ORBIT FREI!',
+          djIntro: 'DJ FIECH // SUDO OVERRIDE!',
+          scratch: 'DJ FIECH // SCRATCH IT!',
+          eq: 'SUDO-EQUALIZER!',
+          sudoCap: '[ sudo ! ]',
+          cmd: ['> sudo ...', '> sudo kill -9 ...', '> sudo kill -9 FIECH.exe [EXECUTING!]'],
+          enough: 'GENUG GESPIELT!',
+          last: 'LETZTE RUNDE!',
           counter: ['PROST!', 'EX ODER KELLER!', 'SCHÜTTELKORN!'],
           safe: 'SAFE ZONE',
           fire: '⚡ FIRE!',
-          smashHint: '🟢 SMASH BOSS!',
-          smash: 'KERN-SMASH!',
+          smashHint: '[ SUDO SMASH! ]',
+          smash: 'SUDO SMASH!',
           ko: 'FIECH ZERLEGT // 100%'
+        },
+        cockpit: {
+          left: 'GEGEN UHRZEIGER',
+          right: 'UHRZEIGER',
+          ring: 'RING WECHSELN',
+          ringLocked: 'AB PINNCHEN 10',
+          hint: 'TAP = RICHTUNG · HALTEN = LENKEN · DOPPEL-TAP = RING'
         }
       },      toast: 'FIECH ARCADE GESTARTET',
       title: '👾 FIECH ARCADE',
@@ -250,7 +266,7 @@ export const CONTENT = {
         'Tippen / Leertaste = Springen',
         'Halten = Schub · Loslassen = Sinken',
         'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
-        'Tap = Richtung wechseln · Rot meiden · Gold = Konter'
+        'Tap = Richtung · Doppel-Tap = Ring · Rot meiden, Gold = Konter'
       ],
       excuses: [
         '🛋️ Sofa ruft',
