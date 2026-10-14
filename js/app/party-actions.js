@@ -23,6 +23,7 @@ let database;
 let deviceToken;
 let cachedSongs = {};
 let cachedRsvps = {};
+let cachedArcade = {};
 let selectedRsvpSong = null;
 let currentPreviewAudio = null;
 let currentPreviewTrackId = null;
@@ -83,8 +84,18 @@ function syncAchievementsToGuestList(ids = getUnlockedIds()) {
   database.ref(`rsvps/${deviceToken}/achievements`).set(ids);
 }
 
+function renderArcadeBadge(guest) {
+  const entry = cachedArcade[guest.deviceToken];
+  if (!entry || !(entry.maxPercent > 0)) return '';
+  return `<span class='text-[10px] text-lime-300 bg-lime-950/70 border border-lime-800/60 px-1.5 py-0.2 rounded font-mono' title='FIECH ARCADE'>👾 ${parseInt(entry.maxPercent, 10)}%</span>`;
+}
+
 function listenToRsvpUpdates() {
   onAchievementsChange(syncAchievementsToGuestList);
+  database.ref('arcadeLeaderboard').on('value', (snapshot) => {
+    cachedArcade = snapshot.val() || {};
+    renderGuestListModal();
+  });
   database.ref('rsvps').on('value', (snapshot) => {
     cachedRsvps = snapshot.val() || {};
     renderGuestListModal();
@@ -1349,6 +1360,7 @@ export function showGuestBoard() {
                   <div class='flex items-center gap-1.5 flex-wrap'>
                     <span class='text-white font-bold'>${escapeHtml(guest.name)}</span>
                     ${renderBadgeIcons(guest.achievements)}
+                    ${renderArcadeBadge(guest)}
                     ${guest.plusOne ? `<span class='text-[10px] text-cyan-300 bg-cyan-950/80 border border-cyan-800/60 px-1.5 py-0.2 rounded'>+1 (${escapeHtml(guest.plusOneName || 'Begleitung')})</span>` : ''}
                   </div>
                   <div class='text-[11px] text-neutral-400 mt-0.5'>⛽ ${escapeHtml(guest.drink)}</div>
@@ -1701,6 +1713,7 @@ function renderGuestListModal() {
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="text-sm font-bold text-white truncate">${escapeHtml(guest.name)}</span>
                   ${renderBadgeIcons(guest.achievements)}
+                  ${renderArcadeBadge(guest)}
                   ${isCurrentUser ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400 text-black">DU</span>' : ''}
                   ${
                     guest.plusOne

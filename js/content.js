@@ -206,40 +206,64 @@ export const CONTENT = {
       phase2: '[PHASE 2] Fiech ist erwacht. Fang es!',
       phase3: '[PHASE 3] GRAVITATIONS-ANOMALIE ENTDECKT!',
       phase4: '[PHASE 4] PANIK-MODUS! BILDSCHIRM WIRD INSTABIL!',
-      phase5: '[PHASE 5] BOSS FIGHT INITIIERT...'
+      phase5: '[PHASE 5] FIECH ARCADE GESTARTET... VIEL GLÜCK.'
     },
-    bossToast: 'BOSS FIGHT INITIATED',
-    bossKillLog: '[BOSS-KILL] Das Absage-Fiech wurde vernichtet!',
-    bossLostLog: '[BOSS] Das Omega-Fiech hat gewonnen. Du ergibst dich.',
-    boss: {
-      name: `☠️ ENDGEGNER: OMEGA-FIECH v${EVENT_CORE.age}.0 (AUSREDEN-WÄCHTER)`,
-      shieldLabel: '🛡️ DEIN AUSREDEN-SCHILD',
-      status: {
-        intro: '⚠️ ALARM! ENDGEGNER ERSCHEINT...',
-        phaseA: 'PHASE A: TELEPORT & AUSREDEN-HAGEL – klick die Bomben weg!',
-        phaseB: 'PHASE B: SCHATTEN-KLONE – nur das 👑-Fiech ist echt!',
-        phaseC: '⚡ SCHILD GEBROCHEN! SPAM-KLICK AUF DAS FIECH ZUM FINISHER!',
-        won: '🏆 OMEGA-FIECH BESIEGT',
-        lost: '💀 NIEDERLAGE'
+
+    // FIECH ARCADE (5 Stages) <--- HIER ANPASSEN
+    arcade: {
+      // Stage 3: Pyro-Bühne <--- HIER ANPASSEN
+      stage3: {
+        waveHints: ['NUR FLAMMEN · WEICH AUS', 'NEU: LASER · ROT BLINKT = GLEICH BRENNT ES', 'NEU: FIECH-STURZ · SCHATTEN = WARNUNG', 'LASER + STURZ + FLAMMEN', 'ACHTUNG // 5 SPUREN'],
+        waves: ['WELLE 1 // VORGLÜHEN', 'WELLE 2 // FEUER FREI', 'WELLE 3 // LASERSHOW', 'WELLE 4 // INFERNO', 'WELLE 5 // ZUGABE']
       },
-      phaseCall: '[WARNUNG] OMEGA-FIECH NUTZT SCHATTEN-KLONE!',
-      excuseBombs: [
+      toast: 'FIECH ARCADE GESTARTET',
+      title: '👾 FIECH ARCADE',
+      stageNames: [
+        'STAGE 1 · FIECH-RUN',
+        'STAGE 2 · FIECH AIRWAYS',
+        'STAGE 3 · LIVE-SHOW',
+        'STAGE 4 · WAVE-TUNNEL',
+        'STAGE 5 · OMEGA-OVERDRIVE'
+      ],
+      stageHints: [
+        'Tippen / Leertaste = Springen',
+        'Halten = Schub · Loslassen = Sinken',
+        'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
+        'Gedrückt halten = hoch, loslassen = runter',
+        'Ausweichen & im Beat zurückfeuern!'
+      ],
+      excuses: [
         '🛋️ Sofa ruft',
         '🤕 Kopfweh',
         '👵 Oma-Geburtstag',
         '🌧️ Es regnet',
-        '🐕 Hund hat Hausaufgaben',
+        '🐕 Hund',
         '📺 Serie läuft',
-        '🥱 Zu müde'
+        '🥱 Zu müde',
+        '💼 Arbeit',
+        '🧺 Wäsche',
+        '🚿 Duschen',
+        '📵 Akku leer',
+        '🐟 Fisch füttern'
       ],
-      win: {
-        text: '🏆 OMEGA-FIECH ZERSTÖRT! ... Leider ist bei der Explosion auch das Absage-Modul der Webseite komplett abgebrannt.',
+      bossName: `OMEGA-FIECH v${EVENT_CORE.age}.0`,
+      gameOver: {
+        title: '💀 SYSTEM CRASH',
+        retry: '🔄 NOCHMAL VERSUCHEN',
+        giveUp: '🏳️ AUFGEBEN & ZUSAGEN',
+        board: '🏆 BESTENLISTE ANSEHEN',
+        back: '⬅️ ZURÜCK'
+      },
+      victory: {
+        title: '🏆 ABSAGE-MODUL VERNICHTET!',
+        subtitle: '100% DURCHGESPIELT',
+        text: '... Leider ist bei der Explosion auch das Absage-Modul der Webseite komplett abgebrannt.',
         button: '👍 Na gut, dann halt ZUSAGEN (Ehren-Gast)'
       },
-      lose: {
-        text: `👹 AUSREDEN-SCHILD GEBROCHEN! Widerstand gegen ${EVENT_CORE.hostName}s ${EVENT_CORE.age}. Geburtstag ist zwecklos!`,
-        button: '🏳️ Ich ergebe mich & sage zu'
-      }
+      boardTitle: '🏆 TOP 10 · FIECH ARCADE',
+      boardEmpty: 'Noch niemand hat sich getraut. Sei der Erste!',
+      victoryLog: '[ARCADE] Das Absage-Fiech wurde vernichtet! 100%',
+      giveUpLog: '[ARCADE] Du ergibst dich und sagst zu.'
     }
   },
 
@@ -424,6 +448,28 @@ export const CONTENT = {
     ]
   },
 
+  // Arcade-Soundtrack: Track, Takt-Raster und Loop-Abschnitte je Stage.
+  arcadeAudio: {
+    // <--- HIER ANPASSEN: Standardpfad (assets/audio/fear.mp3) wird mit dem Build gebündelt,
+    // jeder andere Pfad wird relativ zur Seite geladen (z. B. Datei in public/ ablegen).
+    trackUrl: 'assets/audio/fear.mp3',
+    baseBpm: 105, // Basis-BPM von "Fear" (für das mathematische Takt-Raster)
+    beatOffsetSec: 0.0, // Fein-Offset für den ersten Taktschlag in Sekunden
+    // Der Track läuft als EIN durchgehender Stream (Loop über den ganzen Song). Jede Stage verändert nur
+    // Tempo (playbackRate) und Filter-Cutoff (Hz) per sanfter Rampe (0,45 s).
+    // Stage 1 öffnet den Filter bei Beat `openBeat` auf `openHz`.
+    stage1Open: { openBeat: 8, openHz: 12000 },
+    // DEV-Direktstart ab Stage 2: Beat, an dem der Drop beginnt (Takt 16 von fear.mp3 = Beat 64)
+    devDropBeat: 64,
+    stages: {
+      1: { rate: 1.0, filterHz: 2600, label: 'STAGE 1 // DARK PULSE' },
+      2: { rate: 1.06, filterHz: 18000, label: 'STAGE 2 // MAIN DROP' },
+      3: { rate: 1.12, filterHz: 20000, label: 'STAGE 3 // HIGH VOLTAGE' },
+      4: { rate: 1.19, filterHz: 20000, label: 'STAGE 4 // OVERDRIVE' },
+      5: { rate: 1.26, filterHz: 20000, label: 'STAGE 5 // FINAL BOSS' }
+    }
+  },
+
   // Texte der Trophäen. Die Keys (legende, eskalierer, ...) sind technische IDs.
   achievements: {
     legende: {
@@ -438,8 +484,8 @@ export const CONTENT = {
     },
     sturkopf: {
       title: 'Fiech-Bändiger',
-      desc: 'Das Absage-Fiech durch alle Phasen bis zum Boss-Fight gejagt.',
-      hint: 'Nein heißt nein? Versuch mal hartnäckig abzusagen.'
+      desc: 'Die FIECH ARCADE auf 100% durchgespielt und das Absage-Modul vernichtet.',
+      hint: 'Nein heißt nein? Sag hartnäckig ab – und überlebe die Arcade.'
     },
     hacker: {
       title: 'System-Hacker',

@@ -1,10 +1,10 @@
 import { CONFIG } from '../config.js';
 import { CONTENT } from '../content.js';
-import { trackFlag } from './achievements.js';
 import { playBuzzerError, playTone } from './audio.js';
-import { startBossFight } from './boss-fight.js';
+import { openArcadeGame } from './arcade/arcade-engine.js';
 import { appendLine, showToast } from './ui.js';
 
+const ARCADE_KEY = 'arcade_unlocked';
 let declineCount = 0;
 let fleeInterval = null;
 let currentRotation = 0;
@@ -22,8 +22,12 @@ function moveDeclineButton() {
 }
 
 export function handleDeclineClick() {
-  declineCount++;
   playBuzzerError();
+  if (sessionStorage.getItem(ARCADE_KEY) === 'true') {
+    openArcadeGame();
+    return;
+  }
+  declineCount++;
 
   const button = document.getElementById('declineBtn');
   const root = document.getElementById('bodyRoot');
@@ -106,47 +110,32 @@ export function handleDeclineClick() {
   }
 
   if (declineCount === CONFIG.game.phase5_clicks) {
-    trackFlag('boss');
     clearInterval(fleeInterval);
+    fleeInterval = null;
     appendLine(
       `<span class='text-emerald-400 font-extrabold text-sm mt-2'>${CONTENT.declineGame.phaseLogs.phase5}</span>`
     );
-    showToast(CONTENT.declineGame.bossToast);
+    showToast(CONTENT.declineGame.arcade.toast);
 
     root.classList.remove('egg-rotate', 'egg-drunk');
     currentRotation = 0;
     document.documentElement.style.setProperty('--game-rot', '0deg');
-    button.style.display = 'none';
-
-    const onResult = (event) => {
-      window.removeEventListener('boss-fight-result', onResult);
-      restoreDeclineButton(button);
-      if (event.detail.won) {
-        appendLine(
-          `<span class='text-emerald-400 font-bold'>${CONTENT.declineGame.bossKillLog}</span>`
-        );
-      } else {
-        appendLine(
-          `<span class='text-rose-400 font-bold'>${CONTENT.declineGame.bossLostLog}</span>`
-        );
-      }
-      window.openRsvpModal?.();
-    };
-    window.addEventListener('boss-fight-result', onResult);
-    startBossFight({ onExit: () => {} });
+    sessionStorage.setItem(ARCADE_KEY, 'true');
+    settleFiechButton(button);
+    openArcadeGame();
   }
 }
 
-function restoreDeclineButton(button) {
+// Fiech-Button ruhig zurück in die Action-Bar (kein Flüchten mehr nach dem Arcade-Unlock)
+function settleFiechButton(button) {
   const wrapper = document.getElementById('declineWrapper');
-  button.classList.remove('btn-fiech', 'awake', 'flee-slow', 'flee-fast');
+  button.classList.remove('awake', 'flee-slow', 'flee-fast');
   button.removeAttribute('style');
-  wrapper.appendChild(button);
-  button.innerHTML = `<span id="declineIcon">${CONTENT.ui.actionBar.decline.icon}</span> <span id="declineText">${CONTENT.ui.actionBar.decline.label}</span>`;
   button.className =
-    'absolute inset-0 w-full h-full rounded-lg border border-rose-900/50 bg-rose-950/40 text-rose-400 font-bold active:scale-95 transition-all duration-300 flex items-center justify-center gap-2 text-sm z-[60] shadow-md';
-  wrapper.classList.remove('w-14', 'shrink-0');
-  wrapper.classList.add('flex-1');
+    'absolute inset-0 w-full h-full btn-fiech active:scale-95 transition-all duration-300 z-[60]';
+  wrapper.appendChild(button);
+  wrapper.classList.remove('flex-1');
+  wrapper.classList.add('w-14', 'shrink-0');
   document.getElementById('declineGhost').style.opacity = '0';
-  declineCount = 0;
 }
+

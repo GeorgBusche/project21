@@ -30,6 +30,7 @@ import {
   toggleCommands,
   toggleSecretCli
 } from './app/commands.js';
+import { closeArcadeGame, openArcadeGame } from './app/arcade/arcade-engine.js';
 import { handleDeclineClick } from './app/decline-game.js';
 import {
   addSongFromSearch,
@@ -155,6 +156,7 @@ Object.assign(window, {
   clearGuestSearch,
   clearMusicSearch,
   clearSelectedRsvpSong,
+  closeArcadeGame,
   closeGuestModal,
   closeGuestStatsModal,
   closeMusicModal,
@@ -169,6 +171,7 @@ Object.assign(window, {
   handleDeclineClick,
   handlePlusOneInput,
   openGuestModal,
+  openArcadeGame,
   openMusicModal,
   openRadarModal,
   openRsvpModal,

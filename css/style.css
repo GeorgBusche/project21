@@ -170,12 +170,12 @@ body {
     0 0 35px rgba(225, 29, 72, 1) !important;
 }
 .btn-fiech {
-  background: linear-gradient(135deg, #059669, #06b6d4) !important;
-  border: 3px solid #ffffff !important;
+  background: linear-gradient(135deg, #991b1b, #ef4444) !important;
+  border: 3px solid #fecaca !important;
   border-radius: 12px !important;
   box-shadow:
-    0 0 20px #22c55e,
-    inset 0 0 10px rgba(255, 255, 255, 0.5) !important;
+    0 0 20px #ef4444,
+    inset 0 0 10px rgba(255, 255, 255, 0.3) !important;
   overflow: visible !important;
 }
 .btn-fiech .monster-eye {
@@ -183,10 +183,29 @@ body {
   top: -16px;
   width: 22px;
   height: 22px;
-  background: white;
+  background: #fef08a;
   border: 3px solid black;
   border-radius: 50%;
-  box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 0 8px #fde047,
+    0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+.btn-fiech .monster-eye::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 20px;
+  height: 4px;
+  background: black;
+  border-radius: 2px;
+}
+.btn-fiech .monster-eye.left::before {
+  left: -4px;
+  transform: rotate(25deg);
+}
+.btn-fiech .monster-eye.right::before {
+  right: -4px;
+  transform: rotate(-25deg);
 }
 .btn-fiech .monster-eye.left {
   left: 4px;
