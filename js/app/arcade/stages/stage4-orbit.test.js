@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStage4, padCenter, GLASSES, LANES } from './stage4-wave.js';
+import { createStage4, GLASSES, OMEGA, wrap } from './stage4-orbit.js';
 
 function rng(seed) {
   let s = seed >>> 0;
@@ -64,25 +64,32 @@ function runBot({ seed, fps, bpm, collect = true, maxSeconds = 150 }) {
       isBeat = true;
     }
     thinkT += dt;
-    if (thinkT >= 0.12) {
+    if (thinkT >= 0.08) {
       thinkT = 0;
       const d = stage.debug();
-      let best = Infinity;
-      let target = d.lane;
-      for (let l = 0; l < LANES; l++) {
-        let cost = l === d.lane ? 0 : 0.3;
-        for (let a = 0; a <= 0.5; a += 0.05) if (d.dangerLane(l, a, 12)) cost += 10 / (1 + a * 3);
-        if (collect && d.capsules.some((c) => c.lane === l && d.t >= c.born)) cost -= 1.5;
-        if (d.hazards.some((h) => h.ring && h.safe[0] === l && d.t > h.tellAt)) cost -= 3;
-        if (cost < best) {
-          best = cost;
-          target = l;
+      const cost = (dir) => {
+        let c = dir === d.dir ? 0 : 0.4;
+        for (let a = 0; a <= 1.0; a += 0.05) {
+          const ang = wrap(d.ang + dir * OMEGA * 1.08 * a);
+          if (d.dangerAt(ang, a, 0.1)) c += 10 / (1 + a * 3);
         }
-      }
-      if (target !== d.lane) {
-        const c = padCenter(target);
-        stage.onTouch({ type: 'down', x: c.x, y: c.y });
-        stage.onTouch({ type: 'up', x: c.x, y: c.y });
+        if (collect) {
+          for (const cap of d.capsules) {
+            if (d.t < cap.born) continue;
+            const diff = wrap(cap.angle - d.ang) * dir;
+            if (diff > 0 && diff < 1.6) c -= 1.2 / (1 + diff);
+          }
+          if (d.finalCap && d.t >= d.finalCap.born) {
+            const diff = wrap(d.finalCap.angle - d.ang) * dir;
+            if (diff > 0 && diff < 2.4) c -= 4 / (1 + diff);
+          }
+        }
+        return c;
+      };
+      const want = cost(1) < cost(-1) ? 1 : cost(-1) < cost(1) ? -1 : d.dir;
+      if (want !== d.dir) {
+        stage.onTouch({ type: 'down', x: 180, y: 300 });
+        stage.onTouch({ type: 'up', x: 180, y: 300 });
       }
     }
     stage.update(dt, { running: true, beatIndex, beatPhase: beatT / bl, bpm, isBeat });
@@ -91,7 +98,7 @@ function runBot({ seed, fps, bpm, collect = true, maxSeconds = 150 }) {
   return { hits, done, elapsed, progress: stage.progress() };
 }
 
-test('Stage 4 Boss ist per Spurwechsel ohne Treffer schaffbar', () => {
+test('Orbit-Boss ist per Richtungswechsel ohne Treffer schaffbar', () => {
   for (const [seed, fps, bpm] of [[1, 60, 105], [2, 60, 120], [3, 30, 105], [4, 60, 111], [5, 30, 120], [6, 60, 100]]) {
     const r = runBot({ seed, fps, bpm });
     assert.ok(r.done, `seed ${seed}: nicht fertig (progress ${r.progress.toFixed(2)})`);
@@ -100,13 +107,12 @@ test('Stage 4 Boss ist per Spurwechsel ohne Treffer schaffbar', () => {
   }
 });
 
-test('ohne Kapseln laedt die Konter-Ladung den Boss in unter 50 s', () => {
+test('ohne Kapseln laedt die Konter-Ladung den Boss in unter 70 s', () => {
   const r = runBot({ seed: 7, fps: 60, bpm: 110, collect: false });
   assert.ok(r.done && r.hits === 0, `done=${r.done} hits=${r.hits} t=${r.elapsed.toFixed(1)}`);
-  assert.ok(r.elapsed < 50, `Dauer ${r.elapsed.toFixed(1)}s`);
+  assert.ok(r.elapsed < 70, `Dauer ${r.elapsed.toFixed(1)}s`);
 });
 
-test('Stage 4 hat 10 Pinnchen und 4 Spuren', () => {
+test('Orbit-Boss hat 10 Pinnchen', () => {
   assert.equal(GLASSES, 10);
-  assert.equal(LANES, 4);
 });

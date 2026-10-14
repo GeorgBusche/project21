@@ -1,45 +1,45 @@
-# Project21
+﻿# Project21
 
-Statische Party-Webseite mit RSVP, Firebase-Gästefunktionen und separaten SUDO-Shows.
+Statische Party-Webseite mit RSVP, Firebase-GÃ¤stefunktionen und separaten SUDO-Shows.
 
 ## Entwicklung
 
-- `npm install` installiert die Build-Abhängigkeiten.
+- `npm install` installiert die Build-AbhÃ¤ngigkeiten.
 - `npm run dev` startet den lokalen Vite-Entwicklungsserver.
 - `npm run build` erstellt die optimierte Website unter `dist/`.
 - `npm run preview` zeigt den erzeugten Build lokal an.
 - `npm run format` formatiert die Projektdateien mit Prettier.
-- `npm run format:check` prüft die Formatierung.
+- `npm run format:check` prÃ¼ft die Formatierung.
 
-Die Anwendung wird als Multi-Page-Build ausgeliefert. Gemeinsame JavaScript-Abhängigkeiten werden gebündelt, Tailwind-Utilities werden während des Builds in CSS umgewandelt, und die einzelnen SUDO-Seiten bleiben eigenständige HTML-Einstiegspunkte. Die Audio-Dateien werden beim Build als statische Assets übernommen.
+Die Anwendung wird als Multi-Page-Build ausgeliefert. Gemeinsame JavaScript-AbhÃ¤ngigkeiten werden gebÃ¼ndelt, Tailwind-Utilities werden wÃ¤hrend des Builds in CSS umgewandelt, und die einzelnen SUDO-Seiten bleiben eigenstÃ¤ndige HTML-Einstiegspunkte. Die Audio-Dateien werden beim Build als statische Assets Ã¼bernommen.
 
 ## Projektstruktur
 
-- `index.html` – Haupteinstiegspunkt und Seitenstruktur
-- `js/config.js` – zentrale Party- und Spieleinstellungen
-- `js/main.js` – App-Einstiegspunkt und Übergabe an HTML-Interaktionen
-- `js/app/` – Audio, Oberfläche, Befehle, Spiel, SUDO-Steuerung und Party-Aktionen
-- `js/sudo/` – Cue-Zeitsteuerung und JavaScript pro SUDO-Show
-- `css/style.css` – gemeinsame Hauptseiten-Styles
-- `css/sudo/` – Styles pro SUDO-Show
-- `sudo_frames/` – eigenständige HTML-Einstiegspunkte der Shows
-- `assets/audio/` – lokale Musiktitel
-- `assets/sudo/<show>/` – Grafiken der einzelnen SUDO-Shows (SVGs, Logos), per `import … ?raw` bzw. `new URL(…)` eingebunden
-- `js/sudo/shared/` – gemeinsame Show-Helfer (`cue-timings.js`, `utils.js`, `logo-outro.js`)
+- `index.html` â€“ Haupteinstiegspunkt und Seitenstruktur
+- `js/config.js` â€“ zentrale Party- und Spieleinstellungen
+- `js/main.js` â€“ App-Einstiegspunkt und Ãœbergabe an HTML-Interaktionen
+- `js/app/` â€“ Audio, OberflÃ¤che, Befehle, Spiel, SUDO-Steuerung und Party-Aktionen
+- `js/sudo/` â€“ Cue-Zeitsteuerung und JavaScript pro SUDO-Show
+- `css/style.css` â€“ gemeinsame Hauptseiten-Styles
+- `css/sudo/` â€“ Styles pro SUDO-Show
+- `sudo_frames/` â€“ eigenstÃ¤ndige HTML-Einstiegspunkte der Shows
+- `assets/audio/` â€“ lokale Musiktitel
+- `assets/sudo/<show>/` â€“ Grafiken der einzelnen SUDO-Shows (SVGs, Logos), per `import â€¦ ?raw` bzw. `new URL(â€¦)` eingebunden
+- `js/sudo/shared/` â€“ gemeinsame Show-Helfer (`cue-timings.js`, `utils.js`, `logo-outro.js`)
 
 ## Arcade-Spielfigur
 
-Alle vier Stages verwenden denselben Kernel-Piloten mit Helm. Nur das Fahrgestell wechselt (Cube-Cockpit, Raketenflug, Live-Show, Boss-Shooter). In Stage 1 dreht sich das Cube-Chassis, der Pilot im Cockpit bleibt aufrecht. Darstellung und Avatar-Laden sind in `js/app/arcade/player-rig.js` zentralisiert; Physik und Kollisionsflächen bleiben bei den jeweiligen Stages.
+Alle vier Stages verwenden denselben Kernel-Piloten mit Helm. Nur das Fahrgestell wechselt (Cube-Cockpit, Raketenflug, Live-Show, Boss-Shooter). In Stage 1 dreht sich das Cube-Chassis, der Pilot im Cockpit bleibt aufrecht. Darstellung und Avatar-Laden sind in `js/app/arcade/player-rig.js` zentralisiert; Physik und KollisionsflÃ¤chen bleiben bei den jeweiligen Stages.
 
-Beim Start eines Runs übernimmt die Engine das Profil der Zusage dieses Geräts aus dem synchronisierten RSVP-Cache, ersatzweise aus `party_rsvp_data`. Das ausgewählte Foto erscheint mittig zugeschnitten im Helmvisier; Emoji-Avatare werden ebenfalls übernommen. Ohne Zusage wird der Standardpilot angezeigt. Bilder werden einmal pro Run geladen, nicht pro Frame oder Stage; Ladefehler werden in der Konsole gemeldet und der Standardpilot bleibt sichtbar.
+Beim Start eines Runs Ã¼bernimmt die Engine das Profil der Zusage dieses GerÃ¤ts aus dem synchronisierten RSVP-Cache, ersatzweise aus `party_rsvp_data`. Das ausgewÃ¤hlte Foto erscheint mittig zugeschnitten im Helmvisier; Emoji-Avatare werden ebenfalls Ã¼bernommen. Ohne Zusage wird der Standardpilot angezeigt. Bilder werden einmal pro Run geladen, nicht pro Frame oder Stage; Ladefehler werden in der Konsole gemeldet und der Standardpilot bleibt sichtbar.
 
 ## Arcade-Performance
 
-Das Canvas verwendet maximal DPR 2. Das Spielfeld (360x600) sitzt oben unter einem kompakten HUD und füllt die Breite des Bildschirms; der freie Rest unten ist eine abgedunkelte Daumenzone aus den gestreckten Spielfeldrändern, damit Finger nichts Wichtiges verdecken. HUD-Elemente werden einmal referenziert und nur bei geaenderten Werten aktualisiert; der lokale Highscore wird nicht im Frame-Loop gelesen. Stage 2 rendert Hintergrund, Raster und Nebel einmal pro Farbsektor in einen Canvas-Layer und zeichnet keinen zusaetzlichen Engine-Hintergrund darueber. Der Cache folgt der Canvas-Aufloesung und wird beim Skalierungswechsel erneuert. Figuren, Stage-2-Torkanten und Stage-4-Effekte verwenden klare Konturen statt Blur-Schatten. Die Audio-Beat-Uhr bleibt framegenau; nur die Bass-Spektrumanalyse ist auf etwa 33 Messungen pro Sekunde begrenzt. Lautstaerkenormalisierung wird fuer denselben dekodierten Track und Loop-Bereich wiederverwendet.
+Das Canvas verwendet maximal DPR 2. Das Spielfeld (360x600) sitzt oben unter einem kompakten HUD und fÃ¼llt die Breite des Bildschirms; der freie Rest unten ist eine abgedunkelte Daumenzone aus den gestreckten SpielfeldrÃ¤ndern, damit Finger nichts Wichtiges verdecken. HUD-Elemente werden einmal referenziert und nur bei geaenderten Werten aktualisiert; der lokale Highscore wird nicht im Frame-Loop gelesen. Stage 2 rendert Hintergrund, Raster und Nebel einmal pro Farbsektor in einen Canvas-Layer und zeichnet keinen zusaetzlichen Engine-Hintergrund darueber. Der Cache folgt der Canvas-Aufloesung und wird beim Skalierungswechsel erneuert. Figuren, Stage-2-Torkanten und Stage-4-Effekte verwenden klare Konturen statt Blur-Schatten. Die Audio-Beat-Uhr bleibt framegenau; nur die Bass-Spektrumanalyse ist auf etwa 33 Messungen pro Sekunde begrenzt. Lautstaerkenormalisierung wird fuer denselben dekodierten Track und Loop-Bereich wiederverwendet.
 
-## Temporäre Stage-Auswahl
+## TemporÃ¤re Stage-Auswahl
 
-Im Admin-Menü öffnet der Button **Arcade-Stages testen** die Auswahl für einen direkten Einstieg in Stage 1–4. Im Spiel ist die Auswahl auch über **STAGES** erreichbar. Jeder Test startet mit drei Leben und dem eigenen Avatar; nach Erfolg oder Niederlage kann dieselbe Stage wiederholt oder eine andere gewählt werden. Testläufe speichern keine Rekorde und vergeben keine Achievements. **Normaler Run ab Stage 1** startet den regulären Spielablauf. Das Menü gibt es nur über das Admin-Menü.
+Im Admin-MenÃ¼ Ã¶ffnet der Button **Arcade-Stages testen** die Auswahl fÃ¼r einen direkten Einstieg in Stage 1â€“4. Im Spiel ist die Auswahl auch Ã¼ber **STAGES** erreichbar. Jeder Test startet mit drei Leben und dem eigenen Avatar; nach Erfolg oder Niederlage kann dieselbe Stage wiederholt oder eine andere gewÃ¤hlt werden. TestlÃ¤ufe speichern keine Rekorde und vergeben keine Achievements. **Normaler Run ab Stage 1** startet den regulÃ¤ren Spielablauf. Das MenÃ¼ gibt es nur Ã¼ber das Admin-MenÃ¼.
 
 ## Stage 2: Fiech Airways
 
@@ -53,8 +53,8 @@ Halten gibt Schub, Loslassen laesst die Rakete sinken. Die Strecke und Flugphysi
 
 Die Stage-2-Regressionstests laufen mit `node --test js/app/arcade/stages/stage2-flight.test.js`. Sie pruefen die Dauer, Varianten und Spiegelungen, vollstaendige Routen bei 20 bis 120 FPS und verschiedenen Tempos, Zielverfolgung und Lock, Kolben- und Truemmerkollisionen, Beat-Ausrichtung, Audio-Notlauf, Treffer und Bonuspunkte. `node --test js/app/arcade/render-performance.test.js` prueft Hintergrund-Caches, Skalierungswechsel und schattenarme Darstellung.
 
-**Stage 4 · Omega-Fiech (Finale, Touch-First 4-Spuren-Arena):** 4 vertikale Spuren, Spielerwuerfel steht bei y=430, gesteuert ueber 4 grosse Pads in der Daumen-Zone unten (auch Tap auf eine Spur, Swipe, Pfeile/A/D oder Tasten 1-4). Spurwechsel gibt 0,14 s Schutz. Farbgesetz: Rot mit Warnstreifen und Warndreieck = Gefahr (immer 0,6 s vorher), Gruen = sichere Luecke, Gold = Konter-Kapsel, die ein Pinnchen der 10er-Schnapslatte zertruemmert; zusaetzlich laedt sich ein Konter alle ca. 3,2 s von selbst. Phasen: Schnapslatte + Korn-Laser, Schuettelkorn-Sturzflug + Kronkorken-Saegen, Takt-Blitz (gerade/ungerade Spuren), Finale mit zwei Latten und FINAL-SMASH-Ring (Zeitlupe, Explosion, Sieg). Logik in `stage4-wave.js`, Zeichenhelfer in `stage4-draw.js`, Texte in `content.js` (`declineGame.arcade.stage4`). `node --test js/app/arcade/stages/stage4-wave.test.js` laesst einen Bot ueber mehrere Seeds, FPS und BPM (auch ohne Kapseln) laufen und erwartet 0 Treffer.
+**Stage 4 · Der Teufels-Bierdeckel (Finale, 360°-Orbit-Arena):** Der Spielerwuerfel faehrt auf einer Orbit-Schiene (R=132) um das Boss-Fiech im Zentrum, umgeben von einem Ring aus 10 Korn-Pinnchen (= Boss-HP). Steuerung: Tap irgendwo = Richtung umkehren (kurzer Speed-Burst), links/rechts gedrueckt halten (oder Pfeile/A/D) = gegen/mit dem Uhrzeigersinn; unten liegt ein Daumen-Cockpit. Farbgesetz: Rot mit Warnstreifen und `!` = Gefahr (immer min. 0,6 s vorher als Sektor auf der Schiene), Gruen = SAFE ZONE, Gold = Konter-Kapsel, die ein Pinnchen zertruemmert; zusaetzlich laedt sich ein Konter alle ca. 3,4 s von selbst. Phasen: Schnapslatten-Speichen + Korn-Moerser, Schuettelkorn-Halbkreis + Ahoi-Geysire, Zapfhahn-Uhrzeiger (rotierende Laser), Finale mit Speichen-Kombi und gruener Kern-Smash-Kapsel (Komet durchs Fiech, Zeitlupe, Explosion, Sieg). Logik in `stage4-orbit.js`, Zeichenhelfer in `stage4-draw.js`, Texte in `content.js` (`declineGame.arcade.stage4`). `node --test js/app/arcade/stages/stage4-orbit.test.js` laesst einen Bot ueber mehrere Seeds, FPS und BPM (auch ohne Kapseln) laufen und erwartet 0 Treffer.
 
 ## GitHub Pages
 
-Der Workflow unter `.github/workflows/deploy.yml` baut `dist/` und veröffentlicht es auf GitHub Pages. In den Repository-Einstellungen muss unter **Settings → Pages → Build and deployment → Source** einmalig **GitHub Actions** ausgewählt werden.
+Der Workflow unter `.github/workflows/deploy.yml` baut `dist/` und verÃ¶ffentlicht es auf GitHub Pages. In den Repository-Einstellungen muss unter **Settings â†’ Pages â†’ Build and deployment â†’ Source** einmalig **GitHub Actions** ausgewÃ¤hlt werden.

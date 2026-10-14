@@ -217,25 +217,26 @@ export const CONTENT = {
         waves: ['WELLE 1 // VORGLÜHEN', 'WELLE 2 // FEUER FREI', 'WELLE 3 // LASERSHOW', 'WELLE 4 // INFERNO', 'WELLE 5 // ZUGABE']
       },
       stage4: {
-        name: 'OMEGA-FIECH',
-        subtitle: 'DER DURSTIGE KOLOSS',
+        name: 'DER TEUFELS-BIERDECKEL',
+        subtitle: 'ORBIT OVERDRIVE',
         phases: [
-          { name: 'PHASE 1 // SCHNAPSLATTE & KORN-LASER', hint: 'Rot = Gefahr · Grün = Lücke · Gold = Konter' },
-          { name: 'PHASE 2 // SCHÜTTELKORN & KRONKORKEN', hint: 'Fiech-Sturzflug · Sägen rollen · Gold einsammeln' },
-          { name: 'PHASE 3 // TAKT-BLITZ', hint: 'Gerade / ungerade Spuren im Beat wechseln' },
-          { name: 'PHASE 4 // STAMMTISCH-MELTDOWN', hint: 'Zweite Lücke: FINAL SMASH-Ring treffen!' }
+          { name: 'PHASE 1 // SCHNAPSLATTEN-SPEICHEN', hint: 'Rot = Gefahr · Grün = Lücke · Gold = Konter' },
+          { name: 'PHASE 2 // SCHÜTTELKORN-HALBKREIS', hint: 'Rote Hälfte meiden · Brause-Geysire umfahren' },
+          { name: 'PHASE 3 // ZAPFHAHN-UHRZEIGER', hint: 'Mit dem Laser mitfahren · Tap = Richtung wechseln' },
+          { name: 'PHASE 4 // KERN-SMASH', hint: 'Grüne Finale-Kapsel einsammeln!' }
         ],
         calls: {
-          slam: 'SCHNAPSLATTE!',
-          beam: 'KORN-STRAHL!',
-          shake: 'SCHÜTTELKORN!!',
-          saw: 'KRONKORKEN!',
-          blitz: 'TAKT-BLITZ!',
-          counter: ['PROST!', 'EX ODER KELLER!', 'SCHÜTTELN!'],
-          safe: '✓ SAFE',
-          hit: '⚡ HIT BOSS!',
-          smash: 'FINAL SMASH!',
-          ko: 'BOSS ZERLEGT // 100%'
+          spokes: 'SCHNAPSLATTE!',
+          mortar: 'KORN-MÖRSER!',
+          shake: 'SCHÜTTELN!!',
+          geysir: 'AHOI-BRAUSE!',
+          laser: 'ZAPFHAHN!',
+          counter: ['PROST!', 'EX ODER KELLER!', 'SCHÜTTELKORN!'],
+          safe: 'SAFE ZONE',
+          fire: '⚡ FIRE!',
+          smashHint: '🟢 SMASH BOSS!',
+          smash: 'KERN-SMASH!',
+          ko: 'FIECH ZERLEGT // 100%'
         }
       },      toast: 'FIECH ARCADE GESTARTET',
       title: '👾 FIECH ARCADE',
@@ -243,13 +244,13 @@ export const CONTENT = {
         'STAGE 1 · FIECH-RUN',
         'STAGE 2 · FIECH AIRWAYS',
         'STAGE 3 · LIVE-SHOW',
-        'STAGE 4 · OMEGA-FIECH'
+        'STAGE 4 · TEUFELS-BIERDECKEL'
       ],
       stageHints: [
         'Tippen / Leertaste = Springen',
         'Halten = Schub · Loslassen = Sinken',
         'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
-        'Spur per Pad/Tap wählen · Rot = Gefahr · Gold = Konter'
+        'Tap = Richtung wechseln · Rot meiden · Gold = Konter'
       ],
       excuses: [
         '🛋️ Sofa ruft',

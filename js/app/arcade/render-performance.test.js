@@ -3,7 +3,7 @@ import test from 'node:test';
 import { drawFiech } from './fiech-rig.js';
 import { drawPlayer } from './player-rig.js';
 import { createStage2 } from './stages/stage2-flappy.js';
-import { createStage4 } from './stages/stage4-wave.js';
+import { createStage4 } from './stages/stage4-orbit.js';
 
 function context(stats) {
   let depth = 0;
