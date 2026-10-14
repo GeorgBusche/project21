@@ -8,6 +8,9 @@ import {
   flightDebrisGeometry,
   updateFlightLasers,
   FLIGHT_BEATS,
+  ARENA_START,
+  ARENA_END,
+  LASER_FIRES,
   FLIGHT_SPEED,
   LASER_LOCK_BEATS
 } from './stage2-flappy.js';
@@ -107,11 +110,11 @@ function harness(random = seeded(1)) {
 }
 
 function flightTarget(gates, position, laserTrap = false, lasers = []) {
-  if (position >= 26 && position < 46) {
-    const fire = [29, 33, 37, 41].find((b) => position < b + 2.6);
+  if (position >= ARENA_START && position < ARENA_END) {
+    const fire = LASER_FIRES.find((b) => position < b + 2.6);
     if (fire === undefined) return 300;
     if (laserTrap) return 300;
-    const index = ((fire - 29) / 4) * 2;
+    const index = LASER_FIRES.indexOf(fire) * 2;
     const source = lasers[index];
     const direction = Math.sign(lasers[index + 1]?.offset ?? gates[0].side);
     if (position < fire - LASER_LOCK_BEATS) return 300;
@@ -167,7 +170,7 @@ function runFlight(
     const position = h.stage.progress() * FLIGHT_BEATS;
     updateFlightLasers(plan.lasers, position, h.state.y, 600);
     let target = flightTarget(gates, position, laserTrap, plan.lasers);
-    if (skipReverse && position >= 26 && position < 46) {
+    if (skipReverse && position >= ARENA_START && position < ARENA_END) {
       const source = plan.lasers.find(
         (l) =>
           l.echoOf === undefined &&
@@ -176,8 +179,8 @@ function runFlight(
       );
       if (source) target = source.y + plan.lasers[plan.lasers.indexOf(source) + 1].offset;
     }
-    if (position < 26 || position >= 46) target += precisionError;
-    if (hazardTrap === 'debris' && position > 30.8 && position < 32)
+    if (position < ARENA_START || position >= ARENA_END) target += precisionError;
+    if (hazardTrap === 'debris' && position > 23.8 && position < 25)
       target = flightDebrisGeometry(plan.debris[0], position, 88).y;
     if (hazardTrap === 'piston' && position > 12 && position < 14.5) {
       const piston = gates.find((g) => g.kind === 'piston');
@@ -194,23 +197,23 @@ function runFlight(
   return h;
 }
 
-test('64-beat pursuit contains distinct mechanics and a longer double-shot arena', () => {
+test('49-beat pursuit contains distinct mechanics and a longer double-shot arena', () => {
   const names = new Set();
   for (let seed = 1; seed <= 100; seed++) {
     const plan = buildFlightPlan(600, seeded(seed * 7919));
-    assert.equal(FLIGHT_BEATS, 64);
-    assert.equal(plan.gates.length, 20);
+    assert.equal(FLIGHT_BEATS, 49);
+    assert.equal(plan.gates.length, 14);
     assert.equal(plan.sections.length, 5);
     assert.equal(new Set(plan.sections.map((s) => s.name)).size, 5);
     assert.ok(plan.gates.some((g) => g.kind === 'fork'));
     assert.ok(plan.gates.some((g) => g.kind === 'travel'));
-    assert.equal(plan.gates.filter((g) => g.kind === 'piston').length, 3);
-    assert.equal(plan.gates.filter((g) => g.kind === 'double').length, 6);
-    assert.ok(plan.gates.every((g) => g.arrival < 26 || g.arrival >= 46));
-    assert.equal(plan.debris.length, 4);
+    assert.equal(plan.gates.filter((g) => g.kind === 'piston').length, 2);
+    assert.equal(plan.gates.filter((g) => g.kind === 'double').length, 4);
+    assert.ok(plan.gates.every((g) => g.arrival < ARENA_START || g.arrival >= ARENA_END));
+    assert.equal(plan.debris.length, 2);
     assert.deepEqual(
       plan.lasers.filter((l) => l.echoOf === undefined).map((l) => l.fireBeat),
-      [29, 33, 37, 41]
+      LASER_FIRES
     );
     for (const section of plan.sections) names.add(section.name);
     plan.gates.forEach((gate, i) => {
@@ -230,25 +233,25 @@ test('64-beat pursuit contains distinct mechanics and a longer double-shot arena
   assert.equal(names.size, 5);
 });
 
-test('pursuit finishes in approximately 34.5 seconds at Stage 2 tempo', () => {
+test('pursuit finishes in approximately 26.5 seconds at Stage 2 tempo', () => {
   const h = runFlight(() => seeded(17));
-  assert.ok(h.elapsed > 34 && h.elapsed < 35, `duration=${h.elapsed}`);
+  assert.ok(h.elapsed > 26 && h.elapsed < 27, `duration=${h.elapsed}`);
   assert.equal(h.state.completions, 1);
 });
 
 test('hard route requires accurate flying and keeps pressure through the last beat', () => {
   const { gates, lasers, debris } = buildFlightPlan(600, seeded(17));
-  assert.ok(gates.filter((g) => g.kind !== 'fork').every((g) => g.gap <= 120));
-  assert.ok(gates.filter((g) => g.arrival >= 57).every((g) => g.gap <= 90));
-  assert.equal(gates.at(-1).arrival, 63);
-  assert.equal(gates.at(-1).arrival - gates.at(-2).arrival, 1);
+  assert.ok(gates.filter((g) => g.kind !== 'fork').every((g) => g.gap <= 140));
+  assert.ok(gates.filter((g) => g.arrival >= 44).every((g) => g.gap <= 110));
+  assert.equal(gates.at(-1).arrival, 47);
+  assert.equal(gates.at(-1).arrival - gates.at(-2).arrival, 2);
   assert.ok(LASER_LOCK_BEATS <= 0.75);
   assert.ok(lasers.every((l) => l.halfWidth >= 12));
   assert.ok(debris.every((d) => d.radius >= 25));
   const precise = runFlight(() => seeded(17));
   const imprecise = runFlight(() => seeded(17), { precisionError: 45 });
   assert.equal(precise.state.hits, 0);
-  assert.ok(imprecise.state.hits >= 3, `imprecise hits=${imprecise.state.hitBeats}`);
+  assert.ok(imprecise.state.hits >= 2, `imprecise hits=${imprecise.state.hitBeats}`);
 });
 
 test('escape finale lets Fiech fall behind without crushing or squashing it', () => {
@@ -261,7 +264,7 @@ test('escape finale lets Fiech fall behind without crushing or squashing it', ()
 
 test('laser telegraph is harmless, firing window is bounded and the real beam causes damage', () => {
   const plan = buildFlightPlan(600, seeded(17));
-  assert.equal(plan.lasers.length, 8);
+  assert.equal(plan.lasers.length, 6);
   for (const laser of plan.lasers) {
     assert.equal(flightLaserPhase(laser, laser.fireBeat - 1.51), 'idle');
     assert.equal(flightLaserPhase(laser, laser.fireBeat - 1.5), 'warning');
@@ -273,17 +276,17 @@ test('laser telegraph is harmless, firing window is bounded and the real beam ca
   const safe = runFlight(() => seeded(17));
   const unsafe = runFlight(() => seeded(17), { laserTrap: true });
   assert.equal(safe.state.hits, 0, `hit beats=${safe.state.hitBeats}`);
-  const laserHits = unsafe.state.hitBeats.filter((p) => p >= 29 && p < 29.35);
+  const laserHits = unsafe.state.hitBeats.filter((p) => p >= 22 && p < 22.35);
   assert.equal(laserHits.length, 1, `hit beats=${unsafe.state.hitBeats}`);
-  assert.equal(unsafe.state.hitBeats.filter((p) => p >= 33 && p < 33.35).length, 1);
-  assert.ok(!unsafe.state.hitBeats.some((p) => p >= 27.5 && p < 29), 'warning must not damage');
+  assert.equal(unsafe.state.hitBeats.filter((p) => p >= 26 && p < 26.35).length, 1);
+  assert.ok(!unsafe.state.hitBeats.some((p) => p >= 20.5 && p < 22), 'warning must not damage');
 });
 
-test('four beat-spaced double salvos punish dodging once and staying in the escape lane', () => {
+test('three beat-spaced double salvos punish dodging once and staying in the escape lane', () => {
   const plan = buildFlightPlan(600, seeded(17));
   const primaries = plan.lasers.filter((l) => l.echoOf === undefined);
-  assert.equal(primaries.length, 4);
-  assert.equal(plan.sections[3].start - plan.sections[2].start, 20);
+  assert.equal(primaries.length, 3);
+  assert.equal(plan.sections[3].start - plan.sections[2].start, 16);
   for (const [i, primary] of primaries.entries()) {
     const echo = plan.lasers[i * 2 + 1];
     assert.equal(echo.echoOf, i * 2);
@@ -291,7 +294,7 @@ test('four beat-spaced double salvos punish dodging once and staying in the esca
     assert.ok(echo.halfWidth > primary.halfWidth);
     if (i > 0) assert.equal(primary.fireBeat - primaries[i - 1].fireBeat, 4);
     const debris = plan.debris[i];
-    assert.ok(debris.arrival > echo.fireBeat + 0.35);
+    if (debris) assert.ok(debris.arrival > echo.fireBeat + 0.35);
   }
   const safe = runFlight(() => seeded(17));
   const noReverse = runFlight(() => seeded(17), { skipReverse: true });
@@ -299,27 +302,27 @@ test('four beat-spaced double salvos punish dodging once and staying in the esca
   const echoHits = noReverse.state.hitBeats.filter((p) =>
     plan.lasers.some((l) => l.echoOf !== undefined && p >= l.fireBeat && p < l.fireBeat + 0.35)
   );
-  assert.ok(echoHits.length >= 3, `echo hits=${echoHits}`);
+  assert.ok(echoHits.length >= 2, `echo hits=${echoHits}`);
 });
 
 test('echo targeting locks with the primary shot, stays fixed, and remains inside the arena', () => {
   for (const y of [80, 300, 540]) {
     const { lasers } = buildFlightPlan(600, seeded(17));
-    updateFlightLasers(lasers, 28, y, 600);
+    updateFlightLasers(lasers, 21, y, 600);
     assert.equal(lasers[0].locked, false);
     assert.equal(lasers[1].locked, false);
-    updateFlightLasers(lasers, 29 - LASER_LOCK_BEATS, y, 600);
+    updateFlightLasers(lasers, 22 - LASER_LOCK_BEATS, y, 600);
     const primaryY = lasers[0].y;
     const echoY = lasers[1].y;
     assert.equal(lasers[0].locked, true);
     assert.equal(lasers[1].locked, true);
     assert.ok(echoY >= 100 && echoY <= 520);
     assert.ok(Math.abs(echoY - primaryY) >= 40);
-    updateFlightLasers(lasers, 30.2, 600 - y, 600);
+    updateFlightLasers(lasers, 23.2, 600 - y, 600);
     assert.equal(lasers[0].y, primaryY);
     assert.equal(lasers[1].y, echoY);
-    assert.equal(flightLaserPhase(lasers[1], 29.9), 'warning');
-    assert.equal(flightLaserPhase(lasers[1], 30.2), 'fire');
+    assert.equal(flightLaserPhase(lasers[1], 22.9), 'warning');
+    assert.equal(flightLaserPhase(lasers[1], 23.2), 'fire');
   }
 });
 
@@ -333,23 +336,23 @@ test('Fiech follows during targeting, then locks before firing and stops followi
   let dodged = false;
   for (let i = 0; i < 1000; i++) {
     const p = h.stage.progress() * FLIGHT_BEATS;
-    const target = p >= 27.5 && p < 29 - LASER_LOCK_BEATS ? 230 : flightTarget(gates, p);
+    const target = p >= 20.5 && p < 22 - LASER_LOCK_BEATS ? 230 : flightTarget(gates, p);
     const braking = h.state.vy > 0 ? 600 : 420;
     h.engine.held = h.state.y + (h.state.vy * Math.abs(h.state.vy)) / (2 * braking) > target;
     clock += 111.3 / 3600;
     h.frame(1 / 60, clock);
     const now = h.stage.progress() * FLIGHT_BEATS;
-    if (now > 27.5 && now < 28.1) {
+    if (now > 20.5 && now < 21.1) {
       assert.equal(h.state.fiechAction, 'laser');
       assert.equal(h.state.fiechY, h.state.y);
       followed = true;
     }
-    if (now > 29 - LASER_LOCK_BEATS + 0.05 && now < 29.35) {
+    if (now > 22 - LASER_LOCK_BEATS + 0.05 && now < 22.35) {
       lockedY ??= h.state.fiechY;
       assert.equal(h.state.fiechY, lockedY, 'aim must not follow after lock');
       if (Math.abs(h.state.y - lockedY) > 30) dodged = true;
     }
-    if (now > 29.35) break;
+    if (now > 22.35) break;
   }
   assert.ok(followed && dodged);
 });
@@ -384,7 +387,7 @@ test('open-arena debris has actual moving collision geometry, not just decoratio
   assert.notEqual(flightDebrisGeometry(d, d.arrival - 0.5, 88).y, d.y);
   const unsafe = runFlight(() => seeded(17), { hazardTrap: 'debris' });
   assert.equal(
-    unsafe.state.hitBeats.filter((p) => p > 31.3 && p < 31.9).length,
+    unsafe.state.hitBeats.filter((p) => p > 24.3 && p < 24.9).length,
     1,
     `hit beats=${unsafe.state.hitBeats}`
   );
@@ -404,7 +407,7 @@ test('all pattern variants and mirrors can be flown without taking damage', () =
         0,
         `variant=${variant}, mirror=${mirror}, hits=${h.state.hitBeats}`
       );
-      assert.ok(h.state.score > 1500);
+      assert.ok(h.state.score > 1000);
     }
   }
 });
@@ -429,9 +432,9 @@ test('a continuous soundtrack tempo ramp preserves solvability and score', () =>
   const h = runFlight(() => seeded(17), { bpm: (seconds) => 105 + Math.min(1, seconds / 25) * 11 });
   assert.equal(h.state.hits, 0);
   assert.equal(h.state.completions, 1);
-  assert.ok(h.state.score >= 2080 && h.state.score <= 2160, `score=${h.state.score}`);
+  assert.ok(h.state.score >= 1390 && h.state.score <= 1470, `score=${h.state.score}`);
   assert.equal(
-    (2160 - h.state.score) % 40,
+    (1470 - h.state.score) % 40,
     0,
     'only missed perfect rings reduce a clean-run score'
   );

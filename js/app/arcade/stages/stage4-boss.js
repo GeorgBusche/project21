@@ -1,10 +1,10 @@
 import { createBeatSource, drawFiech, moveX } from './stage-utils.js';
 
-const MAX_HP = 16;
+const MAX_HP = 12;
 const LANES = 5;
 
-// Stage 5: Final Boss Overdrive. Das große Fiech feuert im Beat Projektile in Bahnen, der Spieler feuert im Beat zurück.
-export function createStage5() {
+// Stage 4: Final Boss Overdrive. Das große Fiech feuert im Beat Projektile in Bahnen, der Spieler feuert im Beat zurück.
+export function createStage4() {
   let engine;
   let tick;
   let t = 0;

@@ -12,7 +12,7 @@ const COYOTE = 0.09;
 const BUFFER = 0.22;
 const FS = 62;
 const LAND_TOL = 18;
-const SEGMENT_COUNT = 14;
+const SEGMENT_COUNT = 10;
 const TELE_T = 0.18;
 
 const shuffle = (arr) => {
@@ -24,7 +24,7 @@ const shuffle = (arr) => {
   return a;
 };
 
-// Stage 1: "FIECH DER STRECKEN-BAUER" – 14 Segmente aus einem 20er-Baukasten, 3 Oberdesigns.
+// Stage 1: "FIECH DER STRECKEN-BAUER" – 10 Segmente aus einem 20er-Baukasten, 3 Oberdesigns.
 export function createStage1(options = {}) {
   let engine;
   let tick;
@@ -420,7 +420,7 @@ let teleFx = [];
   }
   function pickDeck() {
     const pool = (tier) => shuffle(lib.filter((s) => s.tier === tier && s.id !== FINAL_SEGMENT_ID));
-    return [...pool(0).slice(0, 4), ...pool(1).slice(0, 5), ...pool(2).slice(0, 4), lib.find((s) => s.id === FINAL_SEGMENT_ID)];
+    return [...pool(0).slice(0, 3), ...pool(1).slice(0, 3), ...pool(2).slice(0, 3), lib.find((s) => s.id === FINAL_SEGMENT_ID)];
   }
 
   // ---------- Fiech-Posen & Teleport ----------
@@ -1142,7 +1142,7 @@ let teleFx = [];
 
       // Segment-Zähler
       const n = Math.min(segCount, doneCount + 1);
-      const label = options.segmentId ? options.segmentId : n === segCount ? 'FINAL GATE' : n <= 4 ? 'EASY' : n <= 9 ? 'MEDIUM' : 'HARD';
+      const label = options.segmentId ? options.segmentId : n === segCount ? 'FINAL GATE' : n <= 3 ? 'EASY' : n <= 6 ? 'MEDIUM' : 'HARD';
       ctx.textAlign = 'right';
       ctx.font = 'bold 11px monospace';
       ctx.fillStyle = rgba(acc, 0.95);

@@ -1,7 +1,11 @@
 import { circleRect, clamp, createBeatSource } from './stage-utils.js';
 import { drawFlightScene } from './stage2-draw.js';
 
-export const FLIGHT_BEATS = 64;
+export const FLIGHT_BEATS = 49;
+export const ARENA_START = 19;
+export const ARENA_END = 35;
+export const LASER_FIRES = [22, 26, 30];
+const DEBRIS_ARRIVALS = [24.6, 28.6];
 export const FLIGHT_SPEED = 130;
 export const LASER_LOCK_BEATS = 0.72;
 const RADIUS = 10;
@@ -38,9 +42,9 @@ export function buildFlightPlan(H, random = Math.random) {
   const sections = [
     { start: 0, name: 'DOUBLE PIPES / BRAKE EARLY', tier: 0 },
     { start: 12, name: 'PISTONS / FOLLOW THE LOCK', tier: 1 },
-    { start: 26, name: 'DOUBLE SHOT / DODGE AND REVERSE', tier: 1 },
-    { start: 46, name: 'FORK / CHOOSE YOUR EXIT', tier: 2 },
-    { start: 58, name: 'FINAL SPRINT / BREAK FREE', tier: 2 }
+    { start: ARENA_START, name: 'DOUBLE SHOT / DODGE AND REVERSE', tier: 1 },
+    { start: ARENA_END, name: 'FORK / CHOOSE YOUR EXIT', tier: 2 },
+    { start: 44, name: 'FINAL SPRINT / BREAK FREE', tier: 2 }
   ];
   const add = (arrival, height, kind, gap, extra = {}) => {
     const center = H / 2 + height * mirror;
@@ -49,7 +53,7 @@ export function buildFlightPlan(H, random = Math.random) {
       center,
       gap,
       kind,
-      tier: arrival < 12 ? 0 : arrival < 46 ? 1 : 2,
+      tier: arrival < 12 ? 0 : arrival < ARENA_END ? 1 : 2,
       w: kind === 'final' ? 56 : kind === 'double' ? 26 : GATE_WIDTH,
       side: mirror,
       ringY: kind === 'fork' ? center + mirror * 64 : center,
@@ -59,28 +63,22 @@ export function buildFlightPlan(H, random = Math.random) {
       ...extra
     });
   };
-  add(3, -75, 'gate', 120);
-  add(5, 85, 'gate', 112);
-  add(7, -90, 'shutter', 106);
-  add(8, -55, 'double', 108);
-  add(9, 15, 'double', 108);
-  add(11, 105, 'shutter', 100);
-  add(14, -110 - offset, 'piston', 100, { wall: mirror > 0 ? 'bottom' : 'top' });
-  add(17, 110 + offset, 'piston', 100, { wall: mirror > 0 ? 'top' : 'bottom' });
-  add(20, -75, 'travel', 116, { travel: mirror * 70, w: 80 });
-  add(22, 90, 'shutter', 98);
-  add(24, -95, 'shutter', 94);
-  add(48, 0, 'fork', 192);
-  add(51, -125, 'piston', 94, { wall: mirror > 0 ? 'bottom' : 'top' });
-  add(54, 45, 'double', 92);
-  add(55, 105, 'double', 92);
-  add(57, -95, 'shutter', 90);
-  add(59, 90, 'shutter', 90);
-  add(60, 55, 'double', 90);
-  add(62, -30, 'final', 86);
-  add(63, 25, 'double', 90);
+  add(3, -75, 'gate', 140);
+  add(5, 85, 'gate', 132);
+  add(7, -90, 'shutter', 126);
+  add(8, -55, 'double', 126);
+  add(9, 15, 'double', 126);
+  add(11, 105, 'shutter', 120);
+  add(14, -110 - offset, 'piston', 118, { wall: mirror > 0 ? 'bottom' : 'top' });
+  add(17, -75, 'travel', 130, { travel: mirror * 70, w: 80 });
+  add(37, 0, 'fork', 205);
+  add(40, -125, 'piston', 112, { wall: mirror > 0 ? 'bottom' : 'top' });
+  add(42, 45, 'double', 110);
+  add(43, 105, 'double', 110);
+  add(45, -95, 'shutter', 108);
+  add(47, -30, 'final', 104);
   const lasers = [];
-  for (const [i, fireBeat] of [29, 33, 37, 41].entries()) {
+  for (const [i, fireBeat] of LASER_FIRES.entries()) {
     const source = lasers.length;
     lasers.push({ fireBeat, y: H / 2, halfWidth: 16, locked: false, damaged: false });
     lasers.push({
@@ -93,14 +91,13 @@ export function buildFlightPlan(H, random = Math.random) {
       damaged: false
     });
   }
-  const debris = [31.6, 35.6, 39.6, 43.6].map((arrival, i) => ({
+  const debris = DEBRIS_ARRIVALS.map((arrival, i) => ({
     arrival,
     y: H / 2 + mirror * (i % 2 === 0 ? -90 : 90),
     radius: 25,
     side: i % 2 === 0 ? -mirror : mirror,
     damaged: false
-  }));
-  return { gates, sections, lasers, debris };
+  }));  return { gates, sections, lasers, debris };
 }
 
 export function flightGateGeometry(gate, position, playerX) {
@@ -130,7 +127,7 @@ export function flightDebrisGeometry(debris, position, playerX) {
   };
 }
 
-// Stage 2: 64 Beats Raketenflucht. Halten gibt Schub, Loslassen laesst die Rakete sinken.
+// Stage 2: 49 Beats Raketenflucht. Halten gibt Schub, Loslassen laesst die Rakete sinken.
 export function createStage2(random = Math.random) {
   let engine;
   let tick;

@@ -3,8 +3,7 @@ import test from 'node:test';
 import { drawFiech } from './fiech-rig.js';
 import { drawPlayer } from './player-rig.js';
 import { createStage2 } from './stages/stage2-flappy.js';
-import { createStage4 } from './stages/stage4-wave.js';
-import { createStage5 } from './stages/stage5-overdrive.js';
+import { createStage4 } from './stages/stage4-boss.js';
 
 function context(stats) {
   let depth = 0;
@@ -108,7 +107,7 @@ test('Stage 2 rasterizes each sector once and invalidates cache on canvas scalin
   }
 });
 
-test('Stage 4 and 5 effects have no blur filters and restore canvas state', () => {
+test('Stage 4 effects have no blur filters and restore canvas state', () => {
   const stats = { gradients: 0, shadows: 0, scale: 1 };
   const ctx = context(stats);
   const noop = () => {};
@@ -126,7 +125,7 @@ test('Stage 4 and 5 effects have no blur filters and restore canvas state', () =
     drawFiech,
     drawPlayer
   };
-  for (const create of [createStage4, createStage5]) {
+  for (const create of [createStage4]) {
     const stage = create();
     stage.init(engine);
     for (let i = 0; i < 60; i++) {

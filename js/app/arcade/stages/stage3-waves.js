@@ -6,19 +6,19 @@
 // laser / dive / double = Wahrscheinlichkeit pro Reihe für Sunbeam, Fiech-Sturz, zweiten Sunbeam
 // maxStay = wie viele Reihen in Folge die sichere Spur gleich bleiben darf
 export const WAVE_DEFS = [
-  { lanes: 3, rows: 20, gap: 1.2, fall: 2.5, laser: 0, dive: 0, double: 0, maxStay: 2 },
-  { lanes: 3, rows: 16, gap: 1.1, fall: 2.4, laser: 0.3, dive: 0, double: 0, maxStay: 2 },
-  { lanes: 3, rows: 18, gap: 0.9, fall: 2.3, laser: 0.1, dive: 0.22, double: 0, maxStay: 1 },
-  { lanes: 3, rows: 20, gap: 0.8, fall: 2.2, laser: 0.3, dive: 0.2, double: 0, maxStay: 1 },
-  { lanes: 5, rows: 40, gap: 0.75, fall: 2.0, laser: 0.3, dive: 0.15, double: 0.2, maxStay: 1 }
-];
+    { lanes: 3, rows: 8, gap: 1.3, fall: 2.6, laser: 0, dive: 0, double: 0, maxStay: 2 },
+    { lanes: 3, rows: 8, gap: 1.2, fall: 2.5, laser: 0.25, dive: 0, double: 0, maxStay: 2 },
+    { lanes: 3, rows: 8, gap: 1.0, fall: 2.4, laser: 0.1, dive: 0.2, double: 0, maxStay: 2 },
+    { lanes: 3, rows: 8, gap: 0.95, fall: 2.3, laser: 0.25, dive: 0.18, double: 0, maxStay: 2 },
+    { lanes: 5, rows: 14, gap: 0.9, fall: 2.1, laser: 0.25, dive: 0.12, double: 0.15, maxStay: 2 }
+  ];
 export const MOVE = 0.7; // Reaktionszeit in Beats, die ein Spurwechsel in der Machbarkeitsprüfung kostet (im Spiel selbst ist er sofort)
 // ---------------------------------------------------------------------------
 
 const DT = 0.05;
 const LASER_ACTIVE = 0.45;
 export const WAVE_INTRO = 2.5; // Beats vor dem ersten Objekt: Banner, Pyro-Salve und Spurumbau
-const WAVE_GAP = 5; // Pause zwischen zwei Wellen in Beats (Bahn leer, Übergang läuft)
+const WAVE_GAP = 4; // Pause zwischen zwei Wellen in Beats (Bahn leer, Übergang läuft)
 const DIVE_SPACING = 4.4; // Mindestabstand zweier Fiech-Stürze in Beats (Sturz + Aufstieg dauern ca. 4,1 Beats)
 const FIRST_START = 5;
 

@@ -209,7 +209,7 @@ export const CONTENT = {
       phase5: '[PHASE 5] FIECH ARCADE GESTARTET... VIEL GLÜCK.'
     },
 
-    // FIECH ARCADE (5 Stages) <--- HIER ANPASSEN
+    // FIECH ARCADE (4 Stages) <--- HIER ANPASSEN
     arcade: {
       // Stage 3: Pyro-Bühne <--- HIER ANPASSEN
       stage3: {
@@ -222,14 +222,12 @@ export const CONTENT = {
         'STAGE 1 · FIECH-RUN',
         'STAGE 2 · FIECH AIRWAYS',
         'STAGE 3 · LIVE-SHOW',
-        'STAGE 4 · WAVE-TUNNEL',
-        'STAGE 5 · OMEGA-OVERDRIVE'
+        'STAGE 4 · OMEGA-FIECH'
       ],
       stageHints: [
         'Tippen / Leertaste = Springen',
         'Halten = Schub · Loslassen = Sinken',
         'Spur antippen / ←→ · Flammen sammeln, Minen & Fiech-Sturz meiden',
-        'Gedrückt halten = hoch, loslassen = runter',
         'Ausweichen & im Beat zurückfeuern!'
       ],
       excuses: [
@@ -465,8 +463,7 @@ export const CONTENT = {
       1: { rate: 1.0, filterHz: 2600, label: 'STAGE 1 // DARK PULSE' },
       2: { rate: 1.06, filterHz: 18000, label: 'STAGE 2 // MAIN DROP' },
       3: { rate: 1.12, filterHz: 20000, label: 'STAGE 3 // HIGH VOLTAGE' },
-      4: { rate: 1.19, filterHz: 20000, label: 'STAGE 4 // OVERDRIVE' },
-      5: { rate: 1.26, filterHz: 20000, label: 'STAGE 5 // FINAL BOSS' }
+      4: { rate: 1.19, filterHz: 20000, label: 'STAGE 4 // FINAL BOSS' }
     }
   },
 

@@ -9,8 +9,7 @@ import { fetchTopTen, getLocalBest, submitRun } from './arcade-scoreboard.js';
 import { createStage1 } from './stages/stage1-cube.js';
 import { createStage2 } from './stages/stage2-flappy.js';
 import { createStage3 } from './stages/stage3-pyro.js';
-import { createStage4 } from './stages/stage4-wave.js';
-import { createStage5 } from './stages/stage5-overdrive.js';
+import { createStage4 } from './stages/stage4-boss.js';
 import { drawFiech } from './fiech-rig.js';
 
 export { drawFiech };
@@ -19,9 +18,9 @@ export const W = 360;
 export const H = 600;
 const MAX_LIVES = 3;
 const INTRO_SECONDS = 1.8;
-const STAGE_FACTORIES = [createStage1, createStage2, createStage3, createStage4, createStage5];
+const STAGE_FACTORIES = [createStage1, createStage2, createStage3, createStage4];
 // Jede Stage = 20 % Fortschritt
-const PERCENT_STARTS = [0, 20, 40, 60, 80, 100];
+const PERCENT_STARTS = [0, 25, 50, 75, 100];
 
 const state = {
   overlay: null,
@@ -39,6 +38,7 @@ const state = {
   invuln: 0,
   shakeT: 0,
   scale: 1,
+  view: { cssW: 360, cssH: 600, offX: 0, offY: 0, dpr: 1 },
   keys: new Set(),
   pointer: { x: W / 2, y: H - 80, down: false },
   stars: []
@@ -135,10 +135,11 @@ function buildOverlay() {
   const a = arcadeText();
   const el = document.createElement('div');
   el.id = 'arcadeOverlay';
-  el.className = 'fixed inset-0 z-[99990] bg-black flex flex-col items-center select-none';
+  el.className = 'fixed inset-0 z-[99990] bg-black select-none overflow-hidden';
   el.style.touchAction = 'none';
   el.innerHTML = `
-    <div id="arcadeHud" class="w-full max-w-[520px] flex items-center justify-between gap-2 px-3 pt-2 pb-1 font-mono text-xs text-white">
+    <div id="arcadeTop" class="absolute top-0 inset-x-0 z-10 mx-auto w-full max-w-[520px] bg-black/70 pointer-events-none">
+    <div id="arcadeHud" class="pointer-events-auto flex items-center justify-between gap-2 px-3 pt-1 pb-1 font-mono text-xs text-white">
       <div class="min-w-0">
         <div id="arcadeStageName" class="font-extrabold truncate"></div>
         <div class="text-[10px] text-neutral-400">${a.title}</div>
@@ -150,12 +151,13 @@ function buildOverlay() {
       ${state.adminMenu ? '<button id="arcadeStageMenu" class="shrink-0 px-2 h-8 rounded border border-cyan-700 text-cyan-300" aria-label="Stage-Auswahl">STAGES</button>' : ''}
       <button id="arcadeExit" class="shrink-0 w-8 h-8 rounded border border-neutral-700 text-neutral-300 hover:text-white" aria-label="Schließen">✕</button>
     </div>
-    <div class="w-full max-w-[520px] px-3"><div class="h-2 bg-neutral-900 rounded overflow-hidden border border-neutral-800"><div id="arcadeProgress" class="h-full" style="width:0%"></div></div>
-      <div id="arcadePercent" class="text-[10px] font-mono text-right text-neutral-400">0%</div></div>
-    <div class="relative flex-1 w-full flex items-center justify-center min-h-0">
-      <canvas id="arcadeCanvas" class="rounded-lg" style="touch-action:none;"></canvas>
-      <div id="arcadeScreen" class="hidden absolute inset-0 items-center justify-center bg-black/80 p-4"></div>
-    </div>`;
+    <div class="px-3 pb-1 flex items-center gap-2"><div class="h-1.5 flex-1 bg-neutral-900 rounded overflow-hidden border border-neutral-800"><div id="arcadeProgress" class="h-full" style="width:0%"></div></div>
+      <div id="arcadePercent" class="text-[10px] font-mono text-neutral-400 w-8 text-right">0%</div></div>
+    </div>
+    <div class="absolute inset-0 flex items-start justify-center">
+      <canvas id="arcadeCanvas" style="touch-action:none;"></canvas>
+    </div>
+    <div id="arcadeScreen" class="hidden absolute inset-0 z-20 items-center justify-center bg-black/80 p-4"></div>`;
   document.body.appendChild(el);
   state.overlay = el;
   state.canvas = el.querySelector('#arcadeCanvas');
@@ -169,27 +171,56 @@ function buildOverlay() {
   el.querySelector('#arcadeStageMenu')?.addEventListener('click', showStageMenu);
 }
 
+// Das Spielfeld (360x600) sitzt oben direkt unter dem HUD. Der Rest des Bildschirms (Daumenzone unten) wird aus
+// dem Spielfeldrand aufgefüllt, damit nichts "Bild im Bild" wirkt und der Finger nichts Wichtiges verdeckt.
 function resize() {
   if (!state.canvas) return;
-  const hud = state.overlay.querySelector('#arcadeHud').offsetHeight + 36;
-  const availW = Math.min(window.innerWidth - 8, 520);
-  const availH = window.innerHeight - hud - 8;
-  state.scale = Math.max(0.3, Math.min(availW / W, availH / H));
+  const topH = state.overlay.querySelector('#arcadeTop').offsetHeight;
+  const cssW = Math.min(window.innerWidth, 520);
+  const cssH = window.innerHeight;
+  const scale = Math.max(0.3, Math.min(cssW / W, (cssH - topH) / H));
   const dpr = renderDpr();
-  state.canvas.style.width = `${W * state.scale}px`;
-  state.canvas.style.height = `${H * state.scale}px`;
-  state.canvas.width = Math.round(W * state.scale * dpr);
-  state.canvas.height = Math.round(H * state.scale * dpr);
+  state.scale = scale;
+  state.view = { cssW, cssH, offX: (cssW - W * scale) / 2, offY: topH, dpr };
+  state.canvas.style.width = `${cssW}px`;
+  state.canvas.style.height = `${cssH}px`;
+  state.canvas.width = Math.round(cssW * dpr);
+  state.canvas.height = Math.round(cssH * dpr);
+  state.overlay.querySelector('#arcadeScreen').style.top = `${topH}px`;
 }
 
-// DPR-Deckel: mehr als 1.5x kostet auf Handys viel Fillrate ohne sichtbaren Gewinn
+// Auf Handys (DPR 2-3) wirkt 1.5 unscharf; 2 ist noch günstig genug
 function renderDpr() {
-  return Math.min(window.devicePixelRatio || 1, 1.5);
+  return Math.min(window.devicePixelRatio || 1, 2);
 }
 
+// Streckt die Randzeilen des Spielfelds in den freien Bereich und dunkelt die Daumenzone ab
+function extendEdges(ctx) {
+  const { offX, offY, dpr } = state.view;
+  const k = state.scale * dpr;
+  const cw = state.canvas.width;
+  const ch = state.canvas.height;
+  const bx = Math.round(offX * dpr);
+  const by = Math.round(offY * dpr);
+  const bw = Math.max(1, Math.min(cw - bx, Math.round(W * k)));
+  const bh = Math.max(1, Math.min(ch - by, Math.round(H * k)));
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const bottom = ch - (by + bh);
+  if (bottom > 0) ctx.drawImage(state.canvas, bx, by + bh - 2, bw, 2, bx, by + bh, bw, bottom);
+  if (by > 0) ctx.drawImage(state.canvas, bx, by, bw, 2, bx, 0, bw, by);
+  if (bx > 0) {
+    ctx.drawImage(state.canvas, bx, 0, 2, ch, 0, 0, bx, ch);
+    ctx.drawImage(state.canvas, bx + bw - 2, 0, 2, ch, bx + bw, 0, cw - bx - bw, ch);
+  }
+  if (bottom > 0) {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, by + bh, cw, bottom);
+  }
+}
 function toLogical(ev) {
   const r = state.canvas.getBoundingClientRect();
-  return { x: ((ev.clientX - r.left) / r.width) * W, y: ((ev.clientY - r.top) / r.height) * H };
+  const { offX, offY } = state.view;
+  return { x: (ev.clientX - r.left - offX) / state.scale, y: (ev.clientY - r.top - offY) / state.scale };
 }
 
 function stageTap(extra = {}) {
@@ -504,7 +535,8 @@ function frame(now) {
   const dt = Math.min(0.05, (now - state.last) / 1000 || 0);
   state.last = now;
   const ctx = state.ctx;
-  const k = state.scale * renderDpr();
+  const { dpr, offX, offY } = state.view;
+  const k = state.scale * dpr;
   const beat = getBeatInfo();
 
   if (state.invuln > 0) state.invuln -= dt;
@@ -522,9 +554,12 @@ function frame(now) {
     if (state.timer <= 0) startStage(state.stageIndex + 1);
   }
 
-  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.setTransform(k, 0, 0, k, offX * dpr, offY * dpr);
   const sh = state.shakeT > 0 ? (Math.random() - 0.5) * 8 : 0;
   ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
   ctx.translate(sh, sh);
   if (!state.stage?.drawsOwnBackground) drawBackground(ctx, now / 1000, beat);
   else {
@@ -538,6 +573,7 @@ function frame(now) {
   }
   if (state.mode === 'intro' || state.mode === 'stageClear') drawBanner(ctx);
   ctx.restore();
+  extendEdges(ctx);
   updateHud();
 }
 

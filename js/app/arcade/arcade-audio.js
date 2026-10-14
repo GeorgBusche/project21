@@ -394,7 +394,7 @@ export function startArcadeAudio(stage = 1, startBeat = 0) {
   launch(stage, startBeat);
 }
 
-// Stage-Wechsel (1..5): moduliert den laufenden Stream per Rampe, kein neuer Source-Node, kein Sprung.
+// Stage-Wechsel (1..4): moduliert den laufenden Stream per Rampe, kein neuer Source-Node, kein Sprung.
 export function setStage(stage) {
   // Kaltstart einer späteren Stage (DEV-Menü): direkt im Drop einsteigen statt im leisen Intro
   if (!a.running) return startArcadeAudio(stage, stage > 1 ? (cfg().devDropBeat ?? 0) + (stage - 2) * 16 : 0);
