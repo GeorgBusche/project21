@@ -134,43 +134,60 @@ export function drawBackground(ctx, s) {
 }
 
 // Chromatische Aberration + Scanline-Glitches auf jedem 4. Beat
+// Taktpuls: dezente Eck-Brackets und kurze Scanline-Blitze nahe der Latte statt Vollbild-Streifen
 export function drawGlitch(ctx, t, barPulse, accent) {
   if (barPulse < 0.05) return;
-  const n = Math.floor(t * 40);
-  for (let i = 0; i < 5; i++) {
-    const y = noise(n + i * 7) * H;
-    const h = 2 + noise(n + i * 3) * 8;
-    ctx.globalAlpha = barPulse * 0.4;
-    ctx.fillStyle = i % 2 ? '#22d3ee' : '#ef4444';
-    ctx.fillRect(0, y, W, h);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect((noise(n + i) - 0.5) * 20, y + h, W, 1);
+  const n = Math.floor(t * 30);
+  ctx.globalAlpha = barPulse * 0.7;
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 3;
+  const m = 6 + (1 - barPulse) * 10;
+  const L = 26;
+  for (const [cx, cy, sx, sy] of [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]]) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + sy * L);
+    ctx.lineTo(cx, cy);
+    ctx.lineTo(cx + sx * L, cy);
+    ctx.stroke();
   }
   ctx.globalAlpha = barPulse * 0.5;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = '#ef4444';
-  ctx.strokeRect(-3 * barPulse, 0, W, H);
-  ctx.strokeStyle = '#22d3ee';
-  ctx.strokeRect(3 * barPulse, 0, W, H);
+  for (let i = 0; i < 3; i++) {
+    const x = noise(n + i * 11) * (W - 60);
+    const y = 100 + noise(n + i * 5) * 380;
+    ctx.fillStyle = i % 2 ? '#22d3ee' : '#ef4444';
+    ctx.fillRect(x, y, 24 + noise(n + i) * 40, 2);
+  }
   ctx.globalAlpha = 1;
 }
 
+// Teleport im SUDO-Stil: Ring-Schockwelle, Pixel-Zerfall und Daten-Bloecke um den Punkt
 export function drawPillars(ctx, pillars, t) {
   for (const p of pillars) {
     const k = (t - p.t0) / p.life;
     if (k < 0 || k > 1) continue;
     const a = 1 - k;
-    for (let i = 0; i < 6; i++) {
-      const w = 3 + noise(i * 5 + p.x) * 14;
-      const ox = (noise(i * 9 + p.x + Math.floor(t * 30)) - 0.5) * 46;
-      ctx.globalAlpha = a * 0.75;
+    const cy = p.y ?? 130;
+    drawRing(ctx, p.x, cy, 20 + k * 90, p.color, a * 0.9, 3);
+    drawRing(ctx, p.x, cy, 10 + k * 56, '#ffffff', a * 0.7, 2, [6, 5]);
+    const f = Math.floor(t * 24);
+    for (let i = 0; i < 18; i++) {
+      const ang = noise(i * 7 + p.x) * TAU;
+      const d = (14 + noise(i * 3 + p.x) * 60) * (0.3 + k);
+      const sz = 3 + Math.floor(noise(i + f * 0.2) * 7);
+      ctx.globalAlpha = a * 0.85;
       ctx.fillStyle = i % 3 === 0 ? '#ffffff' : i % 3 === 1 ? p.color : '#ef4444';
-      ctx.fillRect(p.x + ox - w / 2, 0, w, H * (0.35 + 0.65 * Math.min(1, k * 4)));
+      ctx.fillRect(p.x + Math.cos(ang) * d - sz / 2, cy + Math.sin(ang) * d * 0.8 - sz / 2, sz, sz);
+    }
+    // horizontale Daten-Schnitte durch das Fiech
+    for (let i = 0; i < 4; i++) {
+      const yy = cy - 40 + noise(i * 13 + f) * 80;
+      ctx.globalAlpha = a * 0.7;
+      ctx.fillStyle = i % 2 ? p.color : '#ffffff';
+      ctx.fillRect(p.x - 40 + (noise(i + f) - 0.5) * 20, yy, 80 * (0.4 + 0.6 * a), 2);
     }
   }
   ctx.globalAlpha = 1;
 }
-
 // ---------------------------------------------------------------- Party-Waffen
 
 // Schnapslatte: dunkles Brett, Neon-Kante, 12 Pinnchen als Lebensbalken

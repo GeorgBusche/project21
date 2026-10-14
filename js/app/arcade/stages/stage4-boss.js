@@ -296,7 +296,7 @@ export function createStage4(random = Math.random) {
   // ------------------------------------------------------------ Angriffe
 
   function teleport(x) {
-    pillars.push({ x: bossX(), t0: t, life: 0.5, color: accent() }, { x, t0: t + 0.05, life: 0.5, color: accent() });
+    pillars.push({ x: bossX(), y: by, t0: t, life: 0.5, color: accent() }, { x, y: by, t0: t + 0.05, life: 0.5, color: accent() });
     tele = 0.32;
     anchor = x;
     engine.beep(90, 'sawtooth', 0.2, 0.03, 220);
