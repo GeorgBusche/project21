@@ -53,6 +53,8 @@ Halten gibt Schub, Loslassen laesst die Rakete sinken. Die Strecke und Flugphysi
 
 Die Stage-2-Regressionstests laufen mit `node --test js/app/arcade/stages/stage2-flight.test.js`. Sie pruefen die Dauer, Varianten und Spiegelungen, vollstaendige Routen bei 20 bis 120 FPS und verschiedenen Tempos, Zielverfolgung und Lock, Kolben- und Truemmerkollisionen, Beat-Ausrichtung, Audio-Notlauf, Treffer und Bonuspunkte. `node --test js/app/arcade/render-performance.test.js` prueft Hintergrund-Caches, Skalierungswechsel und schattenarme Darstellung.
 
+**Stage 4 · Omega-Fiech (Boss):** dunkler Bierkeller, Panzerkern mit Fiech im Bullauge und vier Getraenke-Phasen mit je 5 Treffern: Bier-Kanone (Schaumkugeln), Korn-Flasche (Schuettelkorn-Flaschen plus Zielstrahl), Ahoi-Brause (wackelnde Blasen) und Schnapslatte (Latten mit Luecke plus Strahl). Der Spieler feuert jeden 2. Beat automatisch, der Boss schwingt, also muss man unter ihm stehen und gleichzeitig ausweichen. Jede Phase endet mit Schild, Banner und zerstoertem Pod, der Tod mit Explosionssequenz. Texte stehen in `content.js` (`declineGame.arcade.stage4`). `node --test js/app/arcade/stages/stage4-boss.test.js` laesst einen Ausweich-Bot ueber mehrere Seeds, FPS und BPM laufen und erwartet 0 Treffer, damit die Reihen immer fair loesbar bleiben.
+
 ## GitHub Pages
 
 Der Workflow unter `.github/workflows/deploy.yml` baut `dist/` und veröffentlicht es auf GitHub Pages. In den Repository-Einstellungen muss unter **Settings → Pages → Build and deployment → Source** einmalig **GitHub Actions** ausgewählt werden.

@@ -216,6 +216,17 @@ export const CONTENT = {
         waveHints: ['NUR FLAMMEN · WEICH AUS', 'NEU: LASER · ROT BLINKT = GLEICH BRENNT ES', 'NEU: FIECH-STURZ · SCHATTEN = WARNUNG', 'LASER + STURZ + FLAMMEN', 'ACHTUNG // 5 SPUREN'],
         waves: ['WELLE 1 // VORGLÜHEN', 'WELLE 2 // FEUER FREI', 'WELLE 3 // LASERSHOW', 'WELLE 4 // INFERNO', 'WELLE 5 // ZUGABE']
       },
+      stage4: {
+        name: 'OMEGA-FIECH',
+        subtitle: 'DER DURSTIGE KOLOSS',
+        phases: [
+          { name: 'PHASE 1 // BIER-KANONE', hint: 'Schaumkugeln · weich aus, schieße im Beat' },
+          { name: 'PHASE 2 // KORN-FLASCHE', hint: 'Schüttelkorn-Strahl folgt dir · schnell die Spur wechseln' },
+          { name: 'PHASE 3 // AHOI-BRAUSE', hint: 'Wackelnde Brause-Blasen · jeder Beat zählt' },
+          { name: 'PHASE 4 // SCHNAPSLATTE', hint: 'Latte rast an · Lücken & Strahl · LETZTE RUNDE!' }
+        ],
+        dying: 'SYSTEM ÜBERSCHÄUMT'
+      },
       toast: 'FIECH ARCADE GESTARTET',
       title: '👾 FIECH ARCADE',
       stageNames: [

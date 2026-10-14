@@ -17,6 +17,7 @@ import {
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { isPartyModeLive } from './party-mode/mode-controller.js';
 import { showRadarMap } from './radar-map.js';
+import { syncLeaderboardName } from './arcade/arcade-scoreboard.js';
 import { appendLine, escapeHtml, showToast } from './ui.js';
 
 let database;
@@ -1096,6 +1097,7 @@ export function saveRsvp() {
   try {
     localStorage.setItem('party_rsvp_data', JSON.stringify(rsvpRecord));
   } catch (_) {}
+  syncLeaderboardName(name);
 
   updateBottomRsvpButton();
   updateGuestModalFooter();

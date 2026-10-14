@@ -8,6 +8,8 @@ function getDb() {
   }
 }
 
+const ANON_NAME = 'Anonymes Fiech';
+
 function getPlayerName() {
   try {
     const rsvp = JSON.parse(localStorage.getItem('party_rsvp_data') || 'null');
@@ -15,7 +17,20 @@ function getPlayerName() {
   } catch (_) {
     /* ignorieren */
   }
-  return 'Anonymes Fiech';
+  return ANON_NAME;
+}
+
+// Nach Zusage oder Umbenennung: vorhandenen Bestenlisten-Eintrag dieses Geräts auf den echten Namen setzen
+export function syncLeaderboardName(name) {
+  const db = getDb();
+  const token = localStorage.getItem('party_device_token');
+  const clean = String(name || '').trim().slice(0, 40);
+  if (!db || !token || !clean) return;
+  const ref = db.ref(`arcadeLeaderboard/${token}`);
+  ref
+    .once('value')
+    .then((snap) => snap.exists() && snap.val().name !== clean && ref.child('name').set(clean))
+    .catch(() => {});
 }
 
 export function getLocalBest() {
@@ -59,7 +74,10 @@ export async function fetchTopTen() {
   if (!db) return null;
   try {
     const snap = await db.ref('arcadeLeaderboard').once('value');
-    return Object.values(snap.val() || {})
+    const own = localStorage.getItem('party_device_token');
+    const ownName = getPlayerName();
+    return Object.entries(snap.val() || {})
+      .map(([token, e]) => (token === own && ownName !== ANON_NAME ? { ...e, name: ownName } : e))
       .sort((a, b) => b.maxPercent - a.maxPercent || b.score - a.score)
       .slice(0, 10);
   } catch (_) {
