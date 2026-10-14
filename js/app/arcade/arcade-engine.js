@@ -18,6 +18,10 @@ export const W = 360;
 export const H = 600;
 const MAX_LIVES = 3;
 const INTRO_SECONDS = 1.8;
+const STAGE_INTRO_SECONDS = 3;
+const CLEAR_SECONDS = 2.6;
+const WIPE_SECONDS = 0.6;
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const STAGE_FACTORIES = [createStage1, createStage2, createStage3, createStage4];
 // Jede Stage = 20 % Fortschritt
 const PERCENT_STARTS = [0, 25, 50, 75, 100];
@@ -36,6 +40,9 @@ const state = {
   lives: MAX_LIVES,
   timer: 0,
   invuln: 0,
+  modeDur: 1,
+  clearBonus: 0,
+  lastCount: 0,
   shakeT: 0,
   scale: 1,
   view: { cssW: 360, cssH: 600, offX: 0, offY: 0, dpr: 1 },
@@ -92,7 +99,8 @@ export const engine = {
   },
   complete() {
     if (state.mode !== 'playing') return;
-    state.score += 1000 * (state.stageIndex + 1) + state.lives * 250;
+    state.clearBonus = 1000 * (state.stageIndex + 1) + state.lives * 250;
+    state.score += state.clearBonus;
     playSuccessChime();
     if (state.testRun) {
       endRun(true);
@@ -102,7 +110,8 @@ export const engine = {
       endRun(true);
     } else {
       state.mode = 'stageClear';
-      state.timer = 1.2;
+      state.timer = CLEAR_SECONDS;
+      state.modeDur = CLEAR_SECONDS;
     }
   },
   beep(freq, type = 'square', dur = 0.06, gain = 0.03) {
@@ -138,57 +147,100 @@ function buildOverlay() {
   el.className = 'fixed inset-0 z-[99990] bg-black select-none overflow-hidden';
   el.style.touchAction = 'none';
   el.innerHTML = `
-    <div id="arcadeTop" class="absolute top-0 inset-x-0 z-10 mx-auto w-full max-w-[520px] bg-black/70 pointer-events-none">
-    <div id="arcadeHud" class="pointer-events-auto flex items-center justify-between gap-2 px-3 pt-1 pb-1 font-mono text-xs text-white">
-      <div class="min-w-0">
-        <div id="arcadeStageName" class="font-extrabold truncate"></div>
-        <div class="text-[10px] text-neutral-400">${a.title}</div>
+    <div id="arcadeTop" class="absolute z-10 pointer-events-none font-mono text-white" style="left:0;width:100%;top:0">
+      <div class="flex items-center gap-2 px-2 h-7 bg-black/55">
+        <button id="arcadeOptions" class="pointer-events-auto shrink-0 w-7 h-6 rounded text-neutral-200 hover:text-white bg-white/10 text-sm leading-none" aria-label="Optionen" aria-haspopup="true">⚙</button>
+        <div class="flex-1 h-1.5 rounded-full bg-white/15 overflow-hidden"><div id="arcadeProgress" class="h-full rounded-full" style="width:0%"></div></div>
+        <div id="arcadePercent" class="text-[10px] text-neutral-300 w-8 text-right">0%</div>
+        <div class="text-[11px] font-bold tabular-nums"><span id="arcadeScore">0</span></div>
+        <div id="arcadeLives" class="text-[11px] leading-none whitespace-nowrap"></div>
       </div>
-      <div class="text-right shrink-0">
-        <div>SCORE <span id="arcadeScore" class="font-bold">0</span> · BEST <span id="arcadeBest">0</span></div>
-        <div id="arcadeLives" class="text-sm leading-none"></div>
+      <div id="arcadeMenu" class="hidden pointer-events-auto absolute left-2 top-8 w-52 rounded-lg border border-neutral-700 bg-neutral-950/95 p-1 text-sm shadow-xl">
+        <button data-act="resume" class="w-full text-left px-3 py-2 rounded hover:bg-white/10">▶ Weiter</button>
+        <button data-act="fullscreen" id="arcadeFsBtn" class="w-full text-left px-3 py-2 rounded hover:bg-white/10">⛶ Vollbild</button>
+        ${state.adminMenu ? '<button data-act="stages" id="arcadeStageMenu" class="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-cyan-300">👾 Stages</button>' : ''}
+        <button data-act="exit" id="arcadeExit" class="w-full text-left px-3 py-2 rounded hover:bg-white/10 text-rose-300">✕ Verlassen</button>
       </div>
-      ${state.adminMenu ? '<button id="arcadeStageMenu" class="shrink-0 px-2 h-8 rounded border border-cyan-700 text-cyan-300" aria-label="Stage-Auswahl">STAGES</button>' : ''}
-      <button id="arcadeExit" class="shrink-0 w-8 h-8 rounded border border-neutral-700 text-neutral-300 hover:text-white" aria-label="Schließen">✕</button>
     </div>
-    <div class="px-3 pb-1 flex items-center gap-2"><div class="h-1.5 flex-1 bg-neutral-900 rounded overflow-hidden border border-neutral-800"><div id="arcadeProgress" class="h-full" style="width:0%"></div></div>
-      <div id="arcadePercent" class="text-[10px] font-mono text-neutral-400 w-8 text-right">0%</div></div>
+    <div class="absolute inset-0">
+      <canvas id="arcadeCanvas" style="touch-action:none;display:block"></canvas>
     </div>
-    <div class="absolute inset-0 flex items-start justify-center">
-      <canvas id="arcadeCanvas" style="touch-action:none;"></canvas>
-    </div>
-    <div id="arcadeScreen" class="hidden absolute inset-0 z-20 items-center justify-center bg-black/80 p-4"></div>`;
-  document.body.appendChild(el);
+    <div id="arcadeScreen" class="hidden absolute inset-0 z-20 items-center justify-center bg-black/80 p-4"></div>`;  document.body.appendChild(el);
   state.overlay = el;
   state.canvas = el.querySelector('#arcadeCanvas');
   state.ctx = state.canvas.getContext('2d');
   hudNodes = Object.fromEntries(
-    ['arcadeStageName', 'arcadeScore', 'arcadeBest', 'arcadeLives', 'arcadeProgress', 'arcadePercent']
+    ['arcadeScore', 'arcadeLives', 'arcadeProgress', 'arcadePercent']
       .map((id) => [id, el.querySelector(`#${id}`)])
   );
   hudValues = {};
-  el.querySelector('#arcadeExit').addEventListener('click', closeArcadeGame);
-  el.querySelector('#arcadeStageMenu')?.addEventListener('click', showStageMenu);
+  setupOptionsMenu(el);
 }
 
-// Das Spielfeld (360x600) sitzt oben direkt unter dem HUD. Der Rest des Bildschirms (Daumenzone unten) wird aus
-// dem Spielfeldrand aufgefüllt, damit nichts "Bild im Bild" wirkt und der Finger nichts Wichtiges verdeckt.
+function fullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function setupOptionsMenu(el) {
+  const menu = el.querySelector('#arcadeMenu');
+  const fsBtn = el.querySelector('#arcadeFsBtn');
+  const canFs = Boolean(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  if (!canFs) fsBtn.remove();
+  const syncFs = () => {
+    if (fsBtn.isConnected) fsBtn.textContent = fullscreenElement() ? '⛶ Vollbild beenden' : '⛶ Vollbild';
+  };
+  document.addEventListener('fullscreenchange', syncFs);
+  state.fsSync = syncFs;
+  el.querySelector('#arcadeOptions').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    syncFs();
+    menu.classList.toggle('hidden');
+    state.menuOpen = !menu.classList.contains('hidden');
+  });
+  el.addEventListener('pointerdown', (ev) => {
+    if (!menu.classList.contains('hidden') && !ev.target.closest('#arcadeMenu, #arcadeOptions')) {
+      menu.classList.add('hidden');
+      state.menuOpen = false;
+    }
+  });
+  menu.addEventListener('click', (ev) => {
+    const act = ev.target.closest('button')?.dataset.act;
+    if (!act) return;
+    menu.classList.add('hidden');
+    state.menuOpen = false;
+    if (act === 'fullscreen') {
+      if (fullscreenElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    } else if (act === 'stages') showStageMenu();
+    else if (act === 'exit') closeArcadeGame();
+  });
+}
+// Das Spielfeld (360x600) wird so gross wie moeglich skaliert. Hochformat (Handy): oben unter der schlanken Leiste,
+// der Rest unten ist die Daumenzone. Querformat (PC): mittig. Freie Raender werden aus den Feldkanten aufgefuellt.
 function resize() {
   if (!state.canvas) return;
-  const topH = state.overlay.querySelector('#arcadeTop').offsetHeight;
-  const cssW = Math.min(window.innerWidth, 520);
+  const bar = state.overlay.querySelector('#arcadeTop');
+  const topH = 28;
+  const cssW = window.innerWidth;
   const cssH = window.innerHeight;
-  const scale = Math.max(0.3, Math.min(cssW / W, (cssH - topH) / H));
+  const availH = cssH - topH;
+  const scale = Math.max(0.3, Math.min(cssW / W, availH / H));
   const dpr = renderDpr();
+  const boxW = W * scale;
+  const boxH = H * scale;
+  const landscape = cssW > cssH * 0.8;
+  const offX = (cssW - boxW) / 2;
+  const offY = topH + (landscape ? Math.max(0, (availH - boxH) / 2) : 0);
   state.scale = scale;
-  state.view = { cssW, cssH, offX: (cssW - W * scale) / 2, offY: topH, dpr };
+  state.view = { cssW, cssH, offX, offY, dpr };
   state.canvas.style.width = `${cssW}px`;
   state.canvas.style.height = `${cssH}px`;
   state.canvas.width = Math.round(cssW * dpr);
   state.canvas.height = Math.round(cssH * dpr);
-  state.overlay.querySelector('#arcadeScreen').style.top = `${topH}px`;
+  bar.style.left = `${offX}px`;
+  bar.style.width = `${boxW}px`;
+  bar.style.top = `${offY - topH}px`;
 }
-
 // Auf Handys (DPR 2-3) wirkt 1.5 unscharf; 2 ist noch günstig genug
 function renderDpr() {
   return Math.min(window.devicePixelRatio || 1, 2);
@@ -212,9 +264,12 @@ function extendEdges(ctx) {
     ctx.drawImage(state.canvas, bx, 0, 2, ch, 0, 0, bx, ch);
     ctx.drawImage(state.canvas, bx + bw - 2, 0, 2, ch, bx + bw, 0, cw - bx - bw, ch);
   }
-  if (bottom > 0) {
-    ctx.fillStyle = 'rgba(0,0,0,0.45)';
-    ctx.fillRect(0, by + bh, cw, bottom);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  if (bottom > 0) ctx.fillRect(0, by + bh, cw, bottom);
+  if (by > 0) ctx.fillRect(0, 0, cw, by);
+  if (bx > 0) {
+    ctx.fillRect(0, by, bx, bh);
+    ctx.fillRect(bx + bw, by, cw - bx - bw, bh);
   }
 }
 function toLogical(ev) {
@@ -289,7 +344,9 @@ function startStage(index, segmentId = null) {
   if (index === 0) startArcadeAudio(1);
   else setStage(index + 1);
   state.mode = 'intro';
-  state.timer = INTRO_SECONDS;
+  state.modeDur = index === 0 || state.segmentId ? INTRO_SECONDS : STAGE_INTRO_SECONDS;
+  state.timer = state.modeDur;
+  state.lastCount = 0;
   state.invuln = 1;
 }
 
@@ -466,27 +523,15 @@ async function showBoard() {
 }
 
 function updateHud() {
-  const a = arcadeText();
   const color = state.stage?.color || '#22c55e';
   const percent = getPercent();
-  const name = state.mode === 'stageSelect' ? 'STAGE-AUSWAHL' : `${state.testRun ? 'TEST · ' : ''}${a.stageNames[state.stageIndex]}`;
-  if (hudValues.name !== name) {
-    hudNodes.arcadeStageName.textContent = name;
-    hudValues.name = name;
-  }
   if (hudValues.color !== color) {
-    hudNodes.arcadeStageName.style.color = color;
     hudNodes.arcadeProgress.style.background = color;
     hudValues.color = color;
   }
   if (hudValues.score !== state.score) {
     hudNodes.arcadeScore.textContent = state.score;
     hudValues.score = state.score;
-  }
-  const best = Math.max(bestScore, state.score);
-  if (hudValues.best !== best) {
-    hudNodes.arcadeBest.textContent = best;
-    hudValues.best = best;
   }
   if (hudValues.lives !== state.lives) {
     hudNodes.arcadeLives.textContent = '❤️'.repeat(Math.max(0, state.lives)) + '🖤'.repeat(Math.max(0, MAX_LIVES - state.lives));
@@ -539,12 +584,21 @@ function frame(now) {
   const k = state.scale * dpr;
   const beat = getBeatInfo();
 
+  if (state.menuOpen && state.mode === 'playing') state.invuln = Math.max(state.invuln, 0.2); // Menue offen = kein Schaden
   if (state.invuln > 0) state.invuln -= dt;
   if (state.shakeT > 0) state.shakeT -= dt;
 
   if (state.mode === 'intro') {
     state.timer -= dt;
-    if (state.timer <= 0) state.mode = 'playing';
+    const left = Math.ceil(state.timer);
+    if (state.modeDur > INTRO_SECONDS && left >= 1 && left <= 3 && left !== state.lastCount) {
+      state.lastCount = left;
+      sfx(left === 1 ? 880 : 520, 'square', 0.09, 0.04);
+    }
+    if (state.timer <= 0) {
+      state.mode = 'playing';
+      sfx(1040, 'square', 0.18, 0.05);
+    }
   } else if (state.mode === 'playing') {
     state.stage.update(dt, beat, { keys: state.keys, pointer: state.pointer, held: engine.held });
     setStressLevel(computeStress());
@@ -577,23 +631,74 @@ function frame(now) {
   updateHud();
 }
 
-function drawBanner(ctx) {
-  const a = arcadeText();
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
-  ctx.fillRect(0, H / 2 - 60, W, 120);
-  ctx.textAlign = 'center';
-  ctx.fillStyle = state.stage.color;
-  ctx.font = 'bold 20px monospace';
-  if (state.mode === 'intro') {
-    ctx.fillText(a.stageNames[state.stageIndex], W / 2, H / 2 - 10);
-    ctx.fillStyle = '#d4d4d8';
-    ctx.font = '12px monospace';
-    ctx.fillText(a.stageHints[state.stageIndex], W / 2, H / 2 + 20);
-  } else {
-    ctx.fillText('STAGE CLEAR!', W / 2, H / 2 + 6);
+function drawWipe(ctx, p, color) {
+  if (p <= 0) return;
+  const half = (W / 2) * Math.min(1, p);
+  ctx.fillStyle = '#05060a';
+  ctx.fillRect(0, 0, half, H);
+  ctx.fillRect(W - half, 0, half, H);
+  if (p < 1) {
+    ctx.fillStyle = color;
+    ctx.fillRect(half - 2, 0, 3, H);
+    ctx.fillRect(W - half - 1, 0, 3, H);
   }
 }
 
+function drawBanner(ctx) {
+  const a = arcadeText();
+  const color = state.stage.color;
+  const elapsed = state.modeDur - state.timer;
+  ctx.textAlign = 'center';
+  if (state.mode === 'stageClear') {
+    const k = clamp01(elapsed / 0.4);
+    const ease = 1 - (1 - k) * (1 - k);
+    const wipe = clamp01((elapsed - (state.modeDur - WIPE_SECONDS)) / WIPE_SECONDS);
+    ctx.fillStyle = `rgba(0,0,0,${0.65 * ease})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = color;
+    ctx.font = `bold ${Math.round(16 + 12 * ease)}px monospace`;
+    ctx.fillText(`STAGE ${state.stageIndex + 1} CLEAR`, W / 2, H / 2 - 24);
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 18px monospace';
+    ctx.globalAlpha = clamp01((elapsed - 0.3) / 0.3);
+    ctx.fillText(`+${Math.round(state.clearBonus * clamp01((elapsed - 0.3) / 0.8))}`, W / 2, H / 2 + 8);
+    ctx.fillStyle = '#d4d4d8';
+    ctx.font = '12px monospace';
+    ctx.globalAlpha = clamp01((elapsed - 0.9) / 0.4);
+    ctx.fillText(`NÄCHSTE: ${a.stageNames[state.stageIndex + 1] ?? ''}`, W / 2, H / 2 + 38);
+    ctx.globalAlpha = 1;
+    drawWipe(ctx, wipe, color);
+    return;
+  }
+  const first = state.modeDur <= INTRO_SECONDS;
+  const slide = clamp01(elapsed / 0.45);
+  const ease = 1 - Math.pow(1 - slide, 3);
+  const open = first ? 0 : 1 - clamp01(elapsed / WIPE_SECONDS);
+  ctx.fillStyle = `rgba(0,0,0,${first ? 0.6 : 0.55})`;
+  ctx.fillRect(0, H / 2 - 70, W, 140);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, H / 2 - 70, W * ease, 2);
+  ctx.fillRect(W - W * ease, H / 2 + 68, W * ease, 2);
+  ctx.font = 'bold 20px monospace';
+  ctx.globalAlpha = ease;
+  ctx.fillText(a.stageNames[state.stageIndex], W / 2 + (1 - ease) * 60, H / 2 - 22);
+  ctx.fillStyle = '#d4d4d8';
+  ctx.font = '12px monospace';
+  ctx.fillText(a.stageHints[state.stageIndex], W / 2 - (1 - ease) * 60, H / 2 + 6);
+  ctx.globalAlpha = 1;
+  if (!first) {
+    const n = Math.ceil(state.timer);
+    if (n >= 1 && n <= 3) {
+      const phase = 1 - (state.timer - Math.floor(state.timer));
+      ctx.fillStyle = '#fff';
+      ctx.globalAlpha = 1 - phase * 0.7;
+      ctx.font = `bold ${Math.round(34 + (1 - phase) * 14)}px monospace`;
+      ctx.fillText(String(n), W / 2, H / 2 + 50);
+      ctx.globalAlpha = 1;
+    }
+    drawWipe(ctx, open, color);
+  }
+}
 export function openArcadeGame({ stageMenu = false } = {}) {
   if (state.overlay) return;
   document.getElementById('bodyRoot')?.classList.remove('egg-rotate', 'egg-drunk');
@@ -618,10 +723,12 @@ export function openArcadeGame({ stageMenu = false } = {}) {
 
 export function closeArcadeGame() {
   cancelAnimationFrame(state.raf);
+  if (state.fsSync) document.removeEventListener('fullscreenchange', state.fsSync);
+  if (fullscreenElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
   stopArcadeAudio();
   detachInput();
   state.overlay?.remove();
-  Object.assign(state, { adminMenu: false, overlay: null, canvas: null, ctx: null, stage: null, mode: 'idle', testRun: false });
+  Object.assign(state, { adminMenu: false, menuOpen: false, overlay: null, canvas: null, ctx: null, stage: null, mode: 'idle', testRun: false });
   state.keys.clear();
   playerAppearance = null;
   hudNodes = null;
