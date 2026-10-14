@@ -22,8 +22,10 @@ function absoluteOgImage() {
   return {
     name: 'absolute-og-image',
     transformIndexHtml(html) {
-      if (!usable) return html;
-      return html.replace(/content="og-preview\.png"/g, `content="${siteUrl}/og-preview.png"`);
+      if (!usable) return html.replace(/\s*<meta property="og:url" content="og-url-placeholder" \/>/, '');
+      return html
+        .replace(/content="og-preview\.png"/g, `content="${siteUrl}/og-preview.png"`)
+        .replace(/content="og-url-placeholder"/g, `content="${siteUrl}/"`);
     }
   };
 }
