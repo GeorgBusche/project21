@@ -454,31 +454,6 @@ export function drawHazard(ctx, h, t, ac) {
     case 'plank': {
       const live = t >= h.liveAt;
       const y = plankY(h, t);
-      const pulse = 0.5 + 0.5 * Math.sin(t * 14);
-      // gruene SAFE-Spur durch die Luecke
-      ctx.fillStyle = '#4ade80';
-      ctx.globalAlpha = (live ? 0.08 : 0.14) + 0.07 * pulse;
-      ctx.fillRect(h.gx, PLANK_Y0, GAP_W, 540 - PLANK_Y0);
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(h.gx - 2, y - PLANK_H / 2, 2, PLANK_H);
-      ctx.fillRect(h.gx + GAP_W, y - PLANK_H / 2, 2, PLANK_H);
-      ctx.strokeStyle = '#4ade80';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 6]);
-      ctx.beginPath();
-      ctx.moveTo(h.gx, PLANK_Y0);
-      ctx.lineTo(h.gx, 540);
-      ctx.moveTo(h.gx + GAP_W, PLANK_Y0);
-      ctx.lineTo(h.gx + GAP_W, 540);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-      if (y < 500) {
-        ctx.fillStyle = '#4ade80';
-        ctx.font = 'bold 13px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('SAFE', h.gx + GAP_W / 2, Math.max(y + 26, 400));
-      }
       drawPlankSegment(ctx, 0, h.gx, y, t, !live);
       drawPlankSegment(ctx, h.gx + GAP_W, W, y, t, !live);
       break;
