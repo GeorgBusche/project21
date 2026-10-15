@@ -124,7 +124,7 @@ export const engine = {
     triggerSudoSound(kind);
   },
   triggerSudoSample(name) {
-    triggerSudoSample(name);
+    return triggerSudoSample(name);
   },
   stopSudoSample() {
     stopSudoSample();

@@ -220,10 +220,12 @@ export const CONTENT = {
         name: 'DER TEUFELS-BIERDECKEL',
         subtitle: 'ORBIT OVERDRIVE',
         phases: [
-          { name: 'PHASE 1 // SCHNAPSLATTEN-SPEICHEN', hint: 'Rot = Gefahr · Grün = sicher · Gold = Konter' },
-          { name: 'PHASE 2 // DUAL-ORBIT', hint: 'Mitte-Button / Leertaste = Ring wechseln' },
-          { name: 'PHASE 3 // DJ SUDO OVERRIDE', hint: 'Sammle 3x [ sudo ! ] für den Root-Hack' },
-          { name: 'PHASE 4 // GENUG GESPIELT!', hint: 'Letztes Pinnchen = Überlebens-Sprint' }
+          { name: 'PHASE 1 // BELLA NAPOLI', hint: 'Rot = Gefahr · Grün = sicher · Gold = Konter' },
+          { name: 'PHASE 2 // RAGE CAGE', hint: 'Mitte-Button / Leertaste = Ring wechseln' },
+          { name: 'PHASE 3 // BIERTORNADO', hint: 'Strahlen drehen · Ring wechseln rettet dich' },
+          { name: 'PHASE 4 // MEDAILLEN-WOLLE', hint: 'Die Stadion-Welle rollt · Gold einsammeln' },
+          { name: 'PHASE 5 // DJ SUDO OVERRIDE', hint: 'Sammle 3x [ sudo ! ] für den Root-Hack' },
+          { name: 'PHASE 6 // RAMMSTEIN-INFERNO', hint: 'Hier kommt die Sonne · Letztes Pinnchen = Überlebens-Sprint' }
         ],
         calls: {
           spokes: 'SCHNAPSLATTE!',
@@ -251,6 +253,9 @@ export const CONTENT = {
           nextTrack: 'NEXT TRACK!',
           bassDrop: 'BASS DROP!',
           vesuv: 'VESUV-AUSBRUCH!',
+          race: 'ÜBERHOLSPUR!',
+          twister: 'TWISTER!',
+          inferno: 'INFERNO!',
           sudoCap: '[ sudo ! ]',
           cmd: ['> sudo ...', '> sudo kill -9 ...', '> sudo kill -9 FIECH.exe [EXECUTING!]'],
           enough: 'GENUG GESPIELT!',
@@ -266,7 +271,7 @@ export const CONTENT = {
           left: 'GEGEN UHRZEIGER',
           right: 'UHRZEIGER',
           ring: 'RING WECHSELN',
-          ringLocked: 'AB PINNCHEN 10',
+          ringLocked: 'AB PHASE 2',
           hint: 'TAP = RICHTUNG · HALTEN = LENKEN · DOPPEL-TAP = RING'
         }
       },      toast: 'FIECH ARCADE GESTARTET',

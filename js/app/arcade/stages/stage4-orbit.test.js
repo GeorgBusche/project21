@@ -17,7 +17,7 @@ const proxyCtx = () =>
     apply: () => proxyCtx()
   });
 
-function runBot({ seed, fps, bpm, maxSeconds = 220 }) {
+function runBot({ seed, fps, bpm, maxSeconds = 360 }) {
   const random = rng(seed);
   let hits = 0;
   let done = false;
@@ -119,12 +119,12 @@ function runBot({ seed, fps, bpm, maxSeconds = 220 }) {
   return { hits, done, elapsed, sounds, maxVisible, maxLast, progress: stage.progress() };
 }
 
-test('Orbit-Boss ist mit Richtungs- und Ringwechsel ohne Treffer schaffbar (~100 s)', () => {
+test('Orbit-Boss ist mit Richtungs- und Ringwechsel ohne Treffer schaffbar (~2-3 min)', () => {
   for (const [seed, fps, bpm] of [[1, 60, 105], [2, 60, 120], [3, 30, 105], [4, 60, 111], [5, 30, 120], [6, 60, 100]]) {
     const r = runBot({ seed, fps, bpm });
     assert.ok(r.done, `seed ${seed}: nicht fertig (progress ${r.progress.toFixed(2)})`);
     assert.equal(r.hits, 0, `seed ${seed}: ${r.hits} Treffer bei ${r.elapsed.toFixed(1)}s`);
-    assert.ok(r.elapsed > 40 && r.elapsed < 170, `seed ${seed}: Dauer ${r.elapsed.toFixed(1)}s`);
+    assert.ok(r.elapsed > 90 && r.elapsed < 280, `seed ${seed}: Dauer ${r.elapsed.toFixed(1)}s`);
   }
 });
 
@@ -133,9 +133,9 @@ test('es ist immer nur ein Angriff sichtbar, DJ-Sounds werden ausgeloest', () =>
   assert.ok(r.done);
   assert.ok(r.maxVisible <= 2, `gleichzeitige Gefahren: ${r.maxVisible}`);
   assert.ok(r.maxLast <= 3, `Finale: ${r.maxLast}`);
-  for (const k of ['scratch', 'hack', 'execute', 'song:sonne', 'song:tornado', 'song:gas', 'song:schuetteln', 'song:wolle']) assert.ok(r.sounds.includes(k), `Sound ${k} fehlt`);
+  for (const k of ['scratch', 'hack', 'execute', 'song:napoli', 'song:sonne', 'song:tornado', 'song:gas', 'song:schuetteln', 'song:wolle']) assert.ok(r.sounds.includes(k), `Sound ${k} fehlt`);
 });
 
-test('Orbit-Boss hat 14 Pinnchen', () => {
-  assert.equal(GLASSES, 14);
+test('Orbit-Boss hat 22 Pinnchen', () => {
+  assert.equal(GLASSES, 22);
 });

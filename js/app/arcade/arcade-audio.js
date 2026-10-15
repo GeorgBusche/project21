@@ -574,11 +574,11 @@ export function stopSudoSample() {
 // Spielt einen Song-Ausschnitt; die Arcade-Musik wird dumpf gezogen und kommt danach mit Drop zurueck
 export function triggerSudoSample(name) {
   const def = SONGS[name];
-  if (!def || !a.running || !a.ctx || window.isMuted) return;
+  if (!def || !a.running || !a.ctx || window.isMuted) return true;
   const buf = sampleBuffers.get(def.file);
   if (!buf) {
     warmSudoSamples();
-    return;
+    return false;
   }
   const now = a.ctx.currentTime;
   const fade = 0.8;
@@ -602,6 +602,7 @@ export function triggerSudoSample(name) {
   a.songNode = { src, g };
   rampFilter(380, 0.15);
   a.djHold = { beat: Infinity, until: now + def.len };
+  return true;
 }
 // Pro Frame abfragen. isBeat ist genau in dem Frame true, in dem ein neuer Schlag begann.
 export function getBeatInfo() {
