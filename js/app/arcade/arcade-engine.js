@@ -44,6 +44,7 @@ const state = {
   clearBonus: 0,
   lastCount: 0,
   shakeT: 0,
+  hurtT: 0,
   scale: 1,
   view: { cssW: 360, cssH: 600, offX: 0, offY: 0, dpr: 1 },
   keys: new Set(),
@@ -85,16 +86,21 @@ export const engine = {
     if (state.invuln > 0 || state.mode !== 'playing') return false;
     state.lives--;
     state.invuln = 1.4;
-    state.shakeT = 0.3;
-    sfx(220, 'sawtooth', 0.25, 0.09, 55);
+    state.shakeT = 0.45;
+    state.hurtT = HURT_SECONDS;
+    sfx(220, 'sawtooth', 0.3, 0.1, 55);
+    sfx(90, 'square', 0.22, 0.08, 40);
+    try { navigator.vibrate?.(state.lives <= 0 ? [80, 40, 160] : 90); } catch { /* ignore */ }
     if (state.lives <= 0) endRun(false);
     return true;
   },
   // Geometry-Dash-Stil: sofortiger Absturz, kein Leben-Puffer
   crash() {
     if (state.mode !== 'playing') return;
-    state.shakeT = 0.3;
-    sfx(220, 'sawtooth', 0.25, 0.09, 55);
+    state.shakeT = 0.45;
+    state.hurtT = HURT_SECONDS;
+    sfx(220, 'sawtooth', 0.3, 0.1, 55);
+    try { navigator.vibrate?.(160); } catch { /* ignore */ }
     endRun(false);
   },
   complete() {
@@ -257,6 +263,8 @@ function resize() {
   bar.style.top = `${offY - topH}px`;
 }
 // Auf Handys (DPR 2-3) wirkt 1.5 unscharf; 2 ist noch günstig genug
+const HURT_SECONDS = 0.7;
+
 function renderDpr() {
   return Math.min(window.devicePixelRatio || 1, 2);
 }
@@ -376,6 +384,7 @@ function startRun(index = 0, testRun = false, segmentId = null) {
   state.score = 0;
   state.lives = MAX_LIVES;
   state.shakeT = 0;
+  state.hurtT = 0;
   state.keys.clear();
   state.pointer = { x: W / 2, y: H - 80, down: false };
   state.segmentId = state.adminMenu && testRun ? segmentId : null;
@@ -602,6 +611,7 @@ function frame(now) {
   if (state.menuOpen && state.mode === 'playing') state.invuln = Math.max(state.invuln, 0.2); // Menue offen = kein Schaden
   if (state.invuln > 0) state.invuln -= dt;
   if (state.shakeT > 0) state.shakeT -= dt;
+  if (state.hurtT > 0) state.hurtT -= dt;
 
   if (state.mode === 'intro') {
     state.timer -= dt;
@@ -624,7 +634,7 @@ function frame(now) {
   }
 
   ctx.setTransform(k, 0, 0, k, offX * dpr, offY * dpr);
-  const sh = state.shakeT > 0 ? (Math.random() - 0.5) * 8 : 0;
+  const sh = state.shakeT > 0 ? (Math.random() - 0.5) * (state.hurtT > 0 ? 16 : 8) : 0;
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, 0, W, H);
@@ -642,8 +652,37 @@ function frame(now) {
   }
   if (state.mode === 'intro' || state.mode === 'stageClear') drawBanner(ctx);
   ctx.restore();
+  drawHurt(ctx);
   extendEdges(ctx);
   updateHud();
+}
+
+// Treffer-Feedback: roter Blitz, dicker Rahmen, Schadenszahl - unabhaengig von der Stage
+function drawHurt(ctx) {
+  if (state.hurtT <= 0) return;
+  const p = clamp01(state.hurtT / HURT_SECONDS);
+  ctx.save();
+  ctx.fillStyle = '#ef4444';
+  ctx.globalAlpha = 0.38 * p * p;
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = Math.min(1, p * 1.4);
+  const b = 14 + 16 * p;
+  ctx.fillRect(0, 0, W, b);
+  ctx.fillRect(0, H - b, W, b);
+  ctx.fillRect(0, 0, b, H);
+  ctx.fillRect(W - b, 0, b, H);
+  if (state.mode === 'playing' || state.lives <= 0) {
+    ctx.globalAlpha = Math.min(1, p * 2);
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 34px monospace';
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#000';
+    const y = 92 - (1 - p) * 26;
+    ctx.strokeText('-1 ❤', W / 2, y);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('-1 ❤', W / 2, y);
+  }
+  ctx.restore();
 }
 
 function drawWipe(ctx, p, color) {

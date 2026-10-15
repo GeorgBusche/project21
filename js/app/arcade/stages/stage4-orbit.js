@@ -1464,7 +1464,7 @@ function drawSongBg(ctx, id, a, t) {
     ctx.font = '22px sans-serif';
     ctx.textAlign = 'center';
     ctx.globalAlpha = 0.6 * a;
-    for (let i = 0; i < 4; i++) ctx.fillText('ðŸ•', 50 + i * 85, 90 + 20 * Math.sin(t * 1.5 + i * 2));
+    for (let i = 0; i < 4; i++) ctx.fillText('🍕', 50 + i * 85, 90 + 20 * Math.sin(t * 1.5 + i * 2));
   } else if (id === 'sonne') {
     // Buehnenwand wie in der SUDO-Show: dunkle Lamellen und rote Neon-Traversen
     ctx.fillStyle = '#2a0c09';
@@ -1575,7 +1575,7 @@ function drawSongBg(ctx, id, a, t) {
     ctx.globalAlpha = 0.55 * a;
     ctx.font = '22px sans-serif';
     ctx.textAlign = 'center';
-    for (let i = 0; i < 5; i++) ctx.fillText(i % 2 ? 'ðŸ¥ƒ' : 'ðŸ§‚', 30 + i * 75, 100 + 18 * Math.sin(t * 2 + i) + (i % 2) * 330);
+    for (let i = 0; i < 5; i++) ctx.fillText(i % 2 ? '🥃' : '🧂', 30 + i * 75, 100 + 18 * Math.sin(t * 2 + i) + (i % 2) * 330);
   } else if (id === 'wolle') {
     ctx.fillStyle = '#fbbf24';
     ctx.globalAlpha = 0.13 * a;
@@ -1603,9 +1603,9 @@ function drawSongBg(ctx, id, a, t) {
     ctx.globalAlpha = 0.6 * a;
     ctx.font = '24px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('ðŸ¥‰', 40, 130 + 10 * Math.sin(t * 2));
-    ctx.fillText('ðŸ¥ˆ', W - 40, 190 + 10 * Math.sin(t * 2 + 1));
-    ctx.fillText('ðŸ¥‡', 40, 400 + 10 * Math.sin(t * 2 + 2));
+    ctx.fillText('🥉', 40, 130 + 10 * Math.sin(t * 2));
+    ctx.fillText('🥈', W - 40, 190 + 10 * Math.sin(t * 2 + 1));
+    ctx.fillText('🥇', 40, 400 + 10 * Math.sin(t * 2 + 2));
   }
   ctx.globalAlpha = 1;
 }
@@ -1859,7 +1859,7 @@ function drawPhaseExtras(ctx, id, a, t, beat) {
     for (let i = 0; i < 5; i++) {
       const an = t * 1.6 + i * 1.25;
       const rr = 150 + 34 * Math.sin(t * 0.7 + i);
-      ctx.fillText(i % 2 ? 'ðŸº' : 'ðŸ¥«', CX + Math.cos(an) * rr, CY + Math.sin(an) * rr * 0.55 - 120 + (i * 60) % 240);
+      ctx.fillText(i % 2 ? '🍺' : '🥫', CX + Math.cos(an) * rr, CY + Math.sin(an) * rr * 0.55 - 120 + (i * 60) % 240);
     }
   } else if (id === 'napoli') {
     ctx.font = '18px sans-serif';
@@ -1867,7 +1867,7 @@ function drawPhaseExtras(ctx, id, a, t, beat) {
     ctx.globalAlpha = 0.8 * a;
     for (let i = 0; i < 6; i++) {
       const y = ((t * 55 * (0.7 + noise(i)) + noise(i * 4) * COCKPIT_Y) % (COCKPIT_Y + 30)) - 15;
-      ctx.fillText(i % 3 ? 'ðŸ•' : 'ðŸ', 24 + noise(i * 6) * (W - 48), y);
+      ctx.fillText(i % 3 ? '🍕' : '🍝', 24 + noise(i * 6) * (W - 48), y);
     }
   } else if (id === 'wolle') {
     // Wellen-Welle: Arme gehen nacheinander hoch
@@ -1887,7 +1887,7 @@ function drawPhaseExtras(ctx, id, a, t, beat) {
 }
 // Song-Requisiten kreisen um das Fiech
 function drawSongProps(ctx, id, a, t) {
-  const icon = { napoli: 'ðŸ•', sonne: 'â˜€ï¸', tornado: 'ðŸŒªï¸', gas: 'ðŸ', schuetteln: 'ðŸ¥ƒ', wolle: 'ðŸ…' }[id];
+  const icon = { napoli: '🍕', sonne: '☀️', tornado: '🌪️', gas: '🏁', schuetteln: '🥃', wolle: '🏅' }[id];
   ctx.globalAlpha = 0.9 * a;
   ctx.font = '16px sans-serif';
   ctx.textAlign = 'center';
@@ -2178,7 +2178,7 @@ function drawCmd(ctx, cmd, clock) {
   ctx.fillStyle = GREEN;
   ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(cmd.target.slice(0, cmd.shown) + (Math.floor(clock * 3) % 2 ? 'â–ˆ' : ''), 26, 68);
+  ctx.fillText(cmd.target.slice(0, cmd.shown) + (Math.floor(clock * 3) % 2 ? '█' : ''), 26, 68);
   ctx.textAlign = 'center';
 }
 
@@ -2411,9 +2411,9 @@ function drawCockpit(ctx, tx, ac, dir, unl, ring, holdDir, t) {
   ctx.fillRect(0, COCKPIT_Y, W, 1);
   ctx.textAlign = 'center';
   const btns = [
-    ['left', -1, 'â—„', tx.left],
-    ['mid', 0, 'â‡…', unl ? tx.ring : tx.ringLocked],
-    ['right', 1, 'â–º', tx.right]
+    ['left', -1, '◄', tx.left],
+    ['mid', 0, '⇅', unl ? tx.ring : tx.ringLocked],
+    ['right', 1, '►', tx.right]
   ];
   for (const [key, side, icon, label] of btns) {
     const x = BTN[key][0];
@@ -2429,7 +2429,7 @@ function drawCockpit(ctx, tx, ac, dir, unl, ring, holdDir, t) {
     ctx.strokeRect(x + 1, BTN_Y + 1, w - 2, BTN_H - 2);
     ctx.fillStyle = on ? '#02040a' : side === 0 ? GOLD : ac;
     ctx.font = 'bold 40px monospace';
-    ctx.fillText(side === 0 && !unl ? 'ðŸ”’' : icon, x + w / 2, BTN_Y + 52);
+    ctx.fillText(side === 0 && !unl ? '🔒' : icon, x + w / 2, BTN_Y + 52);
     ctx.font = 'bold 9px monospace';
     ctx.fillText(label, x + w / 2, BTN_Y + 82);
     ctx.globalAlpha = 1;
