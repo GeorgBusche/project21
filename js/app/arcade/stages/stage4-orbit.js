@@ -51,6 +51,16 @@ const GREEN = '#22c55e';
 const GOLD = '#facc15';
 const VIOLET = '#a855f7';
 
+// Identitaet je Boss-Phase: Tint-Farbe + Emojis, die das Fiech bei jedem Angriff ausspuckt
+const PHASE_FX = [
+  { c: '#22c55e', e: '🍕🍝🍷' },
+  { c: '#facc15', e: '🏁🔧💨' },
+  { c: '#7dd3fc', e: '🍺🫧🌀' },
+  { c: '#ef4444', e: '🏅🧶🎉' },
+  { c: '#22c55e', e: '🎧💿🎚️' },
+  { c: '#fb923c', e: '🔥☀️💥' }
+];
+
 // Cockpit-Buttons (x-Bereiche) und gemeinsame Oberkante
 const BTN_Y = COCKPIT_Y + 22;
 const BTN_H = 92;
@@ -89,7 +99,7 @@ export const endOf = (h) => {
     case 'bottle':
       return h.landAt + FLAME_DUR;
     case 'arcs':
-      return h.liveAt + ARC_DUR;
+      return h.liveAt + (h.dur ?? ARC_DUR);
     case 'geys':
       return h.liveAt + GEYSER_DUR;
     default:
@@ -116,7 +126,8 @@ export function hazardHit(h, ang, tt, m = 0, ring = 0) {
       return dAng(ang, h.angle) < GEYSER_HALF + pm;
     case 'laser': {
       const b = beamAngle(h, tt);
-      return dAng(ang, b) < BEAM_HALF + pm || (!h.single && dAng(ang, b + Math.PI) < BEAM_HALF + pm);
+      const bh = h.half ?? BEAM_HALF;
+      return dAng(ang, b) < bh + pm || (!h.single && dAng(ang, b + Math.PI) < bh + pm);
     }
     case 'zone':
       return ring === h.ring;
@@ -181,6 +192,9 @@ export function createStage4(random = Math.random) {
   let overBeam = null;
   let callout = { text: '', color: '#fff', t: 0 };
   let bannerT = 0;
+  let introT = 0;
+  let tintT = 0;
+  let spinA = 0;
   let barPulse = 0;
   let flash = 0;
   let bossFlash = 0;
@@ -210,6 +224,7 @@ export function createStage4(random = Math.random) {
   };
 
   function spark(x, y, color, count, power = 120, size = 3, chars = false) {
+    const pool = typeof chars === 'string' ? [...chars] : null;
     for (let i = 0; i < count && sparks.length < 420; i++) {
       const a = random() * TAU;
       const v = (0.25 + random() * 0.75) * power;
@@ -221,7 +236,8 @@ export function createStage4(random = Math.random) {
         life: 0.5 + random() * 0.8,
         color,
         size: 2 + random() * size,
-        ch: chars ? (random() < 0.5 ? '0' : '1') : ''
+        emo: !!pool,
+        ch: pool ? pool[Math.floor(random() * pool.length)] : chars ? (random() < 0.5 ? '0' : '1') : ''
       });
     }
   }
@@ -333,7 +349,8 @@ export function createStage4(random = Math.random) {
     gap = GAP_BEATS;
     attacked = false;
     bannerT = 1;
-    barPulse = 1;
+    introT = 1;
+    spinA = 0;
     flash = 0.6;
     engine.shake(0.4);
     engine.beep(120, 'sawtooth', 0.45, 0.04, 40);
@@ -427,18 +444,7 @@ export function createStage4(random = Math.random) {
   // Ringspezifische Angriffe: meist auf dem Ring des Spielers, der andere Ring ist komplett sicher (+ Kapsel dort)
   const dangerRing = () => (unlocked ? (random() < 0.75 ? ring : 1 - ring) : undefined);
 
-  function patSpokes() {
-    const hr = dangerRing();
-    const base = rand(0, TAU);
-    hazards.push({ kind: 'spokes', base, count: 3, half: SPOKE_HALF, ring: hr, tellAt: t, liveAt: t + TELL + 0.05 });
-    if (hr === undefined) addCap(base + Math.PI / 3 + (Math.floor(random() * 3) * TAU) / 3, randRing(), t + 0.2);
-    else addCap(ang + dir * 1.0, 1 - hr, t + 0.2);
-    slamT = 0.7;
-    say(calls.spokes, '#fecaca');
-    engine.beep(140, 'square', 0.2, 0.04, 70);
-  }
-
-  // Flaschen (oder Bier-Tornado-Dosen): 3 Wuerfe, breite Flammenbereiche, bleiben ~1,2 s auf der Schiene
+  // Flaschen: 3 Wuerfe, breite Flammenbereiche, bleiben ~1,2 s auf der Schiene
   function patMortar(can = false) {
     const targets = [];
     const bottleRing = unlocked ? ring : 0;
@@ -456,18 +462,6 @@ export function createStage4(random = Math.random) {
     if (can) say(calls.tornado, '#fbbf24');
     else say(calls.mortar, '#fca5a5');
     engine.beep(200, 'square', 0.12, 0.04, 90);
-  }
-
-  function patHalf() {
-    const hr = dangerRing();
-    const lead = Math.max(1.15, bl() * 1.9);
-    const center = ang + Math.PI + rand(-0.5, 0.5);
-    hazards.push({ kind: 'arcs', center, half: Math.PI / 2, ring: hr, tellAt: t, liveAt: t + lead });
-    addCap(center + Math.PI, hr === undefined ? randRing() : 1 - hr, t + lead + 0.2, 3.6);
-    shakeUntil = t + lead;
-    slamT = lead;
-    say(calls.shake, '#4ade80');
-    engine.beep(80, 'sawtooth', 0.5, 0.04, 40);
   }
 
   function patGeysers(count = 4) {
@@ -650,31 +644,119 @@ export function createStage4(random = Math.random) {
     say(calls.songs.gas.pedal, '#fca5a5');
   }
 
-  // Bass-Drop: zwei kurze Druckwellen, erst auf einem Ring, dann auf dem anderen - Ringwechsel im Takt
-  function patBassDrop() {
-    if (!unlocked) return patSpokes();
+  // Tornado: drei Flutwellen hintereinander, Ringwechsel im Takt
+  function patSog() {
     const lead = Math.max(1.1, bl() * 1.9);
     const tell = Math.max(0.8, bl() * 1.4);
     const dur = 0.45;
     const first = random() < 0.5 ? 1 : 0;
-    for (let k = 0; k < 2; k++) {
+    for (let k = 0; k < 3; k++) {
       const liveAt = t + lead + k * (dur + tell);
       hazards.push({ kind: 'zone', ring: (first + k) % 2, wave: true, saw: false, tellAt: liveAt - (k === 0 ? lead : tell), liveAt, dur });
     }
-    slamT = lead + 1;
+    addCap(ang + dir * 1.0, first, t + 0.4, lead + 2.2);
+    slamT = lead + 2;
     shakeUntil = t + lead;
-    say(calls.bassDrop, '#e879f9');
-    return undefined;
+    say(calls.sog, '#7dd3fc');
+    engine.beep(120, 'sawtooth', 0.45, 0.04, 300);
   }
 
-  // Angriffs-Pool je Boss-Phase (Index = Phase), jede Phase hat eigene Mechaniken
+  // Napoli: ein riesiges Pizza-Stueck dreht sich langsam ueber beide Ringe
+  function patPizza() {
+    swDir = -swDir;
+    const lead = Math.max(1.1, bl() * 1.8);
+    const a0 = ang + (random() < 0.5 ? 1 : -1) * 1.7;
+    hazards.push({ kind: 'laser', single: true, half: 0.42, skin: 'pizza', a0, sw: swDir * 2.0, tellAt: t, liveAt: t + lead, dur: 2.6 });
+    addCap(a0 - swDir * 1.4, randRing(), t + 0.4, 5.2);
+    slamT = lead + 1.5;
+    say(calls.pizza, '#f87171');
+    engine.beep(220, 'triangle', 0.3, 0.04, 500);
+  }
+
+  // Gas: Boxengasse - der ganze Ring ist rot ausser einer Luecke mit der Kapsel
+  function patPit() {
+    const lead = Math.max(1.5, bl() * 2.6);
+    const gap = ang + dir * rand(1.2, 2.2);
+    hazards.push({ kind: 'spokes', skin: 'pit', base: gap + Math.PI, count: 1, half: Math.PI - 0.7, dur: 0.4, gap, tellAt: t, liveAt: t + lead });
+    addCap(gap, randRing(), t + 0.3, lead + 0.8);
+    slamT = lead;
+    shakeUntil = t + lead * 0.6;
+    say(calls.pit, '#fde047');
+    engine.beep(160, 'sawtooth', 0.5, 0.04, 800);
+  }
+
+  // Wolle: der Vorhang schliesst sich von beiden Seiten, nur eine Luecke bleibt offen
+  function patCurtain() {
+    const lead = Math.max(1.2, bl() * 2);
+    const step = Math.max(1.2, bl() * 2);
+    const gap = ang + dir * rand(1.3, 2.3);
+    const offs = [2.6, 1.8];
+    const endAt = t + lead + (offs.length - 1) * step + 0.7;
+    offs.forEach((d, k) => {
+      const liveAt = t + lead + k * step;
+      for (const s of [-1, 1]) {
+        hazards.push({ kind: 'arcs', hold: true, center: gap + s * d, half: 0.4, dur: endAt - liveAt, gap, first: k === 0 && s === 1, tellAt: liveAt - 1.0, liveAt });
+      }
+    });
+    addCap(gap, randRing(), t + lead, 4.5);
+    slamT = lead + 2;
+    say(calls.curtain, '#fca5a5');
+    engine.beep(140, 'square', 0.3, 0.04, 70);
+  }
+
+  // Wolle: Scheinwerfer jagen den Spieler und landen dort, wo er gleich waere
+  function patSpot() {
+    const lead = Math.max(1.2, bl() * 2);
+    const step = Math.max(1.0, bl() * 1.8);
+    let last = 0;
+    for (let k = 0; k < 3; k++) {
+      const liveAt = t + lead + k * step;
+      last = ang + dir * OMEGA * (liveAt - t);
+      hazards.push({ kind: 'arcs', spot: true, center: last, half: 0.5, dur: 0.5, tellAt: liveAt - 1.0, liveAt });
+    }
+    addCap(last + Math.PI, randRing(), t + 0.5, 5);
+    slamT = lead + 2;
+    say(calls.spot, '#fef08a');
+    engine.beep(500, 'triangle', 0.2, 0.04, 900);
+  }
+
+  // DJ: Tonarm-Laser mit rhythmischem Scratch-Schub
+  function patNeedle() {
+    swDir = -swDir;
+    const lead = Math.max(1.15, bl() * 1.9);
+    const a0 = ang + (Math.PI / 2) * (random() < 0.5 ? 1 : -1);
+    hazards.push({ kind: 'laser', single: true, scratch: true, a0, sw: swDir * 1.6, tellAt: t, liveAt: t + lead, dur: 2.6 });
+    addCap(a0 - swDir * 1.4, randRing(), t + 0.4, 5);
+    slamT = lead + 1.5;
+    say(calls.needle, GREEN);
+    engine.beep(900, 'sawtooth', 0.15, 0.04, 200);
+  }
+
+  // Rammstein: Lauffeuer rennt dem Spieler entgegen und springt nach 4 Saeulen auf den anderen Ring
+  function patLauffeuer() {
+    const step = Math.max(0.36, bl() * 0.62);
+    const a0 = ang + dir * 2.3;
+    const fr = unlocked && random() < 0.5 ? 1 : 0;
+    for (let k = 0; k < 8; k++) {
+      const liveAt = t + 1.2 + k * step;
+      hazards.push({ kind: 'geys', skin: 'fire', angle: a0 - dir * k * 0.62, ring: unlocked ? (fr + (k >> 2)) % 2 : 0, tellAt: liveAt - TELL, liveAt, color: 0 });
+    }
+    addCap(ang + dir * 1.1, 1 - fr, t + 0.3, 5.5);
+    sunT = 3.5;
+    slamT = 4;
+    shakeUntil = t + 1.2;
+    say(calls.lauffeuer, '#fb923c');
+    engine.beep(80, 'sawtooth', 0.5, 0.05, 40);
+  }
+
+  // Angriffs-Pool je Boss-Phase (Index = Phase): jede Phase hat ausschliesslich eigene Mechaniken
   const PHASE_POOLS = [
-    [patSpokes, patVesuv, () => patMortar(false)],
-    [patCage, patRace, patGasPedal, patBassDrop],
-    [() => patMortar(true), patTwister, patStorm, patBassDrop],
-    [patSpokes, patWelle, patHalf, patBassDrop],
-    [() => patGeysers(5), patHalf, patEqualizer, patBassDrop],
-    [patSonne, patSonneCount, patInferno, patBassDrop, patHalf, patTwister]
+    [patVesuv, patPizza, () => patMortar(false)],
+    [patCage, patRace, patGasPedal, patPit],
+    [patTwister, patSog, patStorm],
+    [patWelle, patCurtain, patSpot],
+    [() => patGeysers(5), patEqualizer, patNeedle],
+    [patSonne, patLauffeuer, patSonneCount, patInferno]
   ];
 
   function beginSong(silent = false) {
@@ -701,6 +783,8 @@ export function createStage4(random = Math.random) {
   }
   function launch() {
     attacked = true;
+    tintT = 1;
+    spark(CX, CY, PHASE_FX[phase].c, 7, 190, 3, PHASE_FX[phase].e);
     if (phase === 4 && !song) {
       patEqualizer();
       return;
@@ -897,6 +981,14 @@ export function createStage4(random = Math.random) {
       barPulse = Math.max(0, barPulse - dt * 2.6);
       callout.t = Math.max(0, callout.t - dt * 0.9);
       bannerT = Math.max(0, bannerT - dt * 0.42);
+      introT = Math.max(0, introT - dt * 0.5);
+      tintT = Math.max(0, tintT - dt * 1.6);
+      const spinning = phase === 2 && hazards.some((h) => t < endOf(h) + 0.3);
+      if (spinning) spinA += dt * 7;
+      else if (spinA > 0) {
+        spinA += dt * 7;
+        if (spinA % TAU < dt * 7) spinA = 0;
+      }
       if (overBeam) {
         overBeam.t -= dt;
         if (overBeam.t <= 0) overBeam = null;
@@ -1005,7 +1097,7 @@ export function createStage4(random = Math.random) {
         drawCrownCap(ctx, CX, CY, 178, t * 0.18, '#7f1d1d');
         ctx.globalAlpha = 1;
       }
-      drawRails(ctx, themed && !dj ? THEMES[themeId].c : ac, dj, unlocked, unlockT, tc);
+      drawRails(ctx, themed && !dj ? THEMES[themeId].c : ac, dj, unlocked, unlockT, tc, phase, t);
 
       // Warnungen / sichere Zonen
       let safeLabel = true;
@@ -1035,7 +1127,13 @@ export function createStage4(random = Math.random) {
           if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'arcs') {
           drawDangerArc(ctx, h.center, h.half, t, h.ring);
-          drawSafeArc(ctx, h.center + Math.PI, Math.PI / 2, t, h.ring === undefined ? calls.safe : '', h.ring);
+          if (h.hold) {
+            if (h.first) drawSafeArc(ctx, h.gap, 0.8, t, calls.safe);
+          } else if (h.spot) {
+            // Scheinwerfer: nur der Gefahrenbereich
+          } else {
+            drawSafeArc(ctx, h.center + Math.PI, Math.PI / 2, t, h.ring === undefined ? calls.safe : '', h.ring);
+          }
           if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'bottle') {
           drawDangerArc(ctx, h.angle, h.half ?? FLAME_HALF, t, h.ring);
@@ -1045,7 +1143,7 @@ export function createStage4(random = Math.random) {
           if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'laser') {
           for (const b of h.single ? [h.a0] : [h.a0, h.a0 + Math.PI]) {
-            drawDangerArc(ctx, b, BEAM_HALF + 0.05, t);
+            drawDangerArc(ctx, b, (h.half ?? BEAM_HALF) + 0.05, t);
             ctx.strokeStyle = RED;
             ctx.globalAlpha = 0.7;
             ctx.lineWidth = 2;
@@ -1072,11 +1170,25 @@ export function createStage4(random = Math.random) {
         if (sunT > 0) drawSun(ctx, t, Math.min(1, sunT * 2));
         if (themed) drawSongProps(ctx, themeId, themeA, t);
         const wob = mode === 'smash' ? Math.sin(clock * 60) * 3 : shk * 4;
-        engine.drawFiech(ctx, CX + wob, CY, 84, {
+        const bp = beat.beatPhase ?? 0;
+        const pose = [
+          { dy: -Math.abs(Math.sin(t * 5)) * 8, rot: Math.sin(t * 2.5) * 0.12, sx: 1, sy: 1 },
+          { dy: 0, rot: 0.1, sx: 1, sy: 1, jx: Math.sin(t * 60) * (slamT > 0 ? 3 : 1) },
+          { dy: 0, rot: spinA, sx: 1, sy: 1 },
+          { dy: -Math.abs(Math.sin(t * 4)) * 5, rot: Math.sin(t * 3.4) * 0.2, sx: 1, sy: 1 },
+          { dy: Math.sin(t * 7) * 3, rot: Math.sin(t * 3.5) * 0.06, sx: 1, sy: 1 },
+          { dy: Math.max(0, 1 - bp * 3) * 6, rot: 0, sx: 1 + Math.max(0, 1 - bp * 3) * 0.12, sy: 1 + Math.max(0, 1 - bp * 3) * 0.12 }
+        ][phase];
+        ctx.save();
+        ctx.translate(CX + wob + (pose.jx ?? 0), CY + pose.dy);
+        ctx.rotate(pose.rot);
+        ctx.scale(pose.sx, pose.sy);
+        engine.drawFiech(ctx, 0, 0, 84, {
           beatPhase: beat.beatPhase,
           action: phase === 4 && slamT > 0 ? 'laugh' : slamT > 0 ? 'slam' : 'hover',
           tilt: t < shakeUntil ? shk * 0.12 : Math.sin(t * 2) * 0.05
         });
+        ctx.restore();
         if (dj) drawDjGear(ctx, t, beat);
         if (phones) drawPhones(ctx, phones);
         if (bossFlash > 0.05) {
@@ -1169,7 +1281,7 @@ export function createStage4(random = Math.random) {
         ctx.globalAlpha = clamp(s.life / 0.5, 0, 1);
         ctx.fillStyle = s.color;
         if (s.ch) {
-          ctx.font = 'bold 11px monospace';
+          ctx.font = s.emo ? '18px sans-serif' : 'bold 11px monospace';
           ctx.textAlign = 'center';
           ctx.fillText(s.ch, s.x, s.y);
         } else ctx.fillRect(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
@@ -1182,12 +1294,19 @@ export function createStage4(random = Math.random) {
       ctx.fillText(`${text.name} // ${text.subtitle}`, W / 2, 30);
       ctx.fillStyle = '#6b7280';
       ctx.font = '9px monospace';
-      ctx.fillText(`PINNCHEN ${glasses}/${GLASSES}`, W / 2, 44);
+      ctx.fillText(`PHASE ${phase + 1}/6 · PINNCHEN ${glasses}/${GLASSES}`, W / 2, 44);
       if (cmd.target) drawCmd(ctx, cmd, clock);
       if (themed && themeA > 0.3) drawSongHud(ctx, THEMES[themeId].c, themeA, calls.songs[themeId].name, song ? clamp((t - song.start) / song.len, 0, 1) : 1, t);
 
       drawCockpit(ctx, text.cockpit, ac, dir, unlocked, ring, down && down.held ? holdDir : 0, t);
       drawGlitch(ctx, t, barPulse, ac);
+      if (tintT > 0.01 && mode !== 'ko') {
+        ctx.globalAlpha = tintT * 0.16;
+        ctx.fillStyle = PHASE_FX[phase].c;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+      if (introT > 0.01 && mode !== 'ko') drawPhaseIntro(ctx, phase, introT, t);
       drawBanner(ctx, phase, text, ac, mode === 'shield' ? bannerT : 0);
       drawCallout(ctx, callout.text, callout.color, callout.t);
       if (flash > 0.01) {
@@ -1925,7 +2044,103 @@ function drawSongHud(ctx, col, a, name, prog, t) {
   ctx.globalAlpha = 1;
 }
 
-function drawRails(ctx, ac, dj, unl, unlockT, tc = GREEN) {
+const RAIL_PAINT = [
+  ['#22c55e', '#f8fafc', '#ef4444'],
+  ['#facc15', '#111827'],
+  ['#e0f2fe', '#7dd3fc'],
+  ['#dc2626', '#fca5a5'],
+  ['#22c55e'],
+  ['#fb923c', '#7f1d1d', '#fde047']
+];
+
+// Jede Boss-Phase hat eigene Schienen: Trikolore, Warnband, Schaum, Flanell, Glut
+function drawRailSkin(ctx, rr, w, phase, t) {
+  const cols = RAIL_PAINT[phase];
+  const dash = phase === 5 ? 9 : 16;
+  ctx.lineWidth = w * 1.1;
+  ctx.globalAlpha = 0.5;
+  const dir = phase === 2 ? -1 : 1;
+  for (let i = 0; i < cols.length; i++) {
+    ctx.strokeStyle = cols[i];
+    ctx.setLineDash([dash, dash * (cols.length - 1)]);
+    ctx.lineDashOffset = -(i * dash) + dir * t * (phase === 1 ? 40 : phase === 2 ? 55 : 14);
+    ctx.beginPath();
+    ctx.arc(CX, CY, rr, 0, TAU);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.lineDashOffset = 0;
+  ctx.globalAlpha = 1;
+}
+
+// Kurzer Einzug je Phase (k: 1 -> 0): eigene Form, eigene Farbe
+function drawPhaseIntro(ctx, phase, k, t) {
+  const p = 1 - k;
+  const a = Math.min(1, k * 2.2) * Math.min(1, p * 8);
+  ctx.save();
+  ctx.globalAlpha = a * 0.9;
+  if (phase === 0) {
+    const cols = ['#22c55e', '#f8fafc', '#ef4444'];
+    for (let i = 0; i < 3; i++) {
+      ctx.fillStyle = cols[i];
+      const h = 34 + 150 * Math.min(1, p * 2.5);
+      ctx.fillRect(i * (W / 3), 0, W / 3, 34 + (h - 34) * 0.3);
+      ctx.fillRect(i * (W / 3), H - 34 - (h - 34) * 0.3, W / 3, 34 + (h - 34) * 0.3);
+    }
+  } else if (phase === 1) {
+    const s = 30;
+    for (let y = 0; y < 5; y++) {
+      for (let x = 0; x < 12; x++) {
+        if ((x + y + Math.floor(t * 14)) % 2) continue;
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(x * s, y * s - 30 + p * 40, s, s);
+        ctx.fillRect(x * s, H - y * s - 30 - p * 40, s, s);
+      }
+    }
+  } else if (phase === 2) {
+    for (let i = 0; i < 3; i++) drawRing(ctx, CX, CY, 40 + ((p * 1.6 + i * 0.33) % 1) * 230, '#7dd3fc', 0.8, 6, [14, 10]);
+  } else if (phase === 3) {
+    const open = Math.min(1, p * 2);
+    const wcur = (W / 2) * (1 - open);
+    ctx.fillStyle = '#991b1b';
+    ctx.fillRect(0, 0, wcur, H);
+    ctx.fillRect(W - wcur, 0, wcur, H);
+    ctx.fillStyle = '#fecaca';
+    for (let x = 14; x < wcur; x += 28) {
+      ctx.fillRect(x, 0, 6, H);
+      ctx.fillRect(W - x - 6, 0, 6, H);
+    }
+  } else if (phase === 4) {
+    ctx.fillStyle = '#22c55e';
+    for (let i = 0; i < 9; i++) {
+      const y = ((p * 700 + i * 70) % (H + 40)) - 20;
+      ctx.fillRect(0, y, W, 3);
+    }
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('> sudo ./dj_fiech --override', 14, 200);
+  } else {
+    const open = 1 - Math.min(1, p * 2.5);
+    ctx.fillStyle = '#0c0a09';
+    for (let i = 0; i < 8; i++) {
+      const hh = (H / 8) * open;
+      ctx.fillRect(0, i * (H / 8), W, hh);
+    }
+    if (Math.floor(t * 20) % 2) {
+      ctx.globalAlpha = a * 0.25;
+      ctx.fillStyle = '#fb923c';
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+  ctx.globalAlpha = a;
+  ctx.fillStyle = PHASE_FX[phase].c;
+  ctx.font = `bold ${56 + Math.round(p * 14)}px monospace`;
+  ctx.textAlign = 'center';
+  ctx.fillText(`${phase + 1}/6`, W / 2, 130);
+  ctx.restore();
+}
+
+function drawRails(ctx, ac, dj, unl, unlockT, tc = GREEN, phase = 0, t = 0) {
   const rails = unl ? [[R_OUT, 15], [R_IN, 13]] : [[R_OUT, 15]];
   for (const [rr, w] of rails) {
     ctx.strokeStyle = '#05050a';
@@ -1933,6 +2148,7 @@ function drawRails(ctx, ac, dj, unl, unlockT, tc = GREEN) {
     ctx.beginPath();
     ctx.arc(CX, CY, rr, 0, TAU);
     ctx.stroke();
+    if (!dj) drawRailSkin(ctx, rr, w, phase, t);
     ctx.strokeStyle = dj ? tc : ac;
     ctx.globalAlpha = 0.9;
     ctx.lineWidth = 2;
@@ -2208,6 +2424,22 @@ function drawBody(ctx, h, t) {
   const live = t >= liveAtOf(h);
   if (h.kind === 'spokes') {
     if (!live) return;
+    if (h.skin === 'pit') {
+      // Boxengasse: Gelb-Schwarz-Absperrung rund um den Ring, nur die Luecke bleibt offen
+      for (const rr of railList(undefined)) {
+        ctx.strokeStyle = RED;
+        ctx.lineWidth = 24;
+        ctx.beginPath();
+        ctx.arc(CX, CY, rr, h.base - h.half, h.base + h.half);
+        ctx.stroke();
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 8;
+        ctx.setLineDash([14, 14]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      return;
+    }
     if (h.ring !== undefined) {
       for (let k = 0; k < h.count; k++) drawFlameBand(ctx, h.base + (k * TAU) / h.count, h.half, radOf(h.ring), t, h.ring);
       return;
@@ -2276,8 +2508,8 @@ function drawBody(ctx, h, t) {
     }
   } else if (h.kind === 'arcs') {
     if (!live) return;
-    const k = (t - h.liveAt) / ARC_DUR;
-    if (h.ring === undefined) drawRing(ctx, CX, CY, 30 + k * (R_OUT - 10), RED, 1 - k * 0.5, 6);
+    const k = (t - h.liveAt) / (h.dur ?? ARC_DUR);
+    if (h.ring === undefined && !h.hold) drawRing(ctx, CX, CY, 30 + k * (R_OUT - 10), RED, 1 - k * 0.5, 6);
     for (const rr of railList(h.ring)) {
       ctx.strokeStyle = RED;
       ctx.lineWidth = 24;
@@ -2320,6 +2552,29 @@ function drawBody(ctx, h, t) {
     const b = beamAngle(h, t);
     for (const a of h.single ? [b] : [b, b + Math.PI]) {
       const e = ringPt(a, R_OUT + 16);
+      if (h.half > 0.15) {
+        // breiter Keil (Pizza-Stueck) mit Belag
+        const l1 = ringPt(a - h.half, R_OUT + 14);
+        const l2 = ringPt(a + h.half, R_OUT + 14);
+        ctx.fillStyle = '#b91c1c';
+        ctx.beginPath();
+        ctx.moveTo(CX, CY);
+        ctx.lineTo(l1.x, l1.y);
+        ctx.lineTo(l2.x, l2.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < 5; i++) {
+          const q = ringPt(a + (i % 2 ? 0.14 : -0.14) * (1 + i * 0.2), 50 + i * 20);
+          ctx.beginPath();
+          ctx.arc(q.x, q.y, 6, 0, TAU);
+          ctx.fill();
+        }
+        continue;
+      }
       ctx.lineCap = 'round';
       ctx.strokeStyle = RED;
       ctx.lineWidth = 22 + (Math.floor(t * 40) % 2) * 4;
