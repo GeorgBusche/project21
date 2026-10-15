@@ -398,7 +398,7 @@ export function createSegments(k) {
         block({ x: 0, width: 110, height: 36, label: '▲ RUN UP' }),
         pad({ x: 70, power: PAD.MEDIUM, standsOnHeight: 36, label: 'BOOST' }),
         lava({ x: 115, width: 190 }),
-        orb({ x: 133, heightAboveGround: 212, label: 'SMASH TAP!' }),
+        orb({ x: 200, heightAboveGround: 180, label: 'SMASH TAP!' }),
         gate({ x: 340 })
       ]
     }

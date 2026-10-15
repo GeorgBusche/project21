@@ -220,12 +220,11 @@ export const CONTENT = {
         name: 'DER TEUFELS-BIERDECKEL',
         subtitle: 'ORBIT OVERDRIVE',
         phases: [
-          { name: 'PHASE 1 // BELLA NAPOLI', hint: 'Rot = Gefahr · Grün = sicher · Gold = Konter' },
+          { name: 'PHASE 1 // BELLA NAPOLI', hint: 'Rot kündigt Schaden an · Gold = Konter' },
           { name: 'PHASE 2 // RAGE CAGE', hint: 'Mitte-Button / Leertaste = Ring wechseln' },
           { name: 'PHASE 3 // BIERTORNADO', hint: 'Strahlen drehen · Ring wechseln rettet dich' },
           { name: 'PHASE 4 // MEDAILLEN-WOLLE', hint: 'Die Stadion-Welle rollt · Gold einsammeln' },
-          { name: 'PHASE 5 // DJ SUDO OVERRIDE', hint: 'Sammle 3x [ sudo ! ] für den Root-Hack' },
-          { name: 'PHASE 6 // RAMMSTEIN-INFERNO', hint: 'Hier kommt die Sonne · Letztes Pinnchen = Überlebens-Sprint' }
+          { name: 'PHASE 5 // RAMMSTEIN-INFERNO', hint: 'Hier kommt die Sonne · Letztes Pinnchen = Überlebens-Sprint' }
         ],
         calls: {
           spokes: 'SCHNAPSLATTE!',
@@ -256,7 +255,7 @@ export const CONTENT = {
           race: 'ÜBERHOLSPUR!',
           twister: 'TWISTER!',
           inferno: 'INFERNO!',
-          pizza: 'PIZZA-RAD!',
+          lavaSweep: 'VESUV // LAVA-SCHNEISE!',
           pit: 'BOXENGASSE!',
           sog: 'BIER-SOG!',
           curtain: 'VORHANG ZU!',
@@ -268,7 +267,6 @@ export const CONTENT = {
           enough: 'GENUG GESPIELT!',
           last: 'LETZTE RUNDE!',
           counter: ['PROST!', 'EX ODER KELLER!', 'SCHÜTTELKORN!'],
-          safe: 'SAFE ZONE',
           fire: '⚡ FIRE!',
           smashHint: '[ SUDO SMASH! ]',
           smash: 'SUDO SMASH!',
@@ -518,12 +516,17 @@ export const CONTENT = {
     trackUrl: 'assets/audio/fear.mp3',
     baseBpm: 105, // Basis-BPM von "Fear" (für das mathematische Takt-Raster)
     beatOffsetSec: 0.0, // Fein-Offset für den ersten Taktschlag in Sekunden
+    outroLoopBars: 16, // Nach dem ersten Durchlauf nur die letzten vollen Takte wiederholen.
     // Der Track läuft als EIN durchgehender Stream (Loop über den ganzen Song). Jede Stage verändert nur
-    // Tempo (playbackRate) und Filter-Cutoff (Hz) per sanfter Rampe (0,45 s).
+    // Filter-Cutoff (Hz) per sanfter Rampe (0,45 s). Bei soundtrackSync bleibt die Rate 1;
+    // die Stage-Raten unten gelten nur fuer den optionalen adaptiven Modus.
     // Stage 1 öffnet den Filter bei Beat `openBeat` auf `openHz`.
     stage1Open: { openBeat: 8, openHz: 12000 },
-    // DEV-Direktstart ab Stage 2: Beat, an dem der Drop beginnt (Takt 16 von fear.mp3 = Beat 64)
-    devDropBeat: 64,
+    // Nur diese drei Zeiten (Sekunden der Originalaufnahme) fuer die Uebergaenge einstellen:
+    // Stage 1 -> 2, Beginn Stage-3-Cutscene (+3 s), Beginn Boss-Cutscene (+18 s).
+    // Alle Angaben in Track-Sekunden; der Boss hat kein Zeitlimit.
+    stageEndSec: [35.5, 71, 107],
+    soundtrackSync: true,
     stages: {
       1: { rate: 1.0, filterHz: 2600, label: 'STAGE 1 // DARK PULSE' },
       2: { rate: 1.06, filterHz: 18000, label: 'STAGE 2 // MAIN DROP' },

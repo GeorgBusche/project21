@@ -444,20 +444,20 @@ function drawPlankSegment(ctx, x0, x1, y, t, ghost) {
 export function drawCallout(ctx, text, color, k) {
   if (k <= 0) return;
   const a = clamp(k * 3, 0, 1);
-  const sc = 1 + (1 - clamp((1 - k) * 6, 0, 1)) * 0.25;
+  const sc = 1 + (1 - clamp((1 - k) * 6, 0, 1)) * 0.08;
   ctx.save();
-  ctx.translate(W / 2, 232);
+  ctx.translate(W / 2, 437);
   ctx.scale(sc, sc);
   ctx.textAlign = 'center';
-  ctx.font = 'bold 26px monospace';
+  ctx.font = 'bold 11px monospace';
   ctx.globalAlpha = a * 0.7;
   ctx.fillStyle = '#22d3ee';
-  ctx.fillText(text, -2, 0);
+  ctx.fillText(text, -1, 0, 320);
   ctx.fillStyle = '#ef4444';
-  ctx.fillText(text, 2, 1);
+  ctx.fillText(text, 1, 1, 320);
   ctx.globalAlpha = a;
   ctx.fillStyle = color;
-  ctx.fillText(text, 0, 0);
+  ctx.fillText(text, 0, 0, 320);
   ctx.restore();
   ctx.globalAlpha = 1;
 }

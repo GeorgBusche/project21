@@ -15,12 +15,13 @@ function rr(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawLeg(ctx, s, side, action, beatPhase, t) {
+function drawLeg(ctx, s, side, action, beatPhase, t, dormant) {
   const ax = side * s * 0.27;
   const ay = s * 0.5;
   const len = s * 0.34;
   let ang;
-  if (action === 'slam') ang = side * 0.55; // breit abgestützt
+  if (dormant) ang = side * 0.08;
+  else if (action === 'slam') ang = side * 0.55; // breit abgestützt
   else ang = Math.sin(beatPhase * TAU + (side > 0 ? 0 : Math.PI)) * 0.55 + Math.sin(t * 9 + side) * 0.05;
   ctx.strokeStyle = '#000';
   ctx.lineWidth = Math.max(2, s * 0.07);
@@ -31,11 +32,11 @@ function drawLeg(ctx, s, side, action, beatPhase, t) {
   ctx.stroke();
 }
 
-function drawEye(ctx, s, side, laser, dx, dy) {
+function drawEye(ctx, s, side, laser, dx, dy, color) {
   const er = s * 0.2;
   const ex = side * s * 0.3;
   const ey = -s * 0.5 - s * 0.02;
-  ctx.fillStyle = laser ? '#ecfeff' : '#fef08a';
+  ctx.fillStyle = color ?? (laser ? '#ecfeff' : '#fef08a');
   ctx.shadowColor = laser ? '#22d3ee' : '#fde047';
   ctx.shadowBlur = 0;
   ctx.beginPath();
@@ -63,6 +64,7 @@ function drawEye(ctx, s, side, laser, dx, dy) {
 export function drawFiech(ctx, x, y, size, state = {}) {
   const { beatPhase = 1, bassEnergy = 0, action = 'hover', lookAtX = null, lookAtY = null, tilt = 0, squashX = 1, squashY = 1 } = state;
   const t = performance.now() / 1000;
+  const { bodyColor = '#dc2626', eyeColors, dormant = false } = state;
   const s = size;
   const pulse = beatPhase < 0.2 ? Math.sin((beatPhase / 0.2) * Math.PI) : 0;
   const scale = 1 + pulse * 0.05 + bassEnergy * 0.025;
@@ -74,8 +76,8 @@ export function drawFiech(ctx, x, y, size, state = {}) {
   ctx.rotate(tilt + wobble);
   ctx.scale(squashX * scale, squashY * scale);
 
-  drawLeg(ctx, s, -1, action, beatPhase, t);
-  drawLeg(ctx, s, 1, action, beatPhase, t);
+  drawLeg(ctx, s, -1, action, beatPhase, t, dormant);
+  drawLeg(ctx, s, 1, action, beatPhase, t, dormant);
 
   // Transparente Kontur statt teurem Schattenfilter, weiterhin im Bass pulsierend.
   ctx.shadowBlur = 0;
@@ -83,7 +85,7 @@ export function drawFiech(ctx, x, y, size, state = {}) {
   ctx.lineWidth = Math.max(4, s * 0.13);
   rr(ctx, -half, -half, s, s, s * 0.2);
   ctx.stroke();
-  ctx.fillStyle = '#dc2626';
+  ctx.fillStyle = bodyColor;
   rr(ctx, -half, -half, s, s, s * 0.2);
   ctx.fill();
   ctx.shadowBlur = 0;
@@ -144,8 +146,8 @@ export function drawFiech(ctx, x, y, size, state = {}) {
     dy = vy / len;
   }
   const laser = action === 'laser';
-  drawEye(ctx, s, -1, laser, dx, dy);
-  drawEye(ctx, s, 1, laser, dx, dy);
+  drawEye(ctx, s, -1, laser, dx, dy, eyeColors?.[0]);
+  drawEye(ctx, s, 1, laser, dx, dy, eyeColors?.[1]);
 
   ctx.restore();
 }

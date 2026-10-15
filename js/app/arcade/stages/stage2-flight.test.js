@@ -22,7 +22,7 @@ function seeded(seed) {
   };
 }
 
-function harness(random = seeded(1)) {
+function harness(random = seeded(1), options = {}) {
   const noop = () => {};
   let depth = 0;
   const ctx = new Proxy(
@@ -61,7 +61,7 @@ function harness(random = seeded(1)) {
     hit() {
       if (state.invuln > 0) return false;
       state.hits++;
-      state.hitBeats.push(stage.progress() * FLIGHT_BEATS);
+      state.hitBeats.push(stage.position);
       state.invuln = 1.4;
       return true;
     },
@@ -83,14 +83,14 @@ function harness(random = seeded(1)) {
       state.y = y;
     }
   };
-  stage = createStage2(random);
+  stage = createStage2(random, options);
   stage.init(engine);
   return {
     stage,
     engine,
     state,
     frame(dt, clock, running = true, bpm = 111.3) {
-      const before = stage.progress() * FLIGHT_BEATS;
+      const before = stage.position;
       const beforeY = state.y;
       state.invuln = Math.max(0, state.invuln - dt);
       stage.update(dt, {
@@ -102,19 +102,24 @@ function harness(random = seeded(1)) {
         bassEnergy: 0.3
       });
       stage.render(ctx);
-      const delta = stage.progress() * FLIGHT_BEATS - before;
+      const delta = stage.position - before;
       if (delta > 0) state.vy = (state.y - beforeY) / delta;
       assert.equal(depth, 0, 'render must restore the canvas state');
     }
   };
 }
 
-function flightTarget(gates, position, laserTrap = false, lasers = []) {
-  if (position >= ARENA_START && position < ARENA_END) {
-    const fire = LASER_FIRES.find((b) => position < b + 2.6);
+function flightTarget(gates, position, laserTrap = false, lasers = [], plan) {
+  const arenaStart = plan?.sections[2].start ?? ARENA_START;
+  const arenaEnd = plan?.sections[3].start ?? ARENA_END;
+  const fires = plan
+    ? lasers.filter((l) => l.echoOf === undefined).map((l) => l.fireBeat)
+    : LASER_FIRES;
+  if (position >= arenaStart && position < arenaEnd) {
+    const fire = fires.find((b) => position < b + 2.6);
     if (fire === undefined) return 300;
     if (laserTrap) return 300;
-    const index = LASER_FIRES.indexOf(fire) * 2;
+    const index = fires.indexOf(fire) * 2;
     const source = lasers[index];
     const direction = Math.sign(lasers[index + 1]?.offset ?? gates[0].side);
     if (position < fire - LASER_LOCK_BEATS) return 300;
@@ -151,10 +156,11 @@ function runFlight(
     laserTrap = false,
     hazardTrap = null,
     precisionError = 0,
-    skipReverse = false
+    skipReverse = false,
+    durationBeats
   } = {}
 ) {
-  const plan = buildFlightPlan(600, randomFactory());
+  const plan = buildFlightPlan(600, randomFactory(), durationBeats);
   const gates = plan.gates;
   if (forkRoute !== 'gold') {
     for (const gate of gates) {
@@ -162,14 +168,24 @@ function runFlight(
         gate.ringY = gate.center - (forkRoute === 'core' ? 0 : gate.side * 64);
     }
   }
-  const h = harness(randomFactory());
+  const h = harness(
+    randomFactory(),
+    durationBeats === undefined ? {} : { durationBeats, startBeat: 100 }
+  );
   let clock = 100;
   h.frame(0, clock, !fallback, typeof bpm === 'function' ? bpm(0) : bpm);
   const dt = 1 / fps;
-  for (let i = 0; i < fps * 50 && h.state.completions === 0; i++) {
-    const position = h.stage.progress() * FLIGHT_BEATS;
-    updateFlightLasers(plan.lasers, position, h.state.y, 600);
-    let target = flightTarget(gates, position, laserTrap, plan.lasers);
+  for (let i = 0; i < fps * Math.max(50, plan.totalBeats + 5) && h.state.completions === 0; i++) {
+    const position = h.stage.position;
+    if (durationBeats === undefined) updateFlightLasers(plan.lasers, position, h.state.y, 600);
+    const livePlan = durationBeats === undefined ? plan : h.stage.plan;
+    let target = flightTarget(
+      gates,
+      position,
+      laserTrap,
+      livePlan.lasers,
+      durationBeats === undefined ? undefined : livePlan
+    );
     if (skipReverse && position >= ARENA_START && position < ARENA_END) {
       const source = plan.lasers.find(
         (l) =>
@@ -231,6 +247,53 @@ test('49-beat pursuit contains distinct mechanics and a longer double-shot arena
     });
   }
   assert.equal(names.size, 5);
+});
+
+test('time-budgeted flights add complete patterns without changing physics or shot timing', () => {
+  for (const duration of [35, 39.17, 48.9, 49, 51.625, 72.37, 105, 160]) {
+    for (const seed of [1, 5, 19, 87]) {
+      const plan = buildFlightPlan(600, seeded(seed), duration);
+      assert.equal(plan.totalBeats, duration);
+      assert.ok(Math.abs(plan.gates.at(-1).arrival - (duration - 0.6)) < 1e-9);
+      const arenaStart = plan.sections[2].start;
+      const arenaEnd = plan.sections[3].start;
+      assert.ok(plan.gates.every((g) => g.arrival < arenaStart || g.arrival >= arenaEnd));
+      for (let i = 0; i < plan.lasers.length; i += 2) {
+        assert.ok(Math.abs(plan.lasers[i + 1].fireBeat - plan.lasers[i].fireBeat - 1.1) < 1e-9);
+        assert.equal(plan.lasers[i].halfWidth, 16);
+        assert.equal(plan.lasers[i + 1].echoOf, i);
+      }
+      for (const fps of [20, 60, 120]) {
+        const run = runFlight(() => seeded(seed), { durationBeats: duration, fps, bpm: 105 });
+        assert.equal(run.state.completions, 1, `duration ${duration}, seed ${seed}, fps ${fps}`);
+        assert.equal(
+          run.state.hits,
+          0,
+          `duration ${duration}, seed ${seed}, fps ${fps}: hits ${run.state.hitBeats}`
+        );
+        assert.ok(Math.abs(run.elapsed - (duration * 60) / 105) <= 1 / fps + 1e-7);
+      }
+    }
+  }
+});
+
+test('timed flights use fractional absolute entries and the silent clock without early completion', () => {
+  for (const running of [true, false]) {
+    for (const fps of [20, 60, 120]) {
+      const durationBeats = 51.625;
+      const startBeat = 62.137;
+      const h = harness(seeded(3), { durationBeats, startBeat });
+      for (let frame = 1; frame < (durationBeats * fps * 60) / 105; frame++) {
+        const elapsed = ((frame / fps) * 105) / 60;
+        h.frame(1 / fps, startBeat + elapsed, running, 105);
+        assert.ok(Math.abs(h.stage.position - elapsed) < 1e-8);
+        assert.equal(h.state.completions, 0);
+      }
+      h.frame(1 / fps, startBeat + durationBeats + 1e-9, running, 105);
+      h.frame(1 / fps, startBeat + durationBeats + 1, running, 105);
+      assert.equal(h.state.completions, 1);
+    }
+  }
 });
 
 test('pursuit finishes in approximately 26.5 seconds at Stage 2 tempo', () => {

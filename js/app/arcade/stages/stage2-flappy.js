@@ -35,7 +35,7 @@ export function updateFlightLasers(lasers, position, playerY, H) {
 }
 
 // Feste Dramaturgie mit gespiegelten Fluglinien und einem offenen Verfolgungsabschnitt.
-export function buildFlightPlan(H, random = Math.random) {
+export function buildFlightPlan(H, random = Math.random, durationBeats) {
   const gates = [];
   const mirror = random() < 0.5 ? -1 : 1;
   const offset = random() < 0.5 ? 0 : 15;
@@ -97,7 +97,87 @@ export function buildFlightPlan(H, random = Math.random) {
     radius: 25,
     side: i % 2 === 0 ? -mirror : mirror,
     damaged: false
-  }));  return { gates, sections, lasers, debris };
+  }));
+  const plan = { gates, sections, lasers, debris, totalBeats: FLIGHT_BEATS };
+  return durationBeats === undefined ? plan : fitFlightPlan(plan, durationBeats);
+}
+
+function fitFlightPlan(base, duration) {
+  if (!Number.isFinite(duration) || duration < 35) {
+    throw new Error('Stage 2 requires at least 35 beats for safe flight patterns');
+  }
+  const compact = duration < FLIGHT_BEATS;
+  let opening = compact ? 8 : 12;
+  let pressure = compact ? 5 : 7;
+  let salvos = compact ? 1 : 3;
+  const exit = 14;
+  let spare = duration - opening - pressure - (salvos * 4 + 4) - exit;
+  let extraPipes = 0;
+  let extraPresses = 0;
+  for (let module = 0; spare >= 4; module++) {
+    if (module % 3 === 1 && spare >= 6) {
+      pressure += 6;
+      extraPresses++;
+      spare -= 6;
+    } else if (module % 3 === 2) {
+      salvos++;
+      spare -= 4;
+    } else {
+      opening += 4;
+      extraPipes++;
+      spare -= 4;
+    }
+  }
+  const pressureStart = opening + spare / 3;
+  const arenaStart = pressureStart + pressure + spare / 3;
+  const arenaEnd = arenaStart + salvos * 4 + 4;
+  const exitStart = arenaEnd + spare / 3;
+  const gates = base.gates.filter((g) => g.arrival < (compact ? 8 : 12)).map((g) => ({ ...g }));
+  for (let i = 0; i < extraPipes; i++) {
+    const start = (compact ? 8 : 12) + i * 4;
+    gates.push({ ...base.gates[0], arrival: start + 1 });
+    gates.push({ ...base.gates[1], arrival: start + 3 });
+  }
+  const piston = base.gates.find((g) => g.kind === 'piston');
+  const travel = base.gates.find((g) => g.kind === 'travel');
+  gates.push({ ...piston, arrival: pressureStart + 2 });
+  gates.push({ ...travel, arrival: pressureStart + (compact ? 4 : 5) });
+  for (let i = 0; i < extraPresses; i++) {
+    const start = pressureStart + (compact ? 5 : 7) + i * 6;
+    gates.push({ ...piston, arrival: start + 1 });
+    gates.push({ ...travel, arrival: start + 4 });
+  }
+  const closing = base.gates.filter((g) => g.arrival >= ARENA_END);
+  const exitOffsets = [2, 5, 7, 8, 10, 13.4];
+  closing.forEach((g, i) => gates.push({ ...g, arrival: exitStart + exitOffsets[i] }));
+  const lasers = [];
+  const debris = [];
+  for (let i = 0; i < salvos; i++) {
+    const source = lasers.length;
+    const fireBeat = arenaStart + 3 + i * 4;
+    lasers.push({ ...base.lasers[0], fireBeat });
+    lasers.push({
+      ...base.lasers[1],
+      echoOf: source,
+      fireBeat: fireBeat + 1.1,
+      offset: base.lasers[1].offset * (i % 2 === 0 ? 1 : -1)
+    });
+    if (i < salvos - 1)
+      debris.push({
+        ...base.debris[i % base.debris.length],
+        arrival: fireBeat + 2.6
+      });
+  }
+  return {
+    gates,
+    lasers,
+    debris,
+    totalBeats: duration,
+    sections: base.sections.map((section, i) => ({
+      ...section,
+      start: [0, pressureStart, arenaStart, exitStart, duration - 5][i]
+    }))
+  };
 }
 
 export function flightGateGeometry(gate, position, playerX) {
@@ -127,8 +207,8 @@ export function flightDebrisGeometry(debris, position, playerX) {
   };
 }
 
-// Stage 2: 49 Beats Raketenflucht. Halten gibt Schub, Loslassen laesst die Rakete sinken.
-export function createStage2(random = Math.random) {
+// Stage 2: zeitgeplante Raketenflucht. Halten gibt Schub, Loslassen laesst die Rakete sinken.
+export function createStage2(random = Math.random, options = {}) {
   let engine;
   let tick;
   let plan;
@@ -267,19 +347,30 @@ export function createStage2(random = Math.random) {
     init(e) {
       engine = e;
       tick = createBeatSource();
-      plan = buildFlightPlan(engine.H, random);
+      plan = buildFlightPlan(engine.H, random, options.durationBeats);
       player.y = engine.H / 2;
     },
-    progress: () => clamp(position / FLIGHT_BEATS, 0, 1),
+    get plan() {
+      return plan;
+    },
+    get position() {
+      return position;
+    },
+    progress: () => clamp(position / plan.totalBeats, 0, 1),
     stress: () =>
-      clamp((Math.max(0, position) / FLIGHT_BEATS) * 0.85 + (hitFlash > 0 ? 0.15 : 0), 0, 1),
+      clamp((Math.max(0, position) / plan.totalBeats) * 0.85 + (hitFlash > 0 ? 0.15 : 0), 0, 1),
     onTouch() {},
     update(dt, beatInfo) {
       if (completed) return;
       beat = tick(beatInfo, dt);
       const clock = beat.beatIndex + beat.beatPhase;
       let delta = 0;
-      if (previousClock === null) position = clock - Math.ceil(clock);
+      if (options.startBeat !== undefined && Number.isFinite(beatInfo?.beatIndex)) {
+        delta =
+          Math.max(0, beatInfo.beatIndex + beatInfo.beatPhase - options.startBeat) -
+          Math.max(0, position);
+        if (position < 0) position = 0;
+      } else if (previousClock === null) position = clock - Math.ceil(clock);
       else if (clockRunning !== beat.running || clock < previousClock) {
         // Ein spaet gestarteter Audio-Stream darf die bereits laufende Strecke nicht versetzen.
         delta = (dt * beat.bpm) / 60;
@@ -326,7 +417,7 @@ export function createStage2(random = Math.random) {
       particles = particles.filter((p) => p.life > 0);
       for (const r of rings) r.life -= dt;
       rings = rings.filter((r) => r.life > 0);
-      if (position >= FLIGHT_BEATS) {
+      if (position >= plan.totalBeats) {
         completed = true;
         engine.complete();
       }
@@ -344,7 +435,7 @@ export function createStage2(random = Math.random) {
         })),
         section: plan.sections[sectionIndex],
         sectionIndex,
-        totalBeats: FLIGHT_BEATS,
+        totalBeats: plan.totalBeats,
         scroll: Math.max(0, position) * FLIGHT_SPEED,
         geometry: (gate) => flightGateGeometry(gate, position, player.x),
         combo,

@@ -1,5 +1,6 @@
 import { circleRect, clamp, createBeatSource, rectsOverlap } from './stage-utils.js';
 import { FINAL_SEGMENT_ID, createSegments } from './stage1-segments.js';
+import { planStage1 } from './stage1-plan.js';
 import { SIZE, THEMES, drawChevrons, drawCube, drawElement, drawLayer, drawTeleFx, fx, mixRgb, rgba } from './stage1-draw.js';
 
 // Eichung: Sprung = 0.533 s = 121 px bei 105 BPM (227.5 px/s), Höhe 85 px, 1 Beat = 130 px
@@ -24,7 +25,7 @@ const shuffle = (arr) => {
   return a;
 };
 
-// Stage 1: "FIECH DER STRECKEN-BAUER" – 10 Segmente aus einem 20er-Baukasten, 3 Oberdesigns.
+// Stage 1: "FIECH DER STRECKEN-BAUER" – zufaellige Route aus einem 20er-Baukasten, 3 Oberdesigns.
 export function createStage1(options = {}) {
   let engine;
   let tick;
@@ -38,6 +39,7 @@ export function createStage1(options = {}) {
 
   let t = 0;
   let beats = 0;
+  let elapsedBeats = 0;
   let beatPos = 0;
   let flash = 0;
   let barPulse = 0;
@@ -581,7 +583,7 @@ let teleFx = [];
     built.push({ def, els: list });
     const maxR = Math.max(...list.map((o) => o.x + o.w)) - SPAWN;
     // Beat-Raster: nächstes Segment startet 1 Beat nach dem Ende dieses Segments
-    nextBuild = beats + Math.max(4, def.len ?? 0, Math.ceil(maxR / B)) + 1;
+    if (!options.durationBeats || options.segmentId) nextBuild = beats + Math.max(4, def.len ?? 0, Math.ceil(maxR / B)) + 1;
     const body = list.find((o) => o.usesFiechBody);
     if (body) {
       // Das Fiech steckt jetzt im Hindernis: Boss-Fiech verschwindet per Teleport
@@ -647,6 +649,7 @@ let teleFx = [];
       fiech.action = 'laugh';
       fiech.actionT = 0.25;
     }
+    if (options.durationBeats && !options.segmentId) return;
     if (segIdx >= deck.length) return;
     if (!teled && beats >= nextBuild - 1) {
       tele(deck[segIdx]);
@@ -731,9 +734,14 @@ let teleFx = [];
       SPAWN = W * 0.78;
       cube.y = g - SIZE;
       lib = makeLibrary();
-      deck = pickDeck();
+      deck = options.durationBeats && !options.segmentId ? [] : pickDeck();
       const only = options.segmentId && lib.find((x) => x.id === options.segmentId);
       if (only) deck = [only];
+      else if (options.durationBeats) {
+        deck = planStage1(lib, options.durationBeats, {
+          speed: B, spawn: SPAWN, player: PX + SIZE / 2, fastAt: W * 0.72, random: options.random
+        });
+      }
       segCount = deck.length;
       const tg = poseTarget('mid');
       fiech.x = tg.x;
@@ -764,6 +772,26 @@ let teleFx = [];
     update(dtRaw, beatInfo) {
       adaptQuality(dtRaw);
       beat = tick(beatInfo, dtRaw);
+      const previousElapsed = elapsedBeats;
+      elapsedBeats = options.startBeat !== undefined && Number.isFinite(beatInfo?.beatIndex)
+        ? Math.max(0, beatInfo.beatIndex + beatInfo.beatPhase - options.startBeat)
+        : elapsedBeats + dtRaw * beat.bpm / 60;
+      const timed = options.durationBeats && !options.segmentId;
+      const travelBeats = elapsedBeats - previousElapsed;
+      while (timed && segIdx < deck.length) {
+        const def = deck[segIdx];
+        if (!teled && elapsedBeats >= def.start - 1) {
+          tele(def);
+          teled = true;
+        }
+        if (elapsedBeats >= def.start) {
+          build(def);
+          const overshoot = elapsedBeats - def.start - travelBeats;
+          for (const o of built.at(-1).els) o.x -= overshoot * B;
+          segIdx++;
+          teled = false;
+        } else break;
+      }
       let dt = dtRaw;
       if (slowT > 0) {
         slowT -= dtRaw;
@@ -800,10 +828,11 @@ let teleFx = [];
 
       // Strecke bewegen
       const speed = (beat.bpm / 60) * B;
+      const distance = timed ? travelBeats * B * (dtRaw > 0 ? dt / dtRaw : 1) : speed * dt;
       for (const o of els) {
         // Schnelle Gegner sprinten erst, wenn sie im Bild sind – das Segment-Layout bleibt so exakt erhalten
         if (o.fastMul > 1 && o.speedMul === 1 && o.x <= W * 0.72) o.speedMul = o.fastMul;
-        o.x -= speed * dt * o.speedMul;
+        o.x -= distance * o.speedMul;
         if (!o.hidden && o.rise < 1) o.rise = Math.min(1, o.rise + dt * (o.kind === 'pop' ? 8 : 6));
         if (o.trigX !== undefined && !o.fired && o.x <= o.trigX) {
           o.fired = true;

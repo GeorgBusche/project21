@@ -1,6 +1,7 @@
 import { CONTENT } from '../../../content.js';
 import { clamp, createBeatSource } from './stage-utils.js';
 import { generateWaves, WAVE_INTRO } from './stage3-waves.js';
+import { renderPyroIntro } from '../arcade-cutscenes.js';
 
 // Stage 3: LIVE-SHOW (Rammstein-Look). Fiech steht als Pyro-Meister vor dem Rammstein-Logo und feuert im Beat
 // Flammen und Minen auf 3, im Finale auf 5 Spuren. Spur antippen / ziehen oder Pfeiltasten (A/D).
@@ -11,7 +12,6 @@ import { generateWaves, WAVE_INTRO } from './stage3-waves.js';
 // Die Wellen (Spuren, Reihen, Tempo, Laser-/Sturz-Häufigkeit) stehen in stage3-waves.js und werden bei jedem
 // Start zufällig erzeugt. Zeichen je Reihe: . sicher · v Mine · L Sunbeam · F Fiech-Sturz. Jede Reihe ist garantiert
 // schadenfrei erreichbar. Münzen (g) werden zufällig zwischen den Reihen gesetzt.
-let WAVES = generateWaves();
 const LASER_WARN = 3; // Beats Vorwarnung (2 Beats Blinken, letzter Beat: Aufladen)
 const LASER_ACTIVE = 0.6; // Beats Strahl aktiv
 const DIVE_FALL = 3.2; // Beats vom Ankündigen bis Fiech unten einschlägt
@@ -106,8 +106,9 @@ function crowdSprite(seed, y, r, step, phones) {
   return c;
 }
 
-export function createStage3() {
+export function createStage3(options = {}) {
   let engine;
+  let WAVES;
   let tick;
   let beat = { bpm: 105, beatIndex: 0, beatPhase: 1, isBeat: false, bassEnergy: 0 };
   let bt;
@@ -144,7 +145,7 @@ export function createStage3() {
   const yOf = (o) => TOP_Y + (PY - TOP_Y) * (1 - (o.arrive - bt) / o.fall);
 
   function reset() {
-    WAVES = generateWaves();
+    WAVES = generateWaves(options.random, options.durationBeats);
     bt = 0;
     objs = [];
     WAVES.forEach((w, wi) => {
@@ -168,7 +169,7 @@ export function createStage3() {
         objs.push({ wave: wi, lc: Math.floor(rnd() * n) - (n - 1) / 2, arrive: w.start + (ri + 0.5) * w.gap, fall: w.fall, type: 'g', done: false, fired: false, hitDone: false });
       }
     });
-    total = Math.max(...objs.map((o) => o.arrive)) + 2;
+    total = options.durationBeats ?? Math.max(...objs.map((o) => o.arrive)) + 2;
     lane = 0;
     NL = 3;
     lanesTarget = 3;
@@ -294,6 +295,8 @@ export function createStage3() {
 
   return {
     color: '#ff3018',
+    trackIntroDuration: 3,
+    renderIntro: (ctx, time, total, beat) => renderPyroIntro(ctx, time, total, beat, engine),
     init(e) {
       engine = e;
       tick = createBeatSource();
@@ -307,12 +310,17 @@ export function createStage3() {
       logoGlow = null;
     },
     progress: () => clamp(bt / total, 0, 1),
+    get waves() { return WAVES; },
+    get position() { return bt; },
     onTouch(ev) {
       if (ev.type === 'down' || (ev.type === 'move' && engine.pointer.down)) setLane(Math.round(((ev.x / engine.W) * W - W / 2) / laneW(PY)));
     },
     update(dt, beatInfo) {
+      if (done) return;
       beat = tick(beatInfo, dt);
-      bt += dt * (beat.bpm / 60);
+      bt = options.startBeat !== undefined && Number.isFinite(beatInfo?.beatIndex)
+        ? Math.max(0, beatInfo.beatIndex + beatInfo.beatPhase - options.startBeat)
+        : bt + dt * (beat.bpm / 60);
       const { keys } = engine;
       const l = keys.has('arrowleft') || keys.has('a');
       const r = keys.has('arrowright') || keys.has('d');

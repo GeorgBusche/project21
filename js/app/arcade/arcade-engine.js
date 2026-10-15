@@ -4,13 +4,22 @@ import { playSuccessChime } from '../audio.js';
 import { escapeHtml } from '../ui.js';
 import { getPartyContext } from '../party-actions.js';
 import { createPlayerAppearance, drawPlayer, readLocalPlayerRsvp } from './player-rig.js';
-import { getBeatInfo, preloadArcadeAudio, setStage, setStressLevel, sfx, startArcadeAudio, triggerDjScratch, triggerSudoSound, triggerSudoSample, stopSudoSample, warmSudoSamples, stopArcadeAudio } from './arcade-audio.js';
+import {
+  finishStageIntro, getBeatInfo, preloadArcadeAudio, setStage, setStageIntroProgress,
+  setStressLevel, sfx, skipArcadeIntro, startArcadeAudio, triggerDjScratch,
+  triggerSudoSound, triggerSudoSample, stopSudoSample, warmSudoSamples, stopArcadeAudio
+} from './arcade-audio.js';
 import { fetchTopTen, getLocalBest, submitRun } from './arcade-scoreboard.js';
 import { createStage1 } from './stages/stage1-cube.js';
 import { createStage2 } from './stages/stage2-flappy.js';
 import { createStage3 } from './stages/stage3-pyro.js';
 import { createStage4 } from './stages/stage4-orbit.js';
 import { drawFiech } from './fiech-rig.js';
+import {
+  introTrackElapsed, nextStageBar, soundtrackSeconds, stageEntryBeat, stageWindow,
+  validateStageCues, STAGE_INTRO_SECONDS as RUN_INTRO_SECONDS
+} from './arcade-timeline.js';
+import { renderIntroImpact } from './arcade-cutscenes.js';
 
 export { drawFiech };
 
@@ -20,13 +29,11 @@ const MAX_LIVES = 3;
 const DEV_LIVES_OPTIONS = [3, 5, 10, 99];
 let devLives = MAX_LIVES; // nur im Admin-Testmodus (Stage-Menue)
 let runMaxLives = MAX_LIVES;
-const INTRO_SECONDS = 1.8;
-const STAGE_INTRO_SECONDS = 3;
-const CLEAR_SECONDS = 2.6;
+const INTRO_SECONDS = RUN_INTRO_SECONDS;
 const WIPE_SECONDS = 0.6;
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const STAGE_FACTORIES = [createStage1, createStage2, createStage3, createStage4];
-// Jede Stage = 20 % Fortschritt
+// Jede Stage = 25 % Fortschritt
 const PERCENT_STARTS = [0, 25, 50, 75, 100];
 
 const state = {
@@ -51,11 +58,24 @@ const state = {
   scale: 1,
   view: { cssW: 360, cssH: 600, offX: 0, offY: 0, dpr: 1 },
   keys: new Set(),
+  introKeys: new Set(),
   pointer: { x: W / 2, y: H - 80, down: false },
+  musicSeconds: 0,
+  introEndSeconds: 0,
+  introStartSeconds: 0,
+  introElapsedTrack: 0,
+  introTotalTrack: 0,
+  impactElapsed: 1,
+  lastIntroTap: -Infinity,
+  introSkipping: false,
+  bossIntroSeen: false,
+  transitionBeat: null,
+  frameBeat: null,
   stars: []
 };
 
 let playerAppearance = null;
+let preparedStages = [];
 let hudNodes = null;
 let hudValues = {};
 let bestScore = 0;
@@ -108,19 +128,27 @@ export const engine = {
   },
   complete() {
     if (state.mode !== 'playing') return;
+    const window = state.segmentId ? null : stageWindow(state.stageIndex + 1, CONTENT.arcadeAudio);
+    if (window && state.musicSeconds < window.endSec) return;
     state.clearBonus = 1000 * (state.stageIndex + 1) + state.lives * 250;
     state.score += state.clearBonus;
     playSuccessChime();
-    if (state.testRun) {
+    if (state.testRun && state.segmentId) {
       endRun(true);
       return;
     }
     if (state.stageIndex >= STAGE_FACTORIES.length - 1) {
       endRun(true);
     } else {
+      if (window) {
+        startStage(state.stageIndex + 1, null, true);
+        return;
+      }
       state.mode = 'stageClear';
-      state.timer = CLEAR_SECONDS;
-      state.modeDur = CLEAR_SECONDS;
+      const beat = state.frameBeat;
+      state.transitionBeat = nextStageBar(beat, WIPE_SECONDS);
+      state.timer = (state.transitionBeat - beat.beatIndex - beat.beatPhase) * 60 / (beat.bpm || CONTENT.arcadeAudio.baseBpm);
+      state.modeDur = state.timer;
     }
   },
   beep(freq, type = 'square', dur = 0.06, gain = 0.03) {
@@ -154,9 +182,13 @@ export const engine = {
 };
 
 function getPercent() {
+  if (state.mode === 'idle' || state.mode === 'stageSelect' || state.mode === 'configError') return 0;
   const i = state.stageIndex;
   if (state.mode === 'victory') return 100;
-  const prog = state.stage ? Math.min(1, Math.max(0, state.stage.progress())) : 0;
+  const window = state.segmentId ? null : stageWindow(state.stageIndex + 1, CONTENT.arcadeAudio);
+  const prog = window
+    ? clamp01((state.musicSeconds - window.startSec) / (window.endSec - window.startSec))
+    : state.stage ? Math.min(1, Math.max(0, state.stage.progress())) : 0;
   return Math.floor(PERCENT_STARTS[i] + (PERCENT_STARTS[i + 1] - PERCENT_STARTS[i]) * prog);
 }
 
@@ -308,8 +340,23 @@ function stageTap(extra = {}) {
   if (state.mode === 'playing') state.stage?.onTouch?.({ type: 'down', ...state.pointer, ...extra });
 }
 
+function skipBossIntro() {
+  if (state.mode !== 'intro' || state.stageIndex !== 3 || !state.bossIntroSeen || state.introSkipping) return;
+  state.introSkipping = true;
+  state.keys.clear();
+  state.pointer.down = false;
+  if (getBeatInfo().running) skipArcadeIntro(state.introEndSeconds);
+  else state.musicSeconds = state.introEndSeconds;
+}
+
 const onPointerDown = (ev) => {
   ev.preventDefault();
+  if (state.mode === 'intro') {
+    const now = performance.now();
+    if (now - state.lastIntroTap < 350) skipBossIntro();
+    state.lastIntroTap = now;
+    return;
+  }
   Object.assign(state.pointer, toLogical(ev), { down: true });
   stageTap();
 };
@@ -334,12 +381,22 @@ const onKeyDown = (ev) => {
   if (!CONTROL_KEYS.includes(k)) return;
   ev.preventDefault();
   ev.stopImmediatePropagation();
+  if (state.mode === 'intro') {
+    state.introKeys.add(k);
+    if (k === ' ' && !ev.repeat) skipBossIntro();
+    return;
+  }
+  if (state.introKeys.has(k)) return;
   if (!state.keys.has(k)) {
     state.keys.add(k);
     if (k === ' ' || k === 'arrowup' || k === 'w') stageTap({ key: true });
   }
 };
-const onKeyUp = (ev) => state.keys.delete(ev.key.toLowerCase());
+const onKeyUp = (ev) => {
+  const key = ev.key.toLowerCase();
+  state.keys.delete(key);
+  state.introKeys.delete(key);
+};
 
 function attachInput() {
   state.canvas.addEventListener('pointerdown', onPointerDown);
@@ -363,22 +420,66 @@ function detachInput() {
   window.removeEventListener('storage', onBestStorage);
 }
 
-function startStage(index, segmentId = null) {
+function prepareStage(index, segmentId = null) {
+  const window = segmentId ? null : stageWindow(index + 1, CONTENT.arcadeAudio);
+  const options = window ? { startBeat: window.startBeat, durationBeats: window.durationBeats } : {};
+  const stage = index === 0 ? createStage1({ ...options, segmentId })
+    : index === 1 ? createStage2(Math.random, options)
+    : index === 2 ? createStage3(options)
+    : STAGE_FACTORIES[index]();
+  stage.init(engine);
+  return stage;
+}
+
+function startStage(index, segmentId = null, onMusicCue = false) {
   state.stageIndex = index;
-  state.stage = index === 0 && segmentId ? createStage1({ segmentId }) : STAGE_FACTORIES[index]();
-  state.stage.init(engine);
-  if (index === 0) startArcadeAudio(1);
-  else setStage(index + 1);
-  state.mode = 'intro';
-  state.modeDur = index === 0 || state.segmentId ? INTRO_SECONDS : STAGE_INTRO_SECONDS;
+  state.stage = preparedStages[index] ?? prepareStage(index, segmentId);
+  const cinematic = Boolean(state.stage.renderIntro);
+  state.mode = onMusicCue && !cinematic ? 'playing' : 'intro';
+  state.modeDur = state.stage.trackIntroDuration ?? INTRO_SECONDS;
+  const cue = index === 0 ? 0 : CONTENT.arcadeAudio.stageEndSec[index - 1];
+  state.introStartSeconds = cinematic || index === 0 ? cue : cue - state.modeDur;
+  state.introTotalTrack = state.modeDur;
+  state.introElapsedTrack = introTrackElapsed(state.musicSeconds, state.introStartSeconds, state.modeDur);
+  state.impactElapsed = 1;
+  state.lastIntroTap = -Infinity;
+  state.introSkipping = false;
+  state.keys.clear();
+  state.pointer.down = false;
+  const intro = state.mode === 'intro';
+  if (index === 0) startArcadeAudio(1, 0, { intro });
+  else if (state.testRun && !onMusicCue) {
+    const entry = stageEntryBeat(index + 1, CONTENT.arcadeAudio);
+    const preroll = entry - (cinematic ? 0 : state.modeDur) * CONTENT.arcadeAudio.baseBpm / 60;
+    state.musicSeconds = CONTENT.arcadeAudio.beatOffsetSec + preroll * 60 / CONTENT.arcadeAudio.baseBpm;
+    startArcadeAudio(index + 1, preroll, { intro });
+  } else setStage(index + 1, { intro });
+  state.introEndSeconds = state.introStartSeconds + state.modeDur;
   state.timer = state.modeDur;
   state.lastCount = 0;
   state.invuln = 1;
+  state.transitionBeat = null;
 }
 
 function startRun(index = 0, testRun = false, segmentId = null) {
-  hideScreen();
   stopArcadeAudio(true);
+  try {
+    validateStageCues(CONTENT.arcadeAudio);
+    preparedStages = [];
+    const singleSegment = state.adminMenu && testRun && segmentId;
+    for (let i = index; i <= (singleSegment ? index : 2); i++) {
+      preparedStages[i] = prepareStage(i, singleSegment ? segmentId : null);
+    }
+  } catch (error) {
+    console.error('[arcade] Soundtrack schedule or route planning failed', error);
+    state.mode = 'configError';
+    state.stage = null;
+    preparedStages = [];
+    showScreen(`<div class="font-mono max-w-sm text-center"><h2 class="text-rose-400 font-bold mb-3">Soundtrack / Streckenplanung pruefen</h2><p class="text-sm text-white">${escapeHtml(error.message)}</p><button id="arcadeConfigClose" class="mt-4 py-2 px-4 rounded bg-neutral-800 text-white">Schliessen</button></div>`);
+    state.overlay.querySelector('#arcadeConfigClose').addEventListener('click', closeArcadeGame);
+    return;
+  }
+  hideScreen();
   state.testRun = state.adminMenu && testRun;
   bestScore = getLocalBest().score;
   const party = getPartyContext();
@@ -390,8 +491,17 @@ function startRun(index = 0, testRun = false, segmentId = null) {
   state.shakeT = 0;
   state.hurtT = 0;
   state.keys.clear();
+  state.introKeys.clear();
+  if (!state.bossIntroSeen) {
+    try {
+      state.bossIntroSeen = localStorage.getItem('arcade_boss_intro_seen') === '1';
+    } catch (error) {
+      console.warn('[arcade] Cannot read boss intro history; using this session', error);
+    }
+  }
   state.pointer = { x: W / 2, y: H - 80, down: false };
   state.segmentId = state.adminMenu && testRun ? segmentId : null;
+  state.musicSeconds = index === 0 ? 0 : CONTENT.arcadeAudio.stageEndSec[index - 1];
   startStage(index, state.segmentId);
 }
 
@@ -406,7 +516,7 @@ function showStageMenu() {
     <div class="font-mono max-w-sm w-full text-white">
       <div class="text-xs text-cyan-400 mb-1">ADMIN · TESTMODUS</div>
       <h2 class="text-xl font-black mb-2">STAGE AUSWÄHLEN</h2>
-      <p class="text-xs text-neutral-400 mb-4">Direktstart mit deinem Avatar und der gewählten Lebenszahl. Keine Rekorde oder Achievements. Nach der Stage endet der Test.</p>
+      <p class="text-xs text-neutral-400 mb-4">Direktstart mit deinem Avatar und der gewählten Lebenszahl. Danach geht es bis zum Boss weiter. Keine Rekorde oder Achievements. Einzelne Segmenttests enden nach dem Segment.</p>
       <div class="flex items-center gap-2 mb-3 text-xs">
         <span class="text-neutral-400">LEBEN</span>
         ${DEV_LIVES_OPTIONS.map((n) => `<button type="button" data-dev-lives="${n}" class="flex-1 py-2 rounded border ${n === devLives ? 'border-rose-400 bg-rose-900 text-white' : 'border-neutral-600 bg-neutral-800 text-neutral-300'}">${n}</button>`).join('')}
@@ -615,12 +725,19 @@ function drawBackground(ctx, t, beat) {
 function frame(now) {
   if (!state.ctx) return;
   state.raf = requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - state.last) / 1000 || 0);
+  const elapsed = Math.max(0, (now - state.last) / 1000 || 0);
+  const dt = Math.min(0.05, elapsed);
   state.last = now;
   const ctx = state.ctx;
   const { dpr, offX, offY } = state.view;
   const k = state.scale * dpr;
-  const beat = getBeatInfo();
+  let beat = getBeatInfo();
+  if (!beat.running) {
+    if (['intro', 'playing', 'stageClear'].includes(state.mode)) state.musicSeconds += elapsed * (beat.rate || 1);
+    const position = (state.musicSeconds - CONTENT.arcadeAudio.beatOffsetSec) * CONTENT.arcadeAudio.baseBpm / 60;
+    beat = { ...beat, bpm: CONTENT.arcadeAudio.baseBpm, beatIndex: Math.floor(position), beatPhase: position - Math.floor(position) };
+  } else if (beat.ready) state.musicSeconds = soundtrackSeconds(beat, CONTENT.arcadeAudio);
+  state.frameBeat = beat;
 
   if (state.menuOpen && state.mode === 'playing') state.invuln = Math.max(state.invuln, 0.2); // Menue offen = kein Schaden
   if (state.invuln > 0) state.invuln -= dt;
@@ -628,23 +745,46 @@ function frame(now) {
   if (state.hurtT > 0) state.hurtT -= dt;
 
   if (state.mode === 'intro') {
-    state.timer -= dt;
+    if (!beat.running || beat.ready) {
+      // Die Audio-Uhr integriert auch Rate-Rampen und ausgelassene Frames exakt.
+      state.introElapsedTrack = introTrackElapsed(state.musicSeconds, state.introStartSeconds, state.introTotalTrack);
+      state.timer = state.introTotalTrack - state.introElapsedTrack;
+      setStageIntroProgress(state.introElapsedTrack / state.introTotalTrack);
+    }
     const left = Math.ceil(state.timer);
-    if (state.modeDur > INTRO_SECONDS && left >= 1 && left <= 3 && left !== state.lastCount) {
+    if (!state.stage.renderIntro && state.modeDur > INTRO_SECONDS && left >= 1 && left <= 3 && left !== state.lastCount) {
       state.lastCount = left;
       sfx(left === 1 ? 880 : 520, 'square', 0.09, 0.04);
     }
     if (state.timer <= 0) {
       state.mode = 'playing';
-      sfx(1040, 'square', 0.18, 0.05);
+      state.keys.clear();
+      state.pointer.down = false;
+      finishStageIntro();
+      if (state.stage.renderIntro) {
+        state.impactElapsed = 0;
+        state.shakeT = state.stageIndex === 3 ? 0.65 : 0.35;
+      } else sfx(1040, 'square', 0.18, 0.05);
+      if (state.stageIndex === 3 && !state.bossIntroSeen) {
+        state.bossIntroSeen = true;
+        try {
+          localStorage.setItem('arcade_boss_intro_seen', '1');
+        } catch (error) {
+          console.warn('[arcade] Cannot persist boss intro history; remembered for this session', error);
+        }
+      }
     }
   } else if (state.mode === 'playing') {
-    state.stage.update(dt, beat, { keys: state.keys, pointer: state.pointer, held: engine.held });
+    state.impactElapsed += dt;
+    const window = state.segmentId ? null : stageWindow(state.stageIndex + 1, CONTENT.arcadeAudio);
+    if (window && state.musicSeconds >= window.endSec) {
+      engine.complete();
+    } else state.stage.update(dt, beat, { keys: state.keys, pointer: state.pointer, held: engine.held });
     setStressLevel(computeStress());
   } else if (state.mode === 'stageClear') {
     setStressLevel(0);
-    state.timer -= dt;
-    if (state.timer <= 0) startStage(state.stageIndex + 1);
+    state.timer = (state.transitionBeat - beat.beatIndex - beat.beatPhase) * 60 / beat.bpm;
+    if (state.timer <= 0) startStage(state.stageIndex + 1, null, true);
   }
 
   ctx.setTransform(k, 0, 0, k, offX * dpr, offY * dpr);
@@ -654,17 +794,38 @@ function frame(now) {
   ctx.rect(0, 0, W, H);
   ctx.clip();
   ctx.translate(sh, sh);
-  if (!state.stage?.drawsOwnBackground) drawBackground(ctx, now / 1000, beat);
+  if (!state.stage?.drawsOwnBackground && !(state.mode === 'intro' && state.stage?.renderIntro)) drawBackground(ctx, now / 1000, beat);
   else {
     ctx.fillStyle = '#05060a';
     ctx.fillRect(0, 0, W, H);
   }
   if (state.stage) {
     if (state.invuln > 0 && state.mode === 'playing' && Math.floor(now / 80) % 2) ctx.globalAlpha = 0.85;
-    state.stage.render(ctx);
+    if (state.mode === 'intro' && state.stage.renderIntro) {
+      state.stage.renderIntro(ctx, state.introElapsedTrack, state.introTotalTrack, beat);
+      if (state.stageIndex === 3 && state.bossIntroSeen) {
+        ctx.font = '8px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#c8a9b1';
+        ctx.fillText('[ DOPPEL-TAP / LEERTASTE = INTRO SKIP ]', W - 12, H - 45);
+      }
+    } else {
+      state.stage.render(ctx);
+      if (state.mode === 'playing' && state.stage.renderIntro) renderIntroImpact(ctx, state.impactElapsed, state.stageIndex === 3, engine, beat, state.stage.introLanding?.());
+    }
     ctx.globalAlpha = 1;
   }
-  if (state.mode === 'intro' || state.mode === 'stageClear') drawBanner(ctx);
+  if (state.stageIndex < 3 && !state.segmentId && state.mode === 'playing') {
+    const window = stageWindow(state.stageIndex + 1, CONTENT.arcadeAudio);
+    const remaining = window.endSec - state.musicSeconds;
+    if (remaining > 0 && remaining <= 4 * 60 / CONTENT.arcadeAudio.baseBpm) {
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#67e8f9';
+      ctx.font = 'bold 13px monospace';
+      ctx.fillText(`${state.stageIndex === 0 ? 'DROP' : state.stageIndex === 2 ? 'BOSS' : 'STAGE 3'} IN ${Math.ceil(remaining * CONTENT.arcadeAudio.baseBpm / 60)}`, W / 2, H - 28);
+    }
+  }
+  if ((state.mode === 'intro' && !state.stage?.renderIntro) || state.mode === 'stageClear') drawBanner(ctx);
   ctx.restore();
   drawHurt(ctx);
   extendEdges(ctx);
@@ -799,6 +960,7 @@ export function closeArcadeGame() {
   Object.assign(state, { adminMenu: false, menuOpen: false, overlay: null, canvas: null, ctx: null, stage: null, mode: 'idle', testRun: false });
   state.keys.clear();
   playerAppearance = null;
+  preparedStages = [];
   hudNodes = null;
   hudValues = {};
 }

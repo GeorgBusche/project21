@@ -1,6 +1,9 @@
 import { CONTENT } from '../../../content.js';
 import { clamp, createBeatSource } from './stage-utils.js';
 import { SONGS, PLAYLISTS } from '../arcade-songs.js';
+import { renderBossIntro } from '../arcade-cutscenes.js';
+import { BOSS_INTRO_TRACK_SECONDS } from '../arcade-timeline.js';
+import { drawTitan, drawSongDeck, drawRitualFloor, drawConcertStage, drawBossVictory, drawReactorOpening, BOSS_HP_RADIUS, SONG_CUE_SECONDS, SONG_SHOWS } from './stage4-show.js';
 import {
   drawBackground,
   drawGlitch,
@@ -22,27 +25,27 @@ export const R_OUT = 136;
 export const R_IN = 92;
 export const OMEGA = 1.9;
 export const GLASSES = 22;
-// Phase p laeuft, solange noch mehr als BOUNDS[p] - 1 Pinnchen uebrig sind; Phase 4 (DJ) endet per Root-Hack, Phase 5 ist das Rammstein-Finale
-export const BOUNDS = [19, 16, 13, 10];
+// Four song phases lead into the finale; the reactor opening has no HP gate.
+export const BOUNDS = [19, 16, 13, 7];
+export const OPENING_SECONDS = 18;
 export const PLAYER_HALF = 0.03; // Winkel-Halbbreite des Spielers auf der Schiene
 export const COCKPIT_Y = 445;
 
 const TAU = Math.PI * 2;
-const GLASS_R = 62;
+const GLASS_R = BOSS_HP_RADIUS;
 const GLASS_SC = Math.min(0.8, (0.8 * 15) / GLASSES);
 const TELL = 0.95;
 const SPOKE_HALF = 0.2;
 const SPOKE_DUR = 0.45;
 const FLAME_DUR = 1.2;
 const FLAME_HALF = 0.15;
-const MEDALS = ['#cd7f32', '#e5e7eb', '#facc15'];
-const GEYSER_HALF = 0.22;
+const GEYSER_HALF = 0.24;
 const GEYSER_DUR = 0.4;
 const ARC_DUR = 0.35;
 const BEAM_HALF = 0.07;
 const HOLD_TIME = 0.18;
 const DOUBLE_TAP = 0.28;
-const GAP_BEATS = 2; // mindestens 1 voller Beat Pause zwischen zwei Angriffen
+const GAP_BEATS = 1; // One full beat between attack phrases; warning times stay unchanged.
 const SWITCH_TIME = 0.12;
 const DASH_INV = 0.16;
 const LAST_BEATS = 8;
@@ -53,11 +56,10 @@ const VIOLET = '#a855f7';
 
 // Identitaet je Boss-Phase: Tint-Farbe + Emojis, die das Fiech bei jedem Angriff ausspuckt
 const PHASE_FX = [
-  { c: '#22c55e', e: '🍕🍝🍷' },
+  { c: '#22c55e', e: '🌋🔥🍷' },
   { c: '#facc15', e: '🏁🔧💨' },
   { c: '#7dd3fc', e: '🍺🫧🌀' },
   { c: '#ef4444', e: '🏅🧶🎉' },
-  { c: '#22c55e', e: '🎧💿🎚️' },
   { c: '#fb923c', e: '🔥☀️💥' }
 ];
 
@@ -71,13 +73,12 @@ export const PHASES = [
   { accent: '#e5e7eb', dark: '#450a0a' },
   { accent: '#60a5fa', dark: '#172554' },
   { accent: '#fbbf24', dark: '#451a03' },
-  { accent: GREEN, dark: '#2e1065' },
   { accent: '#fb923c', dark: '#7c2d12' }
 ];
 
-export const phaseOf = (g, djDone) => {
+export const phaseOf = (g) => {
   for (let p = 0; p < BOUNDS.length; p++) if (g >= BOUNDS[p]) return p;
-  return djDone ? 5 : 4;
+  return 4;
 };
 export const radOf = (ring) => (ring ? R_IN : R_OUT);
 export const wrap = (a) => {
@@ -155,13 +156,14 @@ export function createStage4(random = Math.random) {
   let shieldBeats = 4;
   let gap = GAP_BEATS;
   let patIdx = 0;
+  let poolIdx = 0;
+  let currentAttack = '';
+  let songPunch = 0;
   let sunT = 0;
-  let djDone = false;
   let song = null; // laufender DJ-Song {id, end}
   let songIdx = 0;
   let themeA = 0;
-  let themeId = 'sonne';
-  let sudoProg = 0;
+  let themeId = 'napoli';
   let attacked = false;
   let beatNo = 0;
   let nCounter = 0;
@@ -194,7 +196,6 @@ export function createStage4(random = Math.random) {
   let bannerT = 0;
   let introT = 0;
   let tintT = 0;
-  let spinA = 0;
   let barPulse = 0;
   let flash = 0;
   let bossFlash = 0;
@@ -207,8 +208,6 @@ export function createStage4(random = Math.random) {
   let swDir = 1;
   let lastBeats = 0;
   let lastZones = 0;
-  let phones = null;
-  let cmd = { target: '', shown: 0, acc: 0, life: 0 };
 
   const rand = (a, b) => a + random() * (b - a);
   const bl = () => 60 / (beat.bpm || 105);
@@ -217,8 +216,8 @@ export function createStage4(random = Math.random) {
   };
   const randRing = () => (unlocked && random() < 0.5 ? 1 : 0);
   const capAllowed = () => {
-    if (phase === 4) return glasses > 5;
-    if (phase === 5) return glasses > 1 || !song;
+    if (phase === 0 && songIdx === 0 && !song) return false;
+    if (phase === 4) return glasses > 1 || !song;
     // das letzte Pinnchen einer Song-Phase gibt es erst, wenn der Song zu Ende ist
     return glasses > BOUNDS[phase] || !song;
   };
@@ -290,48 +289,13 @@ export function createStage4(random = Math.random) {
       startLast();
       return;
     }
-    const np = phaseOf(glasses, djDone);
+    const np = phaseOf(glasses);
     if (np !== phase) startShield(np);
-  }
-
-  function setCmd(s) {
-    cmd = { target: s, shown: 0, acc: 0, life: 6 };
-  }
-
-  function takeSudo() {
-    const medal = Math.min(sudoProg, MEDALS.length - 1);
-    sudoProg++;
-    engine.triggerSudoSound?.('hack');
-    say(calls.medals[medal], MEDALS[medal]);
-    engine.addScore(50);
-    const p = ringPt(ang, rad);
-    spark(p.x, p.y, GREEN, 10, 120, 3, true);
-    setCmd(calls.cmd[Math.min(sudoProg, calls.cmd.length) - 1]);
-    if (sudoProg >= calls.cmd.length) execute();
-  }
-
-  function execute() {
-    engine.triggerSudoSound?.('execute');
-    const p = ringPt(ang, rad);
-    overBeam = { t: 0.6, x: p.x, y: p.y, exec: true };
-    for (let k = 0; k < 2 && glasses > 1; k++) {
-      glasses--;
-      shatter(glasses);
-    }
-    bossFlash = 1;
-    flash = 0.7;
-    engine.addScore(300);
-    engine.shake(0.6);
-    spark(CX, CY, GREEN, 30, 300, 4, true);
-    djDone = true;
-    cmd.life = 2.5;
-    startShield(5);
   }
 
   // ---------------------------------------------------------------- Phasen
 
-  function startShield(np) {
-    const prev = phase;
+  function startShield(np, deferSong = false) {
     phase = np;
     song = null;
     songIdx = 0;
@@ -346,32 +310,24 @@ export function createStage4(random = Math.random) {
     capsules = [];
     finalCap = null;
     patIdx = 0;
+    poolIdx = 0;
     gap = GAP_BEATS;
     attacked = false;
     bannerT = 1;
     introT = 1;
-    spinA = 0;
     flash = 0.6;
-    engine.shake(0.4);
-    engine.beep(120, 'sawtooth', 0.45, 0.04, 40);
+    if (!deferSong) {
+      engine.shake(0.4);
+      engine.beep(120, 'sawtooth', 0.45, 0.04, 40);
+    }
     if (np >= 1 && !unlocked) {
       unlocked = true;
       unlockT = 1.4;
       say(calls.unlock, '#22d3ee');
     }
-    if (np === 4) {
-      engine.triggerDjScratch?.();
-      say(calls.djIntro, GREEN);
-      sudoProg = 0;
-      songIdx = 0;
-      setCmd('> _');
-    } else if (np === 5 && prev === 4) {
-      say(calls.enough, '#fb923c');
-      phones = { x: CX, y: CY - 30, vx: random() < 0.5 ? -170 : 170, vy: -280, rot: 0 };
-    }
     themeId = PLAYLISTS[np][0];
-    // Song startet sofort mit dem Abschnitt (nicht erst nach dem ersten Angriff)
-    beginSong(np >= 4);
+    // Nur der erste Song wartet auf die Schutz-Beats nach der Cutscene.
+    if (!deferSong) beginSong();
     gap = 5;
   }
 
@@ -519,21 +475,6 @@ export function createStage4(random = Math.random) {
     engine.beep(200, 'sawtooth', 0.4, 0.04, 500);
   }
 
-  // DJ 2: 4 symmetrische Equalizer-Balken, dazwischen [ sudo ! ]-Kapseln (erst nach dem Song, damit er nicht abbricht)
-  function patEqualizer() {
-    const base = rand(0, TAU);
-    const lead = Math.max(0.9, bl() * 1.3);
-    hazards.push({ kind: 'spokes', eq: true, base, count: 4, half: 0.09, dur: 0.2, tellAt: t, liveAt: t + lead });
-    const need = song ? 0 : Math.min(2, calls.cmd.length - sudoProg);
-    const k0 = Math.floor(random() * 4);
-    for (let i = 0; i < need; i++) {
-      addCap(base + Math.PI / 4 + ((k0 + i * 2) % 4) * (Math.PI / 2), randRing(), t + 0.3, 5, 'sudo');
-    }
-    slamT = lead;
-    say(calls.eq, '#86efac');
-    engine.triggerSudoSound?.('type');
-  }
-
   // Napoli: Vesuv spuckt Lava abwechselnd auf beiden Ringen
   function patVesuv() {
     const a0 = rand(0, TAU);
@@ -661,15 +602,15 @@ export function createStage4(random = Math.random) {
     engine.beep(120, 'sawtooth', 0.45, 0.04, 300);
   }
 
-  // Napoli: ein riesiges Pizza-Stueck dreht sich langsam ueber beide Ringe
-  function patPizza() {
+  // The furnace sweeps a molten cutting beam across the arena.
+  function patLavaSweep() {
     swDir = -swDir;
     const lead = Math.max(1.1, bl() * 1.8);
     const a0 = ang + (random() < 0.5 ? 1 : -1) * 1.7;
-    hazards.push({ kind: 'laser', single: true, half: 0.42, skin: 'pizza', a0, sw: swDir * 2.0, tellAt: t, liveAt: t + lead, dur: 2.6 });
+    hazards.push({ kind: 'laser', single: true, half: 0.09, skin: 'lava', a0, sw: swDir * 2.0, tellAt: t, liveAt: t + lead, dur: 2.6 });
     addCap(a0 - swDir * 1.4, randRing(), t + 0.4, 5.2);
     slamT = lead + 1.5;
-    say(calls.pizza, '#f87171');
+    say(calls.lavaSweep, '#f87171');
     engine.beep(220, 'triangle', 0.3, 0.04, 500);
   }
 
@@ -749,26 +690,150 @@ export function createStage4(random = Math.random) {
     engine.beep(80, 'sawtooth', 0.5, 0.05, 40);
   }
 
+  // Signature phrases remain sequential: one readable danger, then its response.
+  function signature() {
+    const lead = Math.max(1.15, bl() * 2);
+    const step = Math.max(1.15, bl() * 2);
+    const base = ang + dir * 1.8;
+    const first = unlocked ? ring : 0;
+    currentAttack = SONG_SHOWS[PLAYLISTS[phase][0]].move;
+    if (phase === 0) {
+      // Two furnace eruptions lead into a molten cutting beam.
+      for (let k = 0; k < 2; k++) {
+        const liveAt = t + lead + k * step;
+        hazards.push({ kind: 'geys', skin: 'lava', angle: base - dir * k * 1.6,
+          ring: 0, tellAt: liveAt - TELL, liveAt, color: 0, signature: true });
+      }
+      const liveAt = t + lead + 2 * step;
+      hazards.push({ kind: 'laser', single: true, half: 0.09, skin: 'lava',
+        a0: base + Math.PI, sw: -dir * 1.1, tellAt: liveAt - lead, liveAt, dur: 1.5, signature: true });
+    } else if (phase === 1) {
+      // Four gear changes demand deliberate ring swaps, not random new lasers.
+      for (let k = 0; k < 4; k++) {
+        const liveAt = t + lead + k * step;
+        hazards.push({ kind: 'zone', ring: (first + k) % 2, cage: true, gear: k + 1,
+          tellAt: liveAt - TELL, liveAt, dur: 0.4, signature: true });
+      }
+    } else if (phase === 2) {
+      // Opposing storm arms reverse their sweep after the eye of the cyclone.
+      for (let k = 0; k < 2; k++) {
+        const liveAt = t + lead + k * (2.2 + lead);
+        hazards.push({ kind: 'laser', single: false, storm: true,
+          a0: base + k * Math.PI / 2, sw: (k ? -1 : 1) * dir * 1.05,
+          tellAt: liveAt - lead, liveAt, dur: 2.2, signature: true });
+      }
+    } else if (phase === 3) {
+      // Conductor call-and-response: three frozen spot targets, then the echo.
+      for (let k = 0; k < 4; k++) {
+        const liveAt = t + lead + k * step;
+        hazards.push({ kind: 'arcs', spot: true, center: ang + dir * OMEGA * (liveAt - t),
+          half: k === 3 ? 0.62 : 0.42, dur: 0.4,
+          ring: k % 2, tellAt: liveAt - TELL, liveAt, signature: true });
+      }
+    } else {
+      // Reactor count: sparse, rotating ignition spokes alternate the hot rail.
+      for (let k = 0; k < 4; k++) {
+        const liveAt = t + lead + k * step;
+        hazards.push({ kind: 'spokes', skin: 'flame', base: base + k * Math.PI / 4,
+          count: 3, half: 0.15, dur: 0.45, ring: (first + k) % 2,
+          tellAt: liveAt - TELL, liveAt, num: k, signature: true });
+      }
+      sunT = lead + 4 * step;
+    }
+    addCap(ang + dir * 1.0, unlocked ? 1 - first : 0, t + 0.4, 6.5);
+    slamT = lead;
+    say(SONG_SHOWS[PLAYLISTS[phase][0]].label + ' // SIGNATURE', SONG_SHOWS[PLAYLISTS[phase][0]].color);
+  }
+
   // Angriffs-Pool je Boss-Phase (Index = Phase): jede Phase hat ausschliesslich eigene Mechaniken
   const PHASE_POOLS = [
-    [patVesuv, patPizza, () => patMortar(false)],
+    [patVesuv, patLavaSweep, () => patMortar(false)],
     [patCage, patRace, patGasPedal, patPit],
     [patTwister, patSog, patStorm],
     [patWelle, patCurtain, patSpot],
-    [() => patGeysers(5), patEqualizer, patNeedle],
     [patSonne, patLauffeuer, patSonneCount, patInferno]
   ];
 
+  function reprise() {
+    const lead = Math.max(1.2, bl() * 2);
+    const base = ang + dir * OMEGA * lead;
+    const first = unlocked ? ring : 0;
+    const names = ['VESUV // NACHBEBEN', 'TURBO // BREMSMANOEVER', 'ZYKLON // WINDWAND', 'STADION // GEGENCHOR', 'SONNE // FEUERSPIRALE'];
+    currentAttack = names[phase];
+    if (phase === 0) {
+      // The same frozen lava targets erupt twice; the echo punishes an early return.
+      for (let k = 0; k < 4; k++) {
+        const liveAt = t + lead + k * 1.05;
+        hazards.push({ kind: 'geys', skin: 'lava', angle: base + (k % 2) * dir * 1.7,
+          ring: 0, tellAt: liveAt - TELL, liveAt, color: 0 });
+      }
+    } else if (phase === 1) {
+      hazards.push({ kind: 'laser', single: true, race: true, a0: base + Math.PI / 2,
+        sw: -dir * 1.5, tellAt: t, liveAt: t + lead, dur: 1.3 });
+      const liveAt = t + lead + 1.6;
+      hazards.push({ kind: 'zone', ring: first, cage: true, tellAt: liveAt - TELL, liveAt, dur: 0.45 });
+    } else if (phase === 2) {
+      // Broad walls alternate rails, rather than adding another rotating laser.
+      for (let k = 0; k < 3; k++) {
+        const liveAt = t + lead + k * 1.2;
+        hazards.push({ kind: 'arcs', center: base - dir * k * 1.4, half: 0.78,
+          ring: (first + k) % 2, tellAt: liveAt - TELL, liveAt, dur: 0.5 });
+      }
+    } else if (phase === 3) {
+      for (let k = 0; k < 4; k++) {
+        const liveAt = t + lead + k * 1.05;
+        hazards.push({ kind: 'arcs', spot: true, center: base + (k % 2 ? Math.PI : 0),
+          half: 0.5, ring: (first + k) % 2, tellAt: liveAt - TELL, liveAt, dur: 0.4 });
+      }
+    } else {
+      for (let k = 0; k < 6; k++) {
+        const liveAt = t + lead + k * 0.7;
+        hazards.push({ kind: 'geys', skin: 'fire', angle: base + dir * k * 0.85,
+          ring: (first + k) % 2, tellAt: liveAt - TELL, liveAt, color: 0 });
+      }
+      sunT = lead + 4;
+    }
+    addCap(ang + dir * 1.0, unlocked ? 1 - first : 0, t + 0.4, 6);
+    slamT = lead;
+    say(currentAttack, SONG_SHOWS[PLAYLISTS[phase][0]].color);
+  }
+
   function beginSong(silent = false) {
+    const firstNapoli = phase === 0 && songIdx === 0;
     const id = PLAYLISTS[phase][songIdx];
-    song = { id, start: t, end: t + SONGS[id].len - 1.2, len: SONGS[id].len, heard: false };
+    song = {
+      id, queuedAt: clock, cueAt: clock + SONG_CUE_SECONDS,
+      start: t + SONG_CUE_SECONDS, end: Infinity, len: SONGS[id].len, started: false, heard: false, unavailable: false
+    };
     themeId = id;
-    if (!silent) engine.triggerDjScratch?.();
-    song.heard = engine.triggerSudoSample?.(id) !== false;
-    if (!silent) say(calls.songs[id].name, GREEN);
-    flash = 0.4;
+    if (!silent) say(calls.songs[id].name, SONG_SHOWS[id].color);
+    songPunch = 0;
+    flash = firstNapoli ? 0.65 : 0.12;
+    if (firstNapoli) {
+      currentAttack = '';
+      bannerT = 1;
+      introT = 1;
+      patIdx = 0;
+      poolIdx = 0;
+      spark(CX, CY, '#ff9b45', 28, 230, 4);
+    }
     barPulse = 1;
     gap = 3;
+  }
+
+  function playQueuedSong() {
+    if (!song || song.started || clock < song.cueAt) return;
+    const result = engine.triggerSudoSample?.(song.id);
+    if (result === false) return;
+    song.started = true;
+    song.unavailable = result === 'unavailable';
+    song.heard = !song.unavailable;
+    song.start = t;
+    song.end = t + song.len;
+    songPunch = 1;
+    barPulse = 1;
+    spark(CX, CY + 73, SONG_SHOWS[song.id].color, 12, 90);
+    if (song.heard) engine.triggerDjScratch?.();
   }
 
   function endSong() {
@@ -776,21 +841,84 @@ export function createStage4(random = Math.random) {
     songIdx++;
     gap = 3;
     attacked = false;
-    // Belohnung: im DJ-Set ein [ sudo ! ]-Fragment, sonst die fehlende Konter-Kapsel
-    if (phase === 4 && sudoProg < calls.cmd.length && !capsules.some((c) => c.kind === 'sudo')) {
-      addCap(ang + dir * 1.1, randRing(), t, 6, 'sudo');
-    } else if (capAllowed() && !capsules.some((c) => c.kind === 'gold')) addCap(ang + dir * 1.1, randRing(), t, 5);
+    if (capAllowed() && !capsules.some((c) => c.kind === 'gold')) addCap(ang + dir * 1.1, randRing(), t, 5);
+  }
+
+  function launchReactorAttack() {
+    const lead = Math.max(1.2, bl() * 2);
+    const lock = ang + dir * OMEGA * lead;
+    const scan = patIdx++ % 2;
+    currentAttack = scan ? 'REAKTOR // KREUZPEILUNG' : 'REAKTOR // ECHO-LOCK';
+    if (!scan) {
+      // Frozen targets repeat after the first pulse: keep moving, then dodge the echo.
+      for (let k = 0; k < 3; k++) {
+        const liveAt = t + lead + k * 1.05;
+        hazards.push({ kind: 'arcs', center: k === 1 ? lock + dir * 1.6 : lock,
+          half: 0.29, dur: 0.3, ring: 0, tellAt: liveAt - TELL, liveAt, reactor: true });
+      }
+    } else {
+      // Two stationary diameters fire in turn, unlike the moving song sweeps.
+      for (let k = 0; k < 2; k++) {
+        const liveAt = t + lead + k * 1.5;
+        hazards.push({ kind: 'laser', single: false, a0: lock + k * Math.PI / 2,
+          sw: 0, half: 0.07, dur: 0.4, tellAt: liveAt - TELL, liveAt, reactor: true });
+      }
+    }
+    say(currentAttack, '#b7dfed');
   }
   function launch() {
     attacked = true;
-    tintT = 1;
-    spark(CX, CY, PHASE_FX[phase].c, 7, 190, 3, PHASE_FX[phase].e);
-    if (phase === 4 && !song) {
-      patEqualizer();
+    const before = hazards.length;
+    if (phase === 0 && songIdx === 0 && !song) {
+      launchReactorAttack();
+      tightenHazards(before);
       return;
     }
+    tintT = 1;
+    spark(CX, CY, PHASE_FX[phase].c, 7, 190, 3, PHASE_FX[phase].e);
     const pool = PHASE_POOLS[phase];
-    pool[patIdx++ % pool.length]();
+    const sequence = patIdx++;
+    if (sequence % 3 === 0) signature();
+    else if (sequence % 6 === 1) reprise();
+    else {
+      currentAttack = '';
+      const available = Math.min(pool.length, 1 + Math.floor(sequence / 2));
+      pool[poolIdx++ % available]();
+    }
+    for (let i = before; i < hazards.length; i++) {
+      hazards[i].song = PLAYLISTS[phase][0];
+      hazards[i].phrase = sequence;
+      hazards[i].reprise = sequence % 6 === 1;
+    }
+    tightenHazards(before);
+  }
+
+  function tightenHazards(from) {
+    for (let i = from; i < hazards.length; i++) {
+      const h = hazards[i];
+      if (h.half !== undefined && h.skin !== 'pit') h.half *= 1.08;
+      else if (h.kind === 'laser') h.half = BEAM_HALF * 1.08;
+    }
+    const primaries = hazards.slice(from);
+    let lastPressureEnd = -Infinity;
+    let count = 0;
+    for (const primary of primaries) {
+      if (count >= (patIdx <= 1 ? 1 : 2)) break;
+      const liveAt = liveAtOf(primary) + 0.1;
+      const duration = Math.min(0.65, endOf(primary) - liveAt);
+      if (duration < 0.15 || liveAt < lastPressureEnd + TELL) continue;
+      const opposite = primary.ring === undefined ? ring : 1 - primary.ring;
+      hazards.push({
+        kind: 'arcs', ring: unlocked ? opposite : 0,
+        center: wrap(ang + dir * OMEGA * (liveAt - t) + dir * 0.35),
+        half: unlocked ? 0.72 : 0.48,
+        tellAt: liveAt - TELL, liveAt, dur: duration,
+        pressure: true, reactor: Boolean(primary.reactor),
+        song: primary.song, phrase: primary.phrase
+      });
+      lastPressureEnd = liveAt + duration;
+      count++;
+    }
   }
 
   function lastBeat() {
@@ -804,21 +932,20 @@ export function createStage4(random = Math.random) {
 
   function onBeat() {
     beatNo++;
-    if (song && !song.heard) {
+    if (song && !song.started) {
       // Sample war noch nicht geladen: nachholen und Songende mitverschieben
-      song.heard = engine.triggerSudoSample?.(song.id) !== false;
-      if (song.heard) {
-        song.start = t;
-        song.end = t + song.len - 1.2;
-      }
+      playQueuedSong();
     }
     if (beatNo % 4 === 0) barPulse = 1;
-    if (phase === 5 && mode !== 'ko') {
+    if (phase === 4 && mode !== 'ko') {
       spark(rand(0, W), COCKPIT_Y - 6, '#fb923c', 4, 150, 3);
       if (beatNo % 4 === 0) engine.shake(0.15);
     }
     if (mode === 'shield') {
-      if (--shieldBeats <= 0) mode = 'fight';
+      if (--shieldBeats <= 0) {
+        mode = 'fight';
+        if (!song && phase !== 0) beginSong();
+      }
       return;
     }
     if (mode === 'last') {
@@ -826,18 +953,23 @@ export function createStage4(random = Math.random) {
       return;
     }
     if (mode !== 'fight') return;
+    if (phase === 0 && !song && songIdx === 0 && clock >= OPENING_SECONDS && hazards.length === 0) {
+      beginSong();
+      return;
+    }
+    if (song && !song.started) return;
     if (hazards.length > 0) {
       gap = GAP_BEATS;
       return;
     }
     // nach jedem ueberstandenen Angriff liegt garantiert eine Konter-Kapsel bereit
-    if (attacked && !capsules.some((c) => c.kind === 'gold') && capAllowed() && phase !== 4) {
+    if (attacked && !capsules.some((c) => c.kind === 'gold') && capAllowed()) {
       addCap(ang + dir * 1.1, randRing(), t, 4);
     }
     attacked = false;
     if (song && t >= song.end) endSong();
     if (--gap > 0) return;
-    if (!song && songIdx < PLAYLISTS[phase].length) {
+    if (!song && songIdx < PLAYLISTS[phase].length && (phase !== 0 || clock >= OPENING_SECONDS)) {
       beginSong();
       return;
     }
@@ -898,8 +1030,7 @@ export function createStage4(random = Math.random) {
       if (c.v) c.angle = wrap(c.angle + c.v * dt);
       if (c.ring === ring && dAng(ang, c.angle) < (c.kind === 'sudo' ? 0.24 : 0.2)) {
         c.taken = true;
-        if (c.kind === 'sudo') takeSudo();
-        else counter();
+        counter();
         if (mode !== 'fight') return;
       } else if (t - c.born > c.life) c.taken = true;
     }
@@ -907,6 +1038,9 @@ export function createStage4(random = Math.random) {
   }
 
   return {
+    trackIntroDuration: BOSS_INTRO_TRACK_SECONDS,
+    renderIntro: (ctx, time, total, beat) => renderBossIntro(ctx, time, total, beat, engine, GLASSES),
+    introLanding: () => ({ x: CX + Math.cos(ang) * rad, y: CY + Math.sin(ang) * rad }),
     get color() {
       return PHASES[phase].accent;
     },
@@ -915,7 +1049,7 @@ export function createStage4(random = Math.random) {
       engine = e;
       engine.warmSudoSamples?.();
       tick = createBeatSource();
-      startShield(0);
+      startShield(0, true);
       shieldBeats = 4;
       barPulse = 0;
       flash = 0;
@@ -954,13 +1088,17 @@ export function createStage4(random = Math.random) {
       ang,
       dir,
       ring,
+      burst,
       mode,
       phase,
       glasses,
       unlocked,
       songIdx,
-      sudoProg,
       song,
+      opening: phase === 0 && !song && songIdx === 0,
+      koT,
+      currentAttack,
+      songCue: song ? clamp((clock - song.queuedAt) / SONG_CUE_SECONDS, 0, song.started ? 1 : 0.98) : 1,
       gap,
       dangerAt: (a, ahead, m = 0, r = ring) => hazards.some((h) => hazardHit(h, a, t + ahead, m, r))
     }),
@@ -969,12 +1107,15 @@ export function createStage4(random = Math.random) {
       clock += dt;
       const wdt = dt * ts;
       t += wdt;
+      songPunch = Math.max(0, songPunch - dt * 2.5);
+      if (song && !song.started && clock - dt < song.cueAt && clock >= song.cueAt) playQueuedSong();
       updateInput();
       burst = Math.max(0, burst - dt);
       dashInv = Math.max(0, dashInv - dt);
       slamT = Math.max(0, slamT - dt);
       sunT = Math.max(0, sunT - dt);
-      themeA = clamp(themeA + (song || phase !== 4 ? dt * 2.5 : -dt * 2.5), 0, 1);
+      const opening = phase === 0 && !song && songIdx === 0;
+      themeA = clamp(themeA + (!opening ? dt * 2.5 : -dt * 2.5), 0, 1);
       unlockT = Math.max(0, unlockT - dt);
       flash = Math.max(0, flash - dt * 2.2);
       bossFlash = Math.max(0, bossFlash - dt * 5);
@@ -983,12 +1124,6 @@ export function createStage4(random = Math.random) {
       bannerT = Math.max(0, bannerT - dt * 0.42);
       introT = Math.max(0, introT - dt * 0.5);
       tintT = Math.max(0, tintT - dt * 1.6);
-      const spinning = phase === 2 && hazards.some((h) => t < endOf(h) + 0.3);
-      if (spinning) spinA += dt * 7;
-      else if (spinA > 0) {
-        spinA += dt * 7;
-        if (spinA % TAU < dt * 7) spinA = 0;
-      }
       if (overBeam) {
         overBeam.t -= dt;
         if (overBeam.t <= 0) overBeam = null;
@@ -1003,31 +1138,14 @@ export function createStage4(random = Math.random) {
       pillars = pillars.filter((p) => t - p.t0 < p.life);
       for (const g of trail) g.al -= dt * 6;
       trail = trail.filter((g) => g.al > 0);
-      if (phones) {
-        phones.x += phones.vx * dt;
-        phones.y += phones.vy * dt;
-        phones.vy += 700 * dt;
-        phones.rot += dt * 9;
-        if (phones.y > H + 40) phones = null;
-      }
-      // SUDO-Befehl tippt sich Zeichen fuer Zeichen
-      if (cmd.target) {
-        if (cmd.shown < cmd.target.length) {
-          cmd.acc += dt;
-          while (cmd.acc >= 0.03 && cmd.shown < cmd.target.length) {
-            cmd.acc -= 0.03;
-            cmd.shown++;
-            if (cmd.shown % 3 === 0) engine.triggerSudoSound?.('type');
-          }
-        } else if (djDone) {
-          cmd.life -= dt;
-          if (cmd.life <= 0) cmd = { target: '', shown: 0, acc: 0, life: 0 };
-        }
-      }
-
       if (mode === 'ko') {
         koT += dt;
-        if (koT >= 2.4 && !completed) {
+        if (koT - dt < 0.85 && koT >= 0.85) {
+          engine.shake(0.9);
+          engine.beep(55, 'sawtooth', 0.7, 0.05, 25);
+          engine.beep(880, 'triangle', 0.45, 0.04, 1760);
+        }
+        if (koT >= 5.2 && !completed) {
           completed = true;
           engine.complete();
         }
@@ -1075,13 +1193,13 @@ export function createStage4(random = Math.random) {
     render(ctx) {
       const P = PHASES[phase];
       const ac = P.accent;
-      const dj = phase === 4 && mode !== 'ko';
+      const opening = phase === 0 && !song && songIdx === 0;
       view.unl = unlocked;
       const shk = t < shakeUntil ? Math.sin(t * 70) : 0;
       drawBackground(ctx, { t, beat, accent: ac, barPulse });
+      if (opening) drawReactorOpening(ctx, { t, beat, hazards, angle: ang });
       const themed = themeA > 0.02 && mode !== 'ko';
       const tc = themed && themeA > 0.5 ? THEMES[themeId].c : GREEN;
-      if (dj && !themed) drawMatrix(ctx, t);
       if (themed) {
         drawSongBg(ctx, themeId, themeA, t);
         drawSongFx(ctx, THEMES[themeId].c, themeA, t, barPulse, beat);
@@ -1089,27 +1207,20 @@ export function createStage4(random = Math.random) {
         drawPhaseExtras(ctx, themeId, themeA, t, beat);
         if (themeId === 'sonne') drawInferno(ctx, t, themeA, barPulse, beat, mode === 'last' ? 1.4 : song ? 0.4 + clamp((t - song.start) / song.len, 0, 1) : 1);
       }
+      if (!opening) drawRitualFloor(ctx, { t, beat, entrance: clamp(t / 1.2, 0, 1), color: themed ? tc : '#fbbf24' });
       drawPillars(ctx, pillars, t);
 
-      if (dj) drawVinylDisc(ctx, t, themed ? tc : '#14532d');
-      else {
+      if (!opening) {
         ctx.globalAlpha = 0.22;
         drawCrownCap(ctx, CX, CY, 178, t * 0.18, '#7f1d1d');
         ctx.globalAlpha = 1;
       }
-      drawRails(ctx, themed && !dj ? THEMES[themeId].c : ac, dj, unlocked, unlockT, tc, phase, t);
+      drawRails(ctx, themed ? THEMES[themeId].c : ac, false, unlocked, unlockT, tc, opening ? -1 : phase, t);
 
-      // Warnungen / sichere Zonen
-      let safeLabel = true;
-      const safeRings = new Set();
-      const safeRing = (r) => {
-        if (r === undefined || safeRings.has(r)) return;
-        safeRings.add(r);
-        drawSafeRing(ctx, r, t, calls.safe);
-      };
+      // Only damage areas are marked; unmarked space is not a promised safe zone.
       for (const h of hazards) {
         if (h.kind === 'zone') {
-          if (t >= h.tellAt) drawZone(ctx, h, t, calls.safe);
+          if (t >= h.tellAt) drawZone(ctx, h, t);
           continue;
         }
         if (t >= liveAtOf(h)) continue;
@@ -1118,29 +1229,13 @@ export function createStage4(random = Math.random) {
           for (let k = 0; k < h.count; k++) {
             const a = h.base + (k * TAU) / h.count;
             drawDangerArc(ctx, a, h.half, t, h.ring);
-            const g = a + TAU / h.count / 2;
-            if (h.ring === undefined) {
-              drawSafeArc(ctx, g, TAU / h.count / 2 - h.half, t, safeLabel ? calls.safe : '');
-              safeLabel = false;
-            }
           }
-          if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'arcs') {
           drawDangerArc(ctx, h.center, h.half, t, h.ring);
-          if (h.hold) {
-            if (h.first) drawSafeArc(ctx, h.gap, 0.8, t, calls.safe);
-          } else if (h.spot) {
-            // Scheinwerfer: nur der Gefahrenbereich
-          } else {
-            drawSafeArc(ctx, h.center + Math.PI, Math.PI / 2, t, h.ring === undefined ? calls.safe : '', h.ring);
-          }
-          if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'bottle') {
           drawDangerArc(ctx, h.angle, h.half ?? FLAME_HALF, t, h.ring);
-          if (unlocked) safeRing(1 - h.ring);
         } else if (h.kind === 'geys' && t >= h.tellAt) {
           drawDangerArc(ctx, h.angle, GEYSER_HALF, t, h.ring);
-          if (h.ring !== undefined) safeRing(1 - h.ring);
         } else if (h.kind === 'laser') {
           for (const b of h.single ? [h.a0] : [h.a0, h.a0 + Math.PI]) {
             drawDangerArc(ctx, b, (h.half ?? BEAM_HALF) + 0.05, t);
@@ -1166,31 +1261,21 @@ export function createStage4(random = Math.random) {
         ctx.globalAlpha = 0.9;
         drawCrownCap(ctx, CX, CY, 56, t * 0.9, ac);
         ctx.globalAlpha = 1;
-        drawGlassRing(ctx, t, glasses, broken, bossFlash);
         if (sunT > 0) drawSun(ctx, t, Math.min(1, sunT * 2));
-        if (themed) drawSongProps(ctx, themeId, themeA, t);
-        const wob = mode === 'smash' ? Math.sin(clock * 60) * 3 : shk * 4;
-        const bp = beat.beatPhase ?? 0;
-        const pose = [
-          { dy: -Math.abs(Math.sin(t * 5)) * 8, rot: Math.sin(t * 2.5) * 0.12, sx: 1, sy: 1 },
-          { dy: 0, rot: 0.1, sx: 1, sy: 1, jx: Math.sin(t * 60) * (slamT > 0 ? 3 : 1) },
-          { dy: 0, rot: spinA, sx: 1, sy: 1 },
-          { dy: -Math.abs(Math.sin(t * 4)) * 5, rot: Math.sin(t * 3.4) * 0.2, sx: 1, sy: 1 },
-          { dy: Math.sin(t * 7) * 3, rot: Math.sin(t * 3.5) * 0.06, sx: 1, sy: 1 },
-          { dy: Math.max(0, 1 - bp * 3) * 6, rot: 0, sx: 1 + Math.max(0, 1 - bp * 3) * 0.12, sy: 1 + Math.max(0, 1 - bp * 3) * 0.12 }
-        ][phase];
-        ctx.save();
-        ctx.translate(CX + wob + (pose.jx ?? 0), CY + pose.dy);
-        ctx.rotate(pose.rot);
-        ctx.scale(pose.sx, pose.sy);
-        engine.drawFiech(ctx, 0, 0, 84, {
-          beatPhase: beat.beatPhase,
-          action: phase === 4 && slamT > 0 ? 'laugh' : slamT > 0 ? 'slam' : 'hover',
-          tilt: t < shakeUntil ? shk * 0.12 : Math.sin(t * 2) * 0.05
+        const cue = song ? clamp((clock - song.queuedAt) / SONG_CUE_SECONDS, 0, song.started ? 1 : 0.98) : 1;
+        drawTitan(ctx, engine, {
+          x: CX + (mode === 'smash' ? Math.sin(clock * 60) * 3 : shk * 2),
+          y: CY, size: 88, t: BOSS_INTRO_TRACK_SECONDS + t, beat,
+          color: song ? SONG_SHOWS[song.id].color : opening ? '#85cfe5' : '#fbbf24',
+          energy: charging * 0.6 + songPunch * 0.4,
+          activation: song && !song.started ? cue : songPunch > 0 ? 1 : 0,
+          recoil: Math.max(bossFlash, songPunch, Math.min(0.4, slamT * 0.3)), phase: song || songIdx > 0 ? phase : -1
         });
-        ctx.restore();
-        if (dj) drawDjGear(ctx, t, beat);
-        if (phones) drawPhones(ctx, phones);
+        if (song || songIdx > 0) drawSongDeck(ctx, {
+          id: themeId, t, beat, cue, playing: Boolean(song?.heard), unavailable: Boolean(song?.unavailable),
+          progress: song?.started ? clamp((t - song.start) / song.len, 0, 1) : song ? 0 : 1
+        });
+        drawGlassRing(ctx, t, glasses, broken, bossFlash);
         if (bossFlash > 0.05) {
           ctx.globalAlpha = bossFlash * 0.4;
           ctx.fillStyle = '#ffffff';
@@ -1203,7 +1288,7 @@ export function createStage4(random = Math.random) {
       }
 
       for (const h of hazards) drawBody(ctx, h, t);
-      for (const c of capsules) drawCap(ctx, c, t, calls, MEDALS[Math.min(sudoProg, MEDALS.length - 1)]);
+      for (const c of capsules) drawCap(ctx, c, t, calls, GOLD);
       if (finalCap) drawFinal(ctx, finalCap, t, calls.smashHint);
 
       // Spieler
@@ -1294,8 +1379,12 @@ export function createStage4(random = Math.random) {
       ctx.fillText(`${text.name} // ${text.subtitle}`, W / 2, 30);
       ctx.fillStyle = '#6b7280';
       ctx.font = '9px monospace';
-      ctx.fillText(`PHASE ${phase + 1}/6 · PINNCHEN ${glasses}/${GLASSES}`, W / 2, 44);
-      if (cmd.target) drawCmd(ctx, cmd, clock);
+      ctx.fillText(`${opening ? 'PROLOG // REAKTOR-DUELL' : `PHASE ${phase + 1}/5`} · PINNCHEN ${glasses}/${GLASSES}`, W / 2, 44);
+      if (phase === 0 && !song && songIdx === 0 && mode !== 'ko') {
+        ctx.fillStyle = '#a5d5e4';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('KEIN SIGNAL // NUR DU UND DER KERN', CX, 92);
+      }
       if (themed && themeA > 0.3) drawSongHud(ctx, THEMES[themeId].c, themeA, calls.songs[themeId].name, song ? clamp((t - song.start) / song.len, 0, 1) : 1, t);
 
       drawCockpit(ctx, text.cockpit, ac, dir, unlocked, ring, down && down.held ? holdDir : 0, t);
@@ -1306,9 +1395,10 @@ export function createStage4(random = Math.random) {
         ctx.fillRect(0, 0, W, H);
         ctx.globalAlpha = 1;
       }
-      if (introT > 0.01 && mode !== 'ko') drawPhaseIntro(ctx, phase, introT, t);
-      drawBanner(ctx, phase, text, ac, mode === 'shield' ? bannerT : 0);
+      if (introT > 0.01 && mode !== 'ko' && !(phase === 0 && !song && songIdx === 0)) drawPhaseIntro(ctx, phase, introT, t);
+      if (!(phase === 0 && !song && songIdx === 0)) drawBanner(ctx, phase, text, ac, mode === 'shield' ? bannerT : 0);
       drawCallout(ctx, callout.text, callout.color, callout.t);
+      if (mode === 'ko') drawBossVictory(ctx, koT, engine, beat);
       if (flash > 0.01) {
         ctx.globalAlpha = clamp(flash, 0, 1) * 0.5;
         ctx.fillStyle = '#ffffff';
@@ -1373,57 +1463,6 @@ function drawDangerArc(ctx, center, half, t, only) {
   }
 }
 
-function drawSafeArc(ctx, center, half, t, label, only) {
-  if (half <= 0.02) return;
-  if (only === undefined) wedge(ctx, center, half, GREEN, 0.2);
-  for (const rr of railList(only)) {
-    ctx.strokeStyle = GREEN;
-    ctx.globalAlpha = 0.3 + 0.12 * Math.sin(t * 8);
-    ctx.lineWidth = 24;
-    ctx.beginPath();
-    ctx.arc(CX, CY, rr, center - half, center + half);
-    ctx.stroke();
-    ctx.globalAlpha = 0.9;
-    ctx.lineWidth = 2;
-    for (const q of [rr - 13, rr + 13]) {
-      ctx.beginPath();
-      ctx.arc(CX, CY, q, center - half, center + half);
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1;
-  }
-  if (label) {
-    const p = ringPt(center, R_OUT + 32);
-    ctx.fillStyle = GREEN;
-    ctx.font = 'bold 11px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, clamp(p.x, 36, W - 36), p.y + 4);
-  }
-}
-
-// kompletter Ring gruen = hier bist du sicher
-function drawSafeRing(ctx, r, t, label) {
-  const rr = radOf(r);
-  ctx.strokeStyle = GREEN;
-  ctx.globalAlpha = 0.3 + 0.1 * Math.sin(t * 8);
-  ctx.lineWidth = 24;
-  ctx.beginPath();
-  ctx.arc(CX, CY, rr, 0, TAU);
-  ctx.stroke();
-  ctx.globalAlpha = 0.9;
-  ctx.lineWidth = 2;
-  for (const q of [rr - 13, rr + 13]) {
-    ctx.beginPath();
-    ctx.arc(CX, CY, q, 0, TAU);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = GREEN;
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(label, CX, CY + radOf(r) + 32 - (r === 1 ? 4 : 0));
-}
-
 // Rammstein-Show: Sonne ueber dem Fiech
 function drawSun(ctx, t, a) {
   ctx.globalAlpha = 0.9 * a;
@@ -1443,30 +1482,11 @@ function drawSun(ctx, t, a) {
   ctx.globalAlpha = 1;
 }
 
-// ganzer Ring rot (Gefahr), der andere Ring gruen (sicher)
-function drawZone(ctx, h, t, safeText) {
+// Mark only the threatened rail.
+function drawZone(ctx, h, t) {
   const live = t >= h.liveAt;
   const pulse = 0.5 + 0.5 * Math.sin(t * 16);
   const rr = radOf(h.ring);
-  const safe = radOf(1 - h.ring);
-  ctx.strokeStyle = GREEN;
-  ctx.globalAlpha = 0.28 + 0.1 * Math.sin(t * 8);
-  ctx.lineWidth = 24;
-  ctx.beginPath();
-  ctx.arc(CX, CY, safe, 0, TAU);
-  ctx.stroke();
-  ctx.globalAlpha = 0.9;
-  ctx.lineWidth = 2;
-  for (const q of [safe - 13, safe + 13]) {
-    ctx.beginPath();
-    ctx.arc(CX, CY, q, 0, TAU);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = GREEN;
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText(safeText, CX, CY + R_OUT + 32);
 
   ctx.strokeStyle = RED;
   ctx.globalAlpha = live ? 0.85 : 0.3 + 0.2 * pulse;
@@ -1498,7 +1518,7 @@ function drawZone(ctx, h, t, safeText) {
     }
   }
   if (h.wave) {
-    ctx.strokeStyle = '#f5d0fe';
+    ctx.strokeStyle = '#b9edff';
     ctx.lineWidth = 3;
     for (let k = 0; k < 3; k++) {
       const p = live ? 1 : (t * 1.6 + k / 3) % 1;
@@ -1521,6 +1541,12 @@ function drawZone(ctx, h, t, safeText) {
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.stroke();
+    }
+    if (h.gear) {
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = live ? '#fff1b9' : '#f87171';
+      ctx.textAlign = 'center';
+      ctx.fillText(`GEAR ${h.gear}`, CX, CY - 110);
     }
     ctx.globalAlpha = 1;
   }
@@ -1580,10 +1606,6 @@ function drawSongBg(ctx, id, a, t) {
       for (let x = 0; x <= W; x += 12) ctx.lineTo(x, COCKPIT_Y - 18 + r * 7 + Math.sin(t * 2 + x * 0.04 + r) * 5);
       ctx.stroke();
     }
-    ctx.font = '22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.6 * a;
-    for (let i = 0; i < 4; i++) ctx.fillText('🍕', 50 + i * 85, 90 + 20 * Math.sin(t * 1.5 + i * 2));
   } else if (id === 'sonne') {
     // Buehnenwand wie in der SUDO-Show: dunkle Lamellen und rote Neon-Traversen
     ctx.fillStyle = '#2a0c09';
@@ -1834,6 +1856,7 @@ function drawSudoDecor(ctx, id, a, t, pulse) {
 
 // Rammstein-Finale im Stil der SUDO-Buehnenshow: Scheinwerfer-Kegel, Feuersaeulen aus dem Boden, Publikum mit Handylichtern, Schockwellen und Strobe
 function drawInferno(ctx, t, a, pulse, beat, lvl) {
+  drawConcertStage(ctx, { t, beat, intensity: lvl, alpha: a });
   const ph = beat.beatPhase ?? 0;
   const k = Math.min(1.4, 0.5 + 0.5 * lvl);
   const base = COCKPIT_Y;
@@ -1986,7 +2009,8 @@ function drawPhaseExtras(ctx, id, a, t, beat) {
     ctx.globalAlpha = 0.8 * a;
     for (let i = 0; i < 6; i++) {
       const y = ((t * 55 * (0.7 + noise(i)) + noise(i * 4) * COCKPIT_Y) % (COCKPIT_Y + 30)) - 15;
-      ctx.fillText(i % 3 ? '🍕' : '🍝', 24 + noise(i * 6) * (W - 48), y);
+      ctx.fillStyle = i % 2 ? '#ffb45c' : '#f45c38';
+      ctx.fillRect(24 + noise(i * 6) * (W - 48), y, 3, 7);
     }
   } else if (id === 'wolle') {
     // Wellen-Welle: Arme gehen nacheinander hoch
@@ -2004,43 +2028,29 @@ function drawPhaseExtras(ctx, id, a, t, beat) {
   }
   ctx.globalAlpha = 1;
 }
-// Song-Requisiten kreisen um das Fiech
-function drawSongProps(ctx, id, a, t) {
-  const icon = { napoli: '🍕', sonne: '☀️', tornado: '🌪️', gas: '🏁', schuetteln: '🥃', wolle: '🏅' }[id];
-  ctx.globalAlpha = 0.9 * a;
-  ctx.font = '16px sans-serif';
-  ctx.textAlign = 'center';
-  const spin = id === 'gas' ? -2.6 : 1.4;
-  for (let i = 0; i < 4; i++) {
-    const an = t * spin + (i * TAU) / 4;
-    ctx.fillText(icon, CX + Math.cos(an) * 66, CY + Math.sin(an) * 66 + 6);
-  }
-  ctx.globalAlpha = 1;
-}
-
 // Plattenspieler-HUD: kreisende Platte mit Song-Fortschritt und Songname
 function drawSongHud(ctx, col, a, name, prog, t) {
   ctx.globalAlpha = a;
   ctx.fillStyle = '#05050a';
   ctx.beginPath();
-  ctx.arc(26, 70, 14, 0, TAU);
+  ctx.arc(26, 75, 6, 0, TAU);
   ctx.fill();
   ctx.strokeStyle = col;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(26, 70, 14, -Math.PI / 2, -Math.PI / 2 + TAU * prog);
+  ctx.arc(26, 75, 5, -Math.PI / 2, -Math.PI / 2 + TAU * prog);
   ctx.stroke();
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.arc(26, 70, 8, t * 5, t * 5 + 2.2);
+  ctx.arc(26, 75, 3, t * 5, t * 5 + 2.2);
   ctx.stroke();
   ctx.fillStyle = col;
   ctx.beginPath();
-  ctx.arc(26, 70, 2.5, 0, TAU);
+  ctx.arc(26, 75, 1, 0, TAU);
   ctx.fill();
   ctx.font = 'bold 10px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(name, 46, 74);
+  ctx.fillText(name, 38, 78);
   ctx.globalAlpha = 1;
 }
 
@@ -2049,14 +2059,14 @@ const RAIL_PAINT = [
   ['#facc15', '#111827'],
   ['#e0f2fe', '#7dd3fc'],
   ['#dc2626', '#fca5a5'],
-  ['#22c55e'],
   ['#fb923c', '#7f1d1d', '#fde047']
 ];
 
 // Jede Boss-Phase hat eigene Schienen: Trikolore, Warnband, Schaum, Flanell, Glut
 function drawRailSkin(ctx, rr, w, phase, t) {
+  if (phase < 0) return;
   const cols = RAIL_PAINT[phase];
-  const dash = phase === 5 ? 9 : 16;
+  const dash = phase === 4 ? 9 : 16;
   ctx.lineWidth = w * 1.1;
   ctx.globalAlpha = 0.5;
   const dir = phase === 2 ? -1 : 1;
@@ -2110,15 +2120,6 @@ function drawPhaseIntro(ctx, phase, k, t) {
       ctx.fillRect(x, 0, 6, H);
       ctx.fillRect(W - x - 6, 0, 6, H);
     }
-  } else if (phase === 4) {
-    ctx.fillStyle = '#22c55e';
-    for (let i = 0; i < 9; i++) {
-      const y = ((p * 700 + i * 70) % (H + 40)) - 20;
-      ctx.fillRect(0, y, W, 3);
-    }
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText('> sudo ./dj_fiech --override', 14, 200);
   } else {
     const open = 1 - Math.min(1, p * 2.5);
     ctx.fillStyle = '#0c0a09';
@@ -2136,7 +2137,7 @@ function drawPhaseIntro(ctx, phase, k, t) {
   ctx.fillStyle = PHASE_FX[phase].c;
   ctx.font = `bold ${56 + Math.round(p * 14)}px monospace`;
   ctx.textAlign = 'center';
-  ctx.fillText(`${phase + 1}/6`, W / 2, 130);
+  ctx.fillText(`${phase + 1}/5`, W / 2, 130);
   ctx.restore();
 }
 
@@ -2233,8 +2234,8 @@ function drawGlassRing(ctx, t, glasses, broken, flash) {
   ctx.beginPath();
   ctx.arc(CX, CY, GLASS_R, 0, TAU);
   ctx.stroke();
-  ctx.strokeStyle = RED;
-  ctx.globalAlpha = 0.7 + 0.2 * Math.sin(t * 6);
+  ctx.strokeStyle = '#e7bc74';
+  ctx.globalAlpha = 0.65 + 0.15 * Math.sin(t * 6);
   ctx.lineWidth = 2;
   for (const q of [GLASS_R - 6, GLASS_R + 6]) {
     ctx.beginPath();
@@ -2247,10 +2248,12 @@ function drawGlassRing(ctx, t, glasses, broken, flash) {
     const p = ringPt(a, GLASS_R);
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(a + Math.PI / 2);
+    // Upright ritual glasses remain readable above the reactor and song deck.
     ctx.scale(GLASS_SC, GLASS_SC);
     if (i < glasses) {
-      const col = i % 2 ? '#22d3ee' : '#fbbf24';
+      const col = '#ffd46b';
+      ctx.fillStyle = '#030710';
+      ctx.fillRect(-11, -24, 22, 32);
       ctx.fillStyle = col;
       ctx.globalAlpha = 0.2 + flash * 0.3;
       ctx.fillRect(-11, -22, 22, 28);
@@ -2511,21 +2514,35 @@ function drawBody(ctx, h, t) {
     const k = (t - h.liveAt) / (h.dur ?? ARC_DUR);
     if (h.ring === undefined && !h.hold) drawRing(ctx, CX, CY, 30 + k * (R_OUT - 10), RED, 1 - k * 0.5, 6);
     for (const rr of railList(h.ring)) {
+      if (h.spot) {
+        ctx.fillStyle = '#fbbf2422';
+        ctx.beginPath();
+        ctx.moveTo(CX, 65);
+        ctx.arc(CX, CY, rr, h.center - h.half, h.center + h.half);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.strokeStyle = RED;
       ctx.lineWidth = 24;
       ctx.beginPath();
       ctx.arc(CX, CY, rr, h.center - h.half, h.center + h.half);
       ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
+      ctx.strokeStyle = h.spot || h.hold ? '#ffe7a0' : '#ffffff';
       ctx.lineWidth = 7;
       ctx.stroke();
     }
   } else if (h.kind === 'geys') {
     if (t < h.tellAt) return;
-    const p = ringPt(h.angle);
+    const p = ringPt(h.angle, h.ring === undefined ? R_OUT : radOf(h.ring));
     const col = ['#4ade80', '#fde047', '#f43f5e'][h.color];
     if (!live) {
-      drawAhoiPack(ctx, p.x, p.y, 0.4, 0.8, col, t);
+      if (h.skin === 'lava' || h.skin === 'fire') {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(h.angle);
+        ctx.fillStyle = '#281621'; ctx.fillRect(-10, -10, 20, 20);
+        ctx.strokeStyle = '#fb623a'; ctx.lineWidth = 2; ctx.strokeRect(-10, -10, 20, 20);
+        ctx.fillStyle = '#ffb14e'; ctx.fillRect(-6, -3, 12, 6);
+        ctx.restore();
+      } else drawAhoiPack(ctx, p.x, p.y, 0.4, 0.8, col, t);
       return;
     }
     const k = (t - h.liveAt) / GEYSER_DUR;
@@ -2552,31 +2569,8 @@ function drawBody(ctx, h, t) {
     const b = beamAngle(h, t);
     for (const a of h.single ? [b] : [b, b + Math.PI]) {
       const e = ringPt(a, R_OUT + 16);
-      if (h.half > 0.15) {
-        // breiter Keil (Pizza-Stueck) mit Belag
-        const l1 = ringPt(a - h.half, R_OUT + 14);
-        const l2 = ringPt(a + h.half, R_OUT + 14);
-        ctx.fillStyle = '#b91c1c';
-        ctx.beginPath();
-        ctx.moveTo(CX, CY);
-        ctx.lineTo(l1.x, l1.y);
-        ctx.lineTo(l2.x, l2.y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 6;
-        ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        for (let i = 0; i < 5; i++) {
-          const q = ringPt(a + (i % 2 ? 0.14 : -0.14) * (1 + i * 0.2), 50 + i * 20);
-          ctx.beginPath();
-          ctx.arc(q.x, q.y, 6, 0, TAU);
-          ctx.fill();
-        }
-        continue;
-      }
       ctx.lineCap = 'round';
-      ctx.strokeStyle = RED;
+      ctx.strokeStyle = h.skin === 'lava' ? '#ff6d24' : RED;
       ctx.lineWidth = 22 + (Math.floor(t * 40) % 2) * 4;
       ctx.beginPath();
       ctx.moveTo(CX, CY);
@@ -2585,6 +2579,21 @@ function drawBody(ctx, h, t) {
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 8;
       ctx.stroke();
+      if (h.storm || h.race) {
+        const spread = h.storm ? 5 : 3;
+        ctx.strokeStyle = h.storm ? '#7dd3fc' : '#ffdb91';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < spread; i++) {
+          const rr = 48 + ((t * (h.storm ? 85 : 180) + i * 27) % 92);
+          const q = ringPt(a, rr);
+          const off = h.storm ? Math.sin(t * 18 + i) * 4 : 0;
+          ctx.beginPath();
+          ctx.moveTo(q.x - Math.sin(a) * (5 + off), q.y + Math.cos(a) * (5 + off));
+          ctx.lineTo(q.x + Math.cos(a) * 9, q.y + Math.sin(a) * 9);
+          ctx.lineTo(q.x + Math.sin(a) * (5 + off), q.y - Math.cos(a) * (5 + off));
+          ctx.stroke();
+        }
+      }
       ctx.lineCap = 'butt';
       if (h.scratch) {
         // Tonarm-Kopf

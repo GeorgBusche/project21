@@ -16,11 +16,38 @@ export const MOVE = 0.7; // Reaktionszeit in Beats, die ein Spurwechsel in der M
 // ---------------------------------------------------------------------------
 
 const DT = 0.05;
-const LASER_ACTIVE = 0.45;
+const LASER_ACTIVE = 0.6;
 export const WAVE_INTRO = 2.5; // Beats vor dem ersten Objekt: Banner, Pyro-Salve und Spurumbau
 const WAVE_GAP = 4; // Pause zwischen zwei Wellen in Beats (Bahn leer, Übergang läuft)
 const DIVE_SPACING = 4.4; // Mindestabstand zweier Fiech-Stürze in Beats (Sturz + Aufstieg dauern ca. 4,1 Beats)
 const FIRST_START = 5;
+
+export function timedWaveDefs(duration) {
+  if (!Number.isFinite(duration) || duration < 35) {
+    throw new Error('Stage 3 requires at least 35 beats for warnings and the five-lane finale');
+  }
+  const defs = WAVE_DEFS.map((def) => ({ ...def, rows: 3 }));
+  const separation = [0, 2.2, 2.2, 2.2, 5.6];
+  const end = () => FIRST_START + defs.reduce(
+    (sum, def, i) => sum + (def.rows - 1) * def.gap + separation[i], 0
+  );
+  const lastArrival = duration - 0.9;
+  while (true) {
+    const eligible = defs.map((def, index) => ({ def, index }))
+      .filter(({ def }) => end() + def.gap <= lastArrival + 1e-9)
+      .sort((a, b) => a.def.rows / WAVE_DEFS[a.index].rows - b.def.rows / WAVE_DEFS[b.index].rows);
+    if (!eligible.length) break;
+    eligible[0].def.rows++;
+  }
+  const slack = (lastArrival - end()) / defs.length;
+  let start = FIRST_START;
+  return defs.map((def, i) => {
+    start += separation[i] + slack;
+    const scheduled = { ...def, start };
+    start += (def.rows - 1) * def.gap;
+    return scheduled;
+  });
+}
 
 function rowEvents(row, arr) {
   const out = [];
@@ -91,6 +118,7 @@ function build(rnd, defs = WAVE_DEFS) {
   const slots = [];
   let start = FIRST_START;
   for (const def of defs) {
+    start = def.start ?? start;
     waves.push({ start, gap: def.gap, fall: def.fall, lanes: def.lanes, rows: [] });
     for (let r = 0; r < def.rows; r++) slots.push({ def, wi: waves.length - 1, r, arr: start + r * def.gap });
     start += def.rows * def.gap + WAVE_GAP;
@@ -153,7 +181,7 @@ function build(rnd, defs = WAVE_DEFS) {
   return waves;
 }
 // Prüft die komplette Strecke einmal von vorn.
-function validate(waves) {
+export function validateWaves(waves) {
   const ev = [];
   for (const w of waves) w.rows.forEach((row, i) => ev.push(...rowEvents(row, w.start + i * w.gap)));
   const end = Math.max(...ev.map((e) => e.t1)) + 0.5;
@@ -170,15 +198,12 @@ function validate(waves) {
   return true;
 }
 
-export function generateWaves(rnd = Math.random) {
-  let last = null;
+export function generateWaves(rnd = Math.random, durationBeats) {
+  const defs = durationBeats === undefined ? WAVE_DEFS : timedWaveDefs(durationBeats);
   for (let i = 0; i < 12; i++) {
-    const w = build(rnd);
+    const w = build(rnd, defs);
     if (!w) continue;
-    last = w;
-    if (validate(w)) return w;
+    if (validateWaves(w)) return w;
   }
-  // Notfall: gleiche Struktur ohne Laser/Stürze, praktisch immer machbar
-  const easy = WAVE_DEFS.map((d) => ({ ...d, laser: 0, dive: 0, double: 0, maxStay: 9 }));
-  return last ?? build(rnd, easy) ?? build(() => 0.5, easy);
+  throw new Error('Stage 3 could not generate a verified safe route');
 }

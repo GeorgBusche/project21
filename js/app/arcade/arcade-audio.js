@@ -1,9 +1,10 @@
 import { CONTENT } from '../../content.js';
 import { getAudioContext } from '../audio.js';
 import { SONGS } from './arcade-songs.js';
+import { stageEntryBeat } from './arcade-timeline.js';
 
-// Adaptive Soundtrack-Engine: EIN durchgehender Stream des echten Tracks. Stage-Wechsel und Stress
-// verändern nur Tempo (playbackRate) und Filter per Rampe, es gibt nie einen Neustart oder Sprung.
+// EIN durchgehender Stream des echten Tracks. Im Soundtrack-Sync bleibt das Originaltempo erhalten;
+// Stage-Wechsel und Stress veraendern nur den Filter, nie die Position der Aufnahme.
 // Die Beat-Uhr ist ein Phasen-Akkumulator, der exakt das integriert, was die Rate-Rampe abspielt.
 // Konfiguration: CONTENT.arcadeAudio in js/content.js.
 
@@ -18,6 +19,8 @@ const TICK_MS = 30;
 const TARGET_RMS = 0.14;
 const STRESS_RATE_BOOST = 0.04;
 const HEARTBEAT_FROM = 0.7;
+const SAMPLE_TARGET_RMS = 0.06;
+const SAMPLE_MAX_GAIN = 0.42;
 
 const a = {
   ctx: null,
@@ -34,6 +37,8 @@ const a = {
   running: false,
   stage: 1,
   stress: 0,
+  intro: false,
+  introProgress: 0,
   // Rate-Modell: lineare Rampe, identisch zur AudioParam-Rampe
   ramp: { t0: 0, t1: 0, r0: 1, r1: 1 },
   rampLock: 0,
@@ -67,6 +72,10 @@ function stageCfg(stage) {
   return stages[stage] || stages[Object.keys(stages).pop()];
 }
 
+function stageRate(stage) {
+  return cfg().soundtrackSync ? 1 : stageCfg(stage).rate;
+}
+
 function trackHref() {
   const url = cfg().trackUrl;
   if (!url || url === BUNDLED_TRACK) return BUNDLED_URL;
@@ -96,13 +105,18 @@ export function preloadArcadeAudio() {
   return a.loading;
 }
 
-// Loop über den ganzen Track, auf volle Takte gekürzt, damit das Raster beim Loop-Sprung stimmt.
+// Play the full opening once, then sustain the late-track energy on whole bars.
 function loopRegion() {
   const { baseBpm, beatOffsetSec } = cfg();
   const barSec = (60 / baseBpm) * 4;
   const usable = Math.max(barSec, a.buffer.duration - beatOffsetSec);
   const bars = Math.max(1, Math.floor(usable / barSec));
-  return { start: beatOffsetSec, end: Math.min(a.buffer.duration, beatOffsetSec + bars * barSec) };
+  const end = Math.min(a.buffer.duration, beatOffsetSec + bars * barSec);
+  const loopBars = cfg().outroLoopBars ?? 16;
+  if (!Number.isInteger(loopBars) || loopBars < 1) {
+    throw new Error('[ARCADE-AUDIO] outroLoopBars must be a positive integer');
+  }
+  return { start: Math.max(beatOffsetSec, end - loopBars * barSec), end };
 }
 
 // Einheitliche Lautstärke: RMS des Loop-Bereichs auf Zielwert bringen.
@@ -169,6 +183,11 @@ function integrateRate(from, to) {
   const r = a.ramp;
   let sum = 0;
   let s = from;
+  if (s < r.t0 && to > s) {
+    const e = Math.min(to, r.t0);
+    sum += r.r0 * (e - s);
+    s = e;
+  }
   if (s < r.t1 && to > s) {
     const e = Math.min(to, r.t1);
     sum += ((rateAt(s) + rateAt(e)) / 2) * (e - s);
@@ -216,6 +235,11 @@ function rampFilter(hz, dur) {
 
 // Basis-Cutoff der Stage. Stage 1 öffnet sich bei Beat X; Stress öffnet den Klang zusätzlich.
 function desiredFilter() {
+  if (a.intro && a.stage >= 3) {
+    const from = a.stage === 4 ? 320 : 900;
+    const to = a.stage === 4 ? 2400 : 4800;
+    return from * (to / from) ** a.introProgress;
+  }
   const sc = stageCfg(a.stage);
   let base = sc.filterHz;
   const open = cfg().stage1Open;
@@ -314,8 +338,8 @@ function tick() {
 
   // Während eine Stage-Rampe läuft, wird nichts überschrieben.
   if (now >= a.rampLock) {
-    const boost = clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST;
-    const target = stageCfg(a.stage).rate * (1 + boost);
+    const boost = cfg().soundtrackSync ? 0 : clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST;
+    const target = stageRate(a.stage) * (1 + boost);
     if (Math.abs(target - a.ramp.r1) > 0.0004) rampRate(target, STRESS_RAMP);
     const hz = desiredFilter();
     const opening = a.stage === 1 && !a.filterOpened && a.totalBeats >= (cfg().stage1Open?.openBeat ?? Infinity);
@@ -331,7 +355,6 @@ function tick() {
 
 function startVoice(buffer, startBeat = 0) {
   const ctx = a.ctx;
-  const sc = stageCfg(a.stage);
   const t = ctx.currentTime + 0.05;
   const region = loopRegion();
   const src = ctx.createBufferSource();
@@ -339,7 +362,7 @@ function startVoice(buffer, startBeat = 0) {
   src.loop = true;
   src.loopStart = region.start;
   src.loopEnd = region.end;
-  src.playbackRate.setValueAtTime(sc.rate, t);
+  src.playbackRate.setValueAtTime(stageRate(a.stage), t);
   const filter = ctx.createBiquadFilter();
   filter.type = 'lowpass';
   filter.Q.value = 0.8;
@@ -347,24 +370,26 @@ function startVoice(buffer, startBeat = 0) {
   a.filterTarget = desiredFilter();
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.linearRampToValueAtTime(trackGain(region), t + 0.3);
+  gain.gain.linearRampToValueAtTime(trackGain({ start: cfg().beatOffsetSec, end: region.end }), t + 0.3);
   src.connect(filter);
   filter.connect(gain);
   gain.connect(a.analyser);
   // startBeat > 0: Einstieg mitten im Track (DEV-Direktstart einer späteren Stage, Taktgitter bleibt erhalten)
-  src.start(t, region.start + (startBeat * 60) / cfg().baseBpm);
+  src.start(t, cfg().beatOffsetSec + (startBeat * 60) / cfg().baseBpm);
   a.voice = { src, filter, gain };
   // Beat-Uhr an den tatsächlichen Start koppeln (Beat 0 liegt bei beatOffsetSec)
-  a.totalBeats = startBeat - (cfg().beatOffsetSec * cfg().baseBpm) / 60;
+  a.totalBeats = startBeat;
   a.startAt = t;
   a.lastCtx = ctx.currentTime;
   a.lastBeatIndex = Math.floor(a.totalBeats) - 1;
-  a.ramp = { t0: t, t1: t, r0: sc.rate, r1: sc.rate };
+  a.ramp = { t0: t, t1: t, r0: stageRate(a.stage), r1: stageRate(a.stage) };
 }
 
-async function launch(stage, startBeat = 0) {
+async function launch(stage, startBeat = 0, intro = false) {
   const req = ++a.req;
   a.stage = stage;
+  a.intro = intro;
+  a.introProgress = 0;
   a.stress = 0;
   a.filterOpened = false;
   a.rampLock = 0;
@@ -376,10 +401,9 @@ async function launch(stage, startBeat = 0) {
   a.bass = 0;
   a.voice = null;
   a.fallback = false;
-  a.totalBeats = startBeat - (cfg().beatOffsetSec * cfg().baseBpm) / 60;
+  a.totalBeats = startBeat;
   a.lastBeatIndex = Math.floor(a.totalBeats) - 1;
-  const sc = stageCfg(stage);
-  a.ramp = { t0: 0, t1: 0, r0: sc.rate, r1: sc.rate };
+  a.ramp = { t0: 0, t1: 0, r0: stageRate(stage), r1: stageRate(stage) };
   a.startAt = a.ctx.currentTime + 0.05;
   a.lastCtx = a.ctx.currentTime;
 
@@ -389,36 +413,63 @@ async function launch(stage, startBeat = 0) {
   if (buffer) startVoice(buffer, startBeat);
   else {
     a.fallback = true;
+    a.totalBeats = startBeat;
+    a.lastBeatIndex = Math.floor(startBeat) - 1;
+    a.cached = null;
     a.startAt = a.ctx.currentTime + 0.05;
     a.lastCtx = a.ctx.currentTime;
   }
 }
 
 // Startet den Master-Stream einmalig (Stage 1).
-export function startArcadeAudio(stage = 1, startBeat = 0) {
+export function startArcadeAudio(stage = 1, startBeat = 0, { intro = false } = {}) {
   stopArcadeAudio(true);
+  failedSamples.clear();
   if (!buildGraph()) return;
   a.ctx.resume?.();
   a.running = true;
   a.timer = setInterval(tick, TICK_MS);
-  launch(stage, startBeat);
+  launch(stage, startBeat, intro);
 }
 
 // Stage-Wechsel (1..4): moduliert den laufenden Stream per Rampe, kein neuer Source-Node, kein Sprung.
-export function setStage(stage) {
-  // Kaltstart einer späteren Stage (DEV-Menü): direkt im Drop einsteigen statt im leisen Intro
-  if (!a.running) return startArcadeAudio(stage, stage > 1 ? (cfg().devDropBeat ?? 0) + (stage - 2) * 16 : 0);
+export function setStage(stage, { intro = false } = {}) {
+  // Kaltstart am konfigurierten Cue; die Engine bestimmt, ob dort eine Cutscene beginnt.
+  if (!a.running) return startArcadeAudio(stage, stageEntryBeat(stage, cfg()), { intro });
   if (stage === a.stage) return undefined;
   advance();
   a.stage = stage;
+  a.intro = intro;
+  a.introProgress = 0;
+  a.cached = null;
+  a.stress = 0;
   a.heartScheduled = -1;
-  const sc = stageCfg(stage);
   const now = a.ctx.currentTime;
   a.rampLock = now + STAGE_RAMP;
-  rampRate(sc.rate, STAGE_RAMP);
+  rampRate(stageRate(stage), STAGE_RAMP);
   rampFilter(desiredFilter(), STAGE_RAMP);
-  if (stage > 1) stageDrop(now + 0.02);
+  if (stage > 1 && !intro && !cfg().soundtrackSync) stageDrop(now + 0.02);
   return undefined;
+}
+
+export function setStageIntroProgress(progress) {
+  a.introProgress = clamp(progress, 0, 1);
+}
+
+export function finishStageIntro() {
+  if (!a.intro) return;
+  a.intro = false;
+  a.cached = null;
+  if (!a.running || !a.ctx) return;
+  a.rampLock = a.ctx.currentTime;
+  rampFilter(a.stage >= 3 ? 20000 : desiredFilter(), 0.015);
+  if (a.stage >= 3) stageDrop(a.ctx.currentTime);
+}
+
+// Ein bewusstes Intro-Skip springt auch musikalisch zum Drop, nicht nur visuell.
+export function skipArcadeIntro(trackSeconds) {
+  const beat = (trackSeconds - cfg().beatOffsetSec) * cfg().baseBpm / 60;
+  startArcadeAudio(a.stage, beat, { intro: true });
 }
 
 // 0..1: steigert Tempo (bis +4 %), Filteröffnung und ab 0.7 den Sub-Heartbeat.
@@ -505,15 +556,17 @@ export function triggerDjScratch() {
   bp.frequency.exponentialRampToValueAtTime(1200, now + 0.09);
   bp.frequency.exponentialRampToValueAtTime(240, now + 0.18);
   g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+  g.gain.exponentialRampToValueAtTime(a.stage === 4 ? 0.035 : 0.16, now + 0.02);
   g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
   o.connect(bp);
   bp.connect(g);
   g.connect(a.comp);
   o.start(now);
   o.stop(now + 0.25);
-  rampFilter(450, 0.04);
-  a.djHold = { beat: Math.floor(a.totalBeats) + 1, until: now + 1.5 };
+  if (a.stage !== 4) {
+    rampFilter(450, 0.04);
+    a.djHold = { beat: Math.floor(a.totalBeats) + 1, until: now + 1.5 };
+  }
 }
 
 // SUDO-/Terminal-Sounds: 'type' Keyclick, 'hack' 3-Ton-Chime, 'execute' Root-Impact mit Tape-Stop
@@ -533,26 +586,56 @@ export function triggerSudoSound(kind) {
     setTimeout(() => {
       if (!a.running || !a.ctx) return;
       a.rampLock = 0;
-      rampRate(stageCfg(a.stage).rate * (1 + clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST), 0.08);
+      const boost = cfg().soundtrackSync ? 0 : clamp((a.stress - 0.5) / 0.5, 0, 1) * STRESS_RATE_BOOST;
+      rampRate(stageRate(a.stage) * (1 + boost), 0.08);
       stageDrop(a.ctx.currentTime + 0.01);
     }, 250);
   }
 }
 
-const IDLE = { bpm: 0, beatIndex: 0, beatPhase: 0, isBeat: false, bassEnergy: 0, running: false };
+const IDLE = { bpm: 0, rate: 1, beatIndex: 0, beatPhase: 0, isBeat: false, bassEnergy: 0, running: false };
 
 const sampleBuffers = new Map();
+const sampleGains = new Map();
+const failedSamples = new Set();
+
+function sampleMixGain(buffer) {
+  let sum = 0;
+  let peak = 0;
+  let count = 0;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < data.length; i++) {
+      const value = data[i];
+      sum += value * value;
+      peak = Math.max(peak, Math.abs(value));
+      count++;
+    }
+  }
+  const rms = Math.sqrt(sum / Math.max(1, count));
+  return Math.min(SAMPLE_MAX_GAIN, SAMPLE_TARGET_RMS / Math.max(0.001, rms), 0.3 / Math.max(0.001, peak));
+}
 
 export function warmSudoSamples() {
   if (!a.ctx) return;
   for (const file of new Set(Object.values(SONGS).map((s) => s.file))) {
-    if (sampleBuffers.has(file)) continue;
+    if (sampleBuffers.has(file) || failedSamples.has(file)) continue;
     sampleBuffers.set(file, null);
     fetch(new URL(`../../../assets/audio/${file}`, import.meta.url).href)
-      .then((r) => r.arrayBuffer())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      })
       .then((buf) => a.ctx.decodeAudioData(buf))
-      .then((decoded) => sampleBuffers.set(file, decoded))
-      .catch(() => sampleBuffers.delete(file));
+      .then((decoded) => {
+        sampleGains.set(file, sampleMixGain(decoded));
+        sampleBuffers.set(file, decoded);
+      })
+      .catch((error) => {
+        console.warn(`[ARCADE-AUDIO] Cannot load boss sample ${file}`, error);
+        sampleBuffers.delete(file);
+        failedSamples.add(file);
+      });
   }
 }
 
@@ -571,37 +654,42 @@ export function stopSudoSample() {
   if (a.djHold) a.djHold.until = Math.min(a.djHold.until, now + 0.3);
 }
 
-// Spielt einen Song-Ausschnitt; die Arcade-Musik wird dumpf gezogen und kommt danach mit Drop zurueck
+// Samples sit below the continuous main track; no full-song lowpass duck or replacement drop.
 export function triggerSudoSample(name) {
   const def = SONGS[name];
   if (!def || !a.running || !a.ctx || window.isMuted) return true;
+  if (failedSamples.has(def.file)) return 'unavailable';
   const buf = sampleBuffers.get(def.file);
   if (!buf) {
     warmSudoSamples();
     return false;
   }
   const now = a.ctx.currentTime;
+  const level = sampleGains.get(def.file);
   const fade = 0.8;
   const src = a.ctx.createBufferSource();
   src.buffer = buf;
   const lp = a.ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.frequency.setValueAtTime(18000, now);
-  lp.frequency.setValueAtTime(18000, now + def.len - fade);
-  lp.frequency.exponentialRampToValueAtTime(500, now + def.len);
+  lp.frequency.setValueAtTime(9000, now);
+  lp.frequency.setValueAtTime(9000, now + def.len - fade);
+  lp.frequency.exponentialRampToValueAtTime(1400, now + def.len);
+  const hp = a.ctx.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.setValueAtTime(180, now);
+  hp.Q.value = 0.7;
   const g = a.ctx.createGain();
   g.gain.setValueAtTime(0.0001, now);
-  g.gain.linearRampToValueAtTime(0.85, now + 0.04);
-  g.gain.setValueAtTime(0.85, now + def.len - fade);
+  g.gain.linearRampToValueAtTime(level, now + 0.18);
+  g.gain.setValueAtTime(level, now + def.len - fade);
   g.gain.linearRampToValueAtTime(0.0001, now + def.len);
-  src.connect(lp);
+  src.connect(hp);
+  hp.connect(lp);
   lp.connect(g);
   g.connect(a.comp);
   stopSudoSample();
   src.start(now, def.start, def.len);
   a.songNode = { src, g };
-  rampFilter(380, 0.15);
-  a.djHold = { beat: Infinity, until: now + def.len };
   return true;
 }
 // Pro Frame abfragen. isBeat ist genau in dem Frame true, in dem ein neuer Schlag begann.
@@ -614,10 +702,11 @@ export function getBeatInfo() {
   const rate = rateAt(now);
   const bpm = cfg().baseBpm * rate;
   // Ausgabelatenz herausrechnen, damit Bild und gehörter Beat zusammenpassen
-  const latencyBeats = ((a.ctx.outputLatency || a.ctx.baseLatency || 0) * bpm) / 60;
+  const latency = a.ctx.outputLatency || a.ctx.baseLatency || 0;
+  const latencyBeats = integrateRate(Math.max(a.startAt, now - latency), now) * cfg().baseBpm / 60;
   const pos = a.totalBeats - latencyBeats;
   const beatIndex = Math.floor(pos);
-  const started = now >= a.startAt;
+  const started = now >= a.startAt + latency;
   const isBeat = started && beatIndex !== a.lastBeatIndex;
   if (started) a.lastBeatIndex = beatIndex;
 
@@ -630,7 +719,8 @@ export function getBeatInfo() {
     a.bass = clamp((raw - 0.3) / 0.6, 0, 1);
   }
 
-  const info = { bpm, beatIndex, beatPhase: pos - beatIndex, isBeat, bassEnergy: a.bass, running: true };
+  const info = { bpm, rate, beatIndex, beatPhase: pos - beatIndex, isBeat, bassEnergy: a.bass,
+    running: true, ready: started && Boolean(a.voice || a.fallback) };
   a.cached = { at: now, info };
   return info;
 }

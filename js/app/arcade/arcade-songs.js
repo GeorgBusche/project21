@@ -5,9 +5,8 @@ export const SONGS = {
   gas: { file: 'gas.mp3', start: 0, len: 14.0 },
   tornado: { file: 'biertornado.mp3', start: 0, len: 17.6 },
   wolle: { file: 'wolle.mp3', start: 0, len: 18.6 },
-  schuetteln: { file: 'schuettelkorn.mp3', start: 0, len: 17.4 },
   sonne: { file: 'sonne.mp3', start: 0, len: 31.6 }
 };
 
-// Playlist je Boss-Phase (Index = Phase): jede Phase hat genau einen eigenen Song, Rammstein (Sonne) ist das lange Finale
-export const PLAYLISTS = [['napoli'], ['gas'], ['tornado'], ['wolle'], ['schuetteln'], ['sonne']];
+// Five boss songs follow the song-free reactor opening; Sonne is the long finale.
+export const PLAYLISTS = [['napoli'], ['gas'], ['tornado'], ['wolle'], ['sonne']];
