@@ -17,6 +17,9 @@ export { drawFiech };
 export const W = 360;
 export const H = 600;
 const MAX_LIVES = 3;
+const DEV_LIVES_OPTIONS = [3, 5, 10, 99];
+let devLives = MAX_LIVES; // nur im Admin-Testmodus (Stage-Menue)
+let runMaxLives = MAX_LIVES;
 const INTRO_SECONDS = 1.8;
 const STAGE_INTRO_SECONDS = 3;
 const CLEAR_SECONDS = 2.6;
@@ -382,7 +385,8 @@ function startRun(index = 0, testRun = false, segmentId = null) {
   const rsvp = party.getCachedRsvps()[party.deviceToken] || readLocalPlayerRsvp();
   playerAppearance = createPlayerAppearance(rsvp);
   state.score = 0;
-  state.lives = MAX_LIVES;
+  runMaxLives = state.testRun ? devLives : MAX_LIVES;
+  state.lives = runMaxLives;
   state.shakeT = 0;
   state.hurtT = 0;
   state.keys.clear();
@@ -402,7 +406,11 @@ function showStageMenu() {
     <div class="font-mono max-w-sm w-full text-white">
       <div class="text-xs text-cyan-400 mb-1">ADMIN · TESTMODUS</div>
       <h2 class="text-xl font-black mb-2">STAGE AUSWÄHLEN</h2>
-      <p class="text-xs text-neutral-400 mb-4">Direktstart mit 3 Leben und deinem Avatar. Keine Rekorde oder Achievements. Nach der Stage endet der Test.</p>
+      <p class="text-xs text-neutral-400 mb-4">Direktstart mit deinem Avatar und der gewählten Lebenszahl. Keine Rekorde oder Achievements. Nach der Stage endet der Test.</p>
+      <div class="flex items-center gap-2 mb-3 text-xs">
+        <span class="text-neutral-400">LEBEN</span>
+        ${DEV_LIVES_OPTIONS.map((n) => `<button type="button" data-dev-lives="${n}" class="flex-1 py-2 rounded border ${n === devLives ? 'border-rose-400 bg-rose-900 text-white' : 'border-neutral-600 bg-neutral-800 text-neutral-300'}">${n}</button>`).join('')}
+      </div>
       <div class="flex flex-col gap-2">
         ${a.stageNames.map((name, index) => `
           <button type="button" data-test-stage="${index}" class="text-left px-4 py-3 rounded-lg border border-cyan-800 bg-cyan-950/60 hover:bg-cyan-900">
@@ -413,6 +421,12 @@ function showStageMenu() {
         <button type="button" id="arcadeNormalRun" class="py-3 rounded-lg border border-neutral-600 bg-neutral-800 text-sm">Normaler Run ab Stage 1</button>
       </div>
     </div>`);
+  state.overlay.querySelectorAll('[data-dev-lives]').forEach((button) => {
+    button.addEventListener('click', () => {
+      devLives = Number(button.dataset.devLives);
+      showStageMenu();
+    });
+  });
   state.overlay.querySelectorAll('[data-test-stage]').forEach((button) => {
     button.addEventListener('click', () => startRun(Number(button.dataset.testStage), true));
   });
@@ -558,7 +572,7 @@ function updateHud() {
     hudValues.score = state.score;
   }
   if (hudValues.lives !== state.lives) {
-    hudNodes.arcadeLives.textContent = '❤️'.repeat(Math.max(0, state.lives)) + '🖤'.repeat(Math.max(0, MAX_LIVES - state.lives));
+    hudNodes.arcadeLives.textContent = runMaxLives > 5 ? `❤️ ${Math.max(0, state.lives)}` : '❤️'.repeat(Math.max(0, state.lives)) + '🖤'.repeat(Math.max(0, runMaxLives - state.lives));
     hudValues.lives = state.lives;
   }
   if (hudValues.percent !== percent) {
