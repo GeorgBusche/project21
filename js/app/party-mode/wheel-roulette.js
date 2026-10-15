@@ -25,6 +25,7 @@ let lastTickIndex = -1;
 function getGuestNames() {
   const { getCachedRsvps } = getPartyContext();
   const names = Object.values(getCachedRsvps() || {})
+    .filter(rsvp => !rsvp.status || rsvp.status === 'attending')
     .map((rsvp) => String(rsvp?.name || '').trim())
     .filter(Boolean);
   const unique = [...new Set(names)];

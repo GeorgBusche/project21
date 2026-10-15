@@ -106,6 +106,7 @@ function pickDuelists() {
   const names = [
     ...new Set(
       Object.values(getCachedRsvps() || {})
+        .filter(rsvp => !rsvp.status || rsvp.status === 'attending')
         .map((rsvp) => String(rsvp?.name || '').trim())
         .filter(Boolean)
     )

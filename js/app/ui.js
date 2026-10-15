@@ -58,6 +58,27 @@ function isOpen(element) {
 export function initializeModalUx() {
   if (modalUxReady) return;
   modalUxReady = true;
+  Object.keys(MODAL_CLOSERS).forEach((id) => {
+    const overlay = document.getElementById(id);
+    if (!overlay) return;
+    overlay.classList.add('menu-overlay');
+    const panel = overlay.firstElementChild;
+    panel.classList.add('menu-dialog');
+    const heading = panel.querySelector('[data-modal-title]');
+    if (heading) {
+      heading.id ||= `${id}Title`;
+      panel.setAttribute('role', 'dialog');
+      panel.setAttribute('aria-modal', 'true');
+      panel.setAttribute('aria-labelledby', heading.id);
+    }
+    panel.querySelectorAll('button').forEach((button) => {
+      if (button.textContent.trim() === '✕') {
+        const clearsSearch = button.getAttribute('onclick')?.startsWith('clear');
+        if (!clearsSearch) button.classList.add('menu-close');
+        button.setAttribute('aria-label', clearsSearch ? 'Suche löschen' : 'Schließen');
+      }
+    });
+  });
 
   // Klick auf das äußere Overlay schließt über die jeweilige Close-Funktion (stoppt Audio, Kamera, Timer).
   document.addEventListener('click', (event) => {

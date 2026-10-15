@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { readInvitation, initializeWelcomeName } from './app/welcome-name.js';
 import { CONTENT } from './content.js';
 import {
   adminAppendPin,
@@ -11,6 +12,7 @@ import {
   adminHandleRestoreUpload,
   adminNextVoteSkip,
   adminNextVoteStart,
+  adminResetTestData,
   adminSaveAnnouncement,
   adminShowDrinkCalculator,
   adminSpotifyConnect,
@@ -47,7 +49,6 @@ import {
   closeStatDetail,
   copyAddressToClipboard,
   downloadPartyCalendar,
-  handleAvatarPhotoUpload,
   handlePlusOneInput,
   initializePartyBackend,
   openGuestModal,
@@ -56,10 +57,10 @@ import {
   openRsvpModal,
   rollRandomPegel,
   saveRsvp,
-  selectAvatarPreset,
   selectRsvpSong,
   sendRsvpViaWhatsApp,
   setGuestFilter,
+  setGuestStatus,
   showGuestBoard,
   stopAudioPreview,
   toggleAudioPreview,
@@ -149,6 +150,7 @@ window.isSudoRunning = false;
 window.canSkip = false;
 
 Object.assign(window, {
+  adminResetTestData,
   addSongFromSearch,
   addSongVote,
   appendLine,
@@ -167,7 +169,6 @@ Object.assign(window, {
   downloadPartyCalendar,
   emergencySkipParty,
   escapeHtml,
-  handleAvatarPhotoUpload,
   handleDeclineClick,
   handlePlusOneInput,
   openGuestModal,
@@ -181,10 +182,10 @@ Object.assign(window, {
   rollRandomPegel,
   runCommand,
   saveRsvp,
-  selectAvatarPreset,
   selectRsvpSong,
   sendRsvpViaWhatsApp,
   setGuestFilter,
+  setGuestStatus,
   showGuestBoard,
   adminAppendPin,
   adminClearPin,
@@ -264,15 +265,17 @@ Object.assign(window, {
 });
 
 function initializeApp() {
+  const invitation = readInvitation();
   applyStaticContent();
   initializePartyBackend();
-  initializeAdmin();
+  initializeAdmin({ links: invitation.adminLinks });
   initializeSudo();
   initializeCommands();
   initializeAchievements();
   initializeModeController();
   initializeSpotifyNextVote();
   startBootSequence();
+  initializeWelcomeName(invitation);
 }
 
 // Für Kenner: Wer die Konsole öffnet, findet den Weg zum geheimen Terminal.

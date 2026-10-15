@@ -3,6 +3,7 @@ import { playSuccessChime } from './audio.js';
 import { CONTENT, EVENT_CORE, dateFormatted, locationFull } from '../content.js';
 import { getPartyContext, getPegelDescription, openRsvpModal } from './party-actions.js';
 import { showToast } from './ui.js';
+import { rsvpStatus } from './player-identity.js';
 
 const W = 1080;
 const H = 1920;
@@ -20,10 +21,10 @@ let rendered = false;
 function getOwnRsvp() {
   const { deviceToken, getCachedRsvps } = getPartyContext();
   const cached = getCachedRsvps?.()[deviceToken];
-  if (cached && cached.name) return cached;
+  if (cached) return cached.name && rsvpStatus(cached) === 'attending' ? cached : null;
   try {
     const local = JSON.parse(localStorage.getItem('party_rsvp_data'));
-    return local && local.name ? local : null;
+    return local?.name && rsvpStatus(local) === 'attending' ? local : null;
   } catch (_) {
     return null;
   }

@@ -21,7 +21,7 @@ const CMD = CONTENT.ui.commands;
 const INVITE_BUTTONS = [
   { handler: "runCommand('info')", ...CMD.invite.info, style: 'border-emerald-800 bg-emerald-950/30 text-emerald-300' },
   { handler: 'openRadarModal()', ...CMD.invite.radar, style: 'border-cyan-800 bg-cyan-950/30 text-cyan-300' },
-  { handler: 'showGuestBoard()', ...CMD.invite.guests, style: 'border-cyan-800 bg-cyan-950/30 text-cyan-300' },
+  { handler: 'openGuestModal()', ...CMD.invite.guests, style: 'border-cyan-800 bg-cyan-950/30 text-cyan-300' },
   { handler: 'openMusicModal()', ...CMD.invite.playlist, style: 'border-fuchsia-800 bg-fuchsia-950/30 text-fuchsia-300' },
   'SUDO',
   {
@@ -44,7 +44,7 @@ const LIVE_BUTTONS = [
 const MINI_PILLS = [
   { handler: "runCommand('info')", label: CMD.miniBar.info },
   { handler: 'openRadarModal()', label: CMD.miniBar.radar },
-  { handler: 'showGuestBoard()', label: CMD.miniBar.guests }
+  { handler: 'openGuestModal()', label: CMD.miniBar.guests }
 ];
 function isPreviewActive() {
   try {
@@ -82,7 +82,7 @@ function notifyListeners() {
 }
 
 function buildButton(def) {
-  return `<button type="button" onclick="${def.handler}"${def.message ? ` data-msg="${escapeHtml(def.message)}"` : ''} class="${BUTTON_BASE} ${def.style}"><span class="cmd-icon text-sm">${def.icon}</span><span class="cmd-text font-bold">${def.label}</span></button>`;
+  return `<button type="button" aria-label="${escapeHtml(def.label)}" title="${escapeHtml(def.label)}" onclick="${def.handler}"${def.message ? ` data-msg="${escapeHtml(def.message)}"` : ''} class="${BUTTON_BASE} ${def.style}"><span class="cmd-icon text-sm">${def.icon}</span><span class="cmd-text font-bold">${def.label}</span></button>`;
 }
 
 function syncMiniBar(grid, isLive) {

@@ -17,8 +17,10 @@ import {
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { isPartyModeLive } from './party-mode/mode-controller.js';
 import { showRadarMap } from './radar-map.js';
-import { syncLeaderboardName } from './arcade/arcade-scoreboard.js';
+import { getLocalBest, mergeRemoteBest, syncLeaderboardName } from './arcade/arcade-scoreboard.js';
+import { arcadePercent, arcadeRank, getSavedPlayerName, invitationName, readSavedRsvp, rsvpStatus, savePlayerName } from './player-identity.js';
 import { appendLine, escapeHtml, showToast } from './ui.js';
+import { normalizeAvatar, PROFILE_AVATAR_PENDING_KEY } from './profile-avatar.js';
 
 let database;
 let deviceToken;
@@ -35,17 +37,18 @@ let guestSearchTimeout = null;
 let latestMusicSearchResults = [];
 let latestRsvpSearchResults = [];
 let currentGuestFilter = 'all';
+let currentGuestStatus = 'attending';
 let currentGuestSort = 'newest';
 let currentGuestSearchQuery = '';
 let activeStatDetail = null;
 let pendingWhatsAppMessage = '';
-let selectedAvatar = { type: 'emoji', value: '😎' };
 
 export function getPartyContext() {
   return {
     database,
     deviceToken,
     getCachedRsvps: () => cachedRsvps,
+    getOwnRsvp: () => cachedRsvps[deviceToken] || readSavedRsvp(),
     getCachedSongs: () => cachedSongs
   };
 }
@@ -66,16 +69,14 @@ export function initializePartyBackend() {
 
   // Zusage-Button im Actionbar auf aktuellen Status synchronisieren
   updateBottomRsvpButton();
+  const name = getSavedPlayerName();
+  if (name) syncLeaderboardName(name).catch(error => {
+    console.error('Gespeicherter Name konnte nicht synchronisiert werden.', error);
+    showToast('⚠️ Name lokal gespeichert. Online-Synchronisation beim nächsten Besuch erneut versuchen.');
+  });
 }
 
-function getSavedLocalRsvp() {
-  try {
-    const raw = localStorage.getItem('party_rsvp_data');
-    return raw ? JSON.parse(raw) : null;
-  } catch (_) {
-    return null;
-  }
-}
+const getSavedLocalRsvp = readSavedRsvp;
 
 function syncAchievementsToGuestList(ids = getUnlockedIds()) {
   const own = cachedRsvps[deviceToken];
@@ -86,19 +87,60 @@ function syncAchievementsToGuestList(ids = getUnlockedIds()) {
 }
 
 function renderArcadeBadge(guest) {
-  const entry = cachedArcade[guest.deviceToken];
-  if (!entry || !(entry.maxPercent > 0)) return '';
-  return `<span class='text-[10px] text-lime-300 bg-lime-950/70 border border-lime-800/60 px-1.5 py-0.2 rounded font-mono' title='FIECH ARCADE'>👾 ${parseInt(entry.maxPercent, 10)}%</span>`;
+  const entry = cachedArcade[guest.deviceToken] || Object.values(cachedArcade)
+    .filter(e => e.name?.trim().toLocaleLowerCase('de') === guest.name?.trim().toLocaleLowerCase('de'))
+    .sort((a, b) => (b.bestPercent ?? b.maxPercent ?? 0) - (a.bestPercent ?? a.maxPercent ?? 0))[0] || guest;
+  const rank = arcadeRank(entry);
+  const icon = rank?.kind === 'legend' ? '👑' : rank?.kind === 'boss' ? '🔥' : '🕹';
+  return rank ? `<span class="arcade-rank arcade-rank--${rank.kind}" title="${rank.label}">${icon} ${arcadePercent(entry)}%</span>` : '';
+}
+
+export async function saveGuestDecision({ status, name, note }) {
+  if (!['attending', 'declined'].includes(status)) throw new Error('Ungültiger RSVP-Status.');
+  const clean = invitationName(name);
+  if (!clean) throw new Error('Bitte gib deinen Namen ein.');
+  if (status === 'declined' && !String(note || '').trim()) throw new Error('Bitte trage deine offizielle Ausrede / Grußbotschaft ein.');
+  if (!database || !deviceToken) throw new Error('Keine Verbindung zur Gästeliste. Bitte erneut versuchen.');
+  const previous = cachedRsvps[deviceToken] || readSavedRsvp() || {};
+  const record = {
+    ...previous, name: clean, status, note: String(note ?? (status === 'attending' ? previous.note || '' : '')).trim().slice(0, 1000),
+    avatar: readSavedRsvp()?.avatar || previous.avatar || { type: 'emoji', value: '👾' },
+    deviceToken, bestPercent: getLocalBest().maxPercent,
+    achievements: getUnlockedIds(), updatedAt: Date.now(), timestamp: previous.timestamp || Date.now()
+  };
+  await syncLeaderboardName(clean);
+  await database.ref(`rsvps/${deviceToken}`).set(record);
+  cachedRsvps[deviceToken] = record;
+  localStorage.setItem('party_rsvp_data', JSON.stringify(record));
+  savePlayerName(clean);
+  updateBottomRsvpButton();
+  updateGuestModalFooter();
+  renderGuestListModal();
+  showToast(status === 'attending' ? '✓ Du bist dabei!' : '💀 Absage gespeichert.');
+  return record;
+}
+
+export function setGuestStatus(status) {
+  if (!['attending', 'declined'].includes(status)) return;
+  currentGuestStatus = status;
+  setGuestFilter('all');
 }
 
 function listenToRsvpUpdates() {
   onAchievementsChange(syncAchievementsToGuestList);
   database.ref('arcadeLeaderboard').on('value', (snapshot) => {
     cachedArcade = snapshot.val() || {};
+    mergeRemoteBest(cachedArcade[deviceToken]);
     renderGuestListModal();
   });
   database.ref('rsvps').on('value', (snapshot) => {
     cachedRsvps = snapshot.val() || {};
+    const pendingAvatar = localStorage.getItem(PROFILE_AVATAR_PENDING_KEY) ? readSavedRsvp()?.avatar : null;
+    if (cachedRsvps[deviceToken]) localStorage.setItem('party_rsvp_data', JSON.stringify({
+      ...cachedRsvps[deviceToken],
+      name: getSavedPlayerName() || cachedRsvps[deviceToken].name,
+      ...(pendingAvatar ? { avatar: pendingAvatar } : {})
+    }));
     renderGuestListModal();
     updateGuestModalFooter();
     updateBottomRsvpButton();
@@ -616,19 +658,25 @@ export function openRsvpModal() {
 
   // Prüfen ob Gast auf diesem Gerät bereits angemeldet ist
   const existing = cachedRsvps[deviceToken] || getSavedLocalRsvp();
+  const savedName = getSavedPlayerName();
+  const input = document.getElementById('rsvpName');
+  if (input && savedName) input.value = savedName;
+  document.getElementById('rsvpNameField').hidden = Boolean(savedName);
+  document.getElementById('rsvpIdentity').hidden = !savedName;
+  document.querySelector('[data-rsvp-name]').textContent = savedName;
   const banner = document.getElementById('rsvpExistingBanner');
   const bannerName = document.getElementById('rsvpExistingName');
   const submitText = document.getElementById('rsvpSubmitBtnText');
   document.getElementById('rsvpFormView')?.classList.remove('hidden');
   document.getElementById('rsvpConfirmView')?.classList.add('hidden');
 
-  if (existing && existing.name) {
+  if (existing && existing.name && rsvpStatus(existing)) {
     if (banner) banner.classList.remove('hidden');
     if (bannerName) bannerName.textContent = existing.name;
-    if (submitText) submitText.textContent = '🔄 ZUSAGE AKTUALISIEREN';
+    if (submitText) submitText.textContent = rsvpStatus(existing) === 'attending' ? '🔄 ZUSAGE AKTUALISIEREN' : '✅ JETZT FEST ZUSAGEN';
 
     const nameInput = document.getElementById('rsvpName');
-    if (nameInput) nameInput.value = existing.name;
+    if (nameInput) nameInput.value = savedName || existing.name;
 
     const drinkInput = document.getElementById('rsvpDrink');
     if (drinkInput && existing.drink) {
@@ -658,17 +706,6 @@ export function openRsvpModal() {
     if (noteInput) noteInput.value = existing.note || '';
 
     // Avatar wiederherstellen
-    if (existing.avatar) {
-      if (typeof existing.avatar === 'string') {
-        selectedAvatar = { type: 'emoji', value: existing.avatar };
-      } else {
-        selectedAvatar = existing.avatar;
-      }
-    } else {
-      selectedAvatar = { type: 'emoji', value: '😎' };
-    }
-    updateAvatarPreviewUI();
-
     if (existing.song && typeof existing.song === 'object' && (existing.song.title || existing.song.trackName)) {
       selectedRsvpSong = {
         trackId: existing.song.trackId || null,
@@ -683,78 +720,9 @@ export function openRsvpModal() {
   } else {
     if (banner) banner.classList.add('hidden');
     if (submitText) submitText.textContent = '✅ ZUSAGE SPEICHERN';
-    selectedAvatar = { type: 'emoji', value: '😎' };
-    updateAvatarPreviewUI();
     const pegelInput = document.getElementById('rsvpPegel');
     updatePegelDisplay(pegelInput ? pegelInput.value : 75);
   }
-}
-
-export function selectAvatarPreset(emoji) {
-  selectedAvatar = { type: 'emoji', value: emoji };
-  updateAvatarPreviewUI();
-  playTone(600, 'sine', 0.03);
-}
-
-export function handleAvatarPhotoUpload(event) {
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    playBuzzerError();
-    showToast('⚠️ Bitte wähle eine Bilddatei aus!');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      // Bild verkleinern auf max 96x96 quadratisch (Client-side Compression für schnelle Ladezeiten & Firebase DB)
-      const canvas = document.createElement('canvas');
-      const size = 96;
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      const minDim = Math.min(img.width, img.height);
-      const sx = (img.width - minDim) / 2;
-      const sy = (img.height - minDim) / 2;
-
-      ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
-      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
-
-      selectedAvatar = { type: 'image', value: compressedDataUrl };
-      updateAvatarPreviewUI();
-      playSuccessChime();
-      showToast('✓ Profilfoto geladen!');
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function updateAvatarPreviewUI() {
-  const previewEl = document.getElementById('rsvpAvatarPreview');
-  if (!previewEl) return;
-
-  if (selectedAvatar.type === 'image') {
-    previewEl.innerHTML = `<img src="${selectedAvatar.value}" alt="Avatar" class="w-full h-full object-cover" />`;
-  } else {
-    previewEl.innerHTML = selectedAvatar.value || '😎';
-  }
-
-  // Preset Buttons hervorheben / entmarkieren
-  document.querySelectorAll('.avatar-preset-btn').forEach((btn) => {
-    const av = btn.getAttribute('data-avatar');
-    if (selectedAvatar.type === 'emoji' && av === selectedAvatar.value) {
-      btn.className =
-        'avatar-preset-btn w-7 h-7 rounded border border-emerald-400 bg-emerald-950/80 text-sm flex items-center justify-center transition active:scale-95 shadow-[0_0_8px_rgba(16,185,129,0.5)]';
-    } else {
-      btn.className =
-        'avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95';
-    }
-  });
 }
 
 export function closeRsvpModal() {
@@ -982,14 +950,15 @@ function renderRsvpSearchResults(results) {
   container.classList.remove('hidden');
 }
 
-export function saveRsvp() {
-  const name = document.getElementById('rsvpName').value.trim();
-  if (!name) {
+export async function saveRsvp() {
+  const rawName = document.getElementById('rsvpName').value.trim();
+  if (!rawName) {
     playBuzzerError();
     showToast('⚠️ Bitte gib zuerst deinen Namen ein!');
     document.getElementById('rsvpName').focus();
     return;
   }
+  const name = invitationName(rawName);
 
   const hasPlusOne = document.getElementById('rsvpPlusOneToggle')?.checked || false;
   const plusOneName = document.getElementById('rsvpPlusOneName')?.value.trim() || '';
@@ -1064,14 +1033,16 @@ export function saveRsvp() {
     }
   }
 
-  const wasExisting = Boolean(cachedRsvps[deviceToken] || getSavedLocalRsvp());
+  const wasExisting = rsvpStatus(cachedRsvps[deviceToken] || getSavedLocalRsvp()) === 'attending';
 
   if (songPayload) trackVote(songPayload.trackId || songPayload.title);
   if (parseInt(pegelValue, 10) === 100) trackFlag('pegel100');
 
   const rsvpRecord = {
+    status: 'attending',
+    bestPercent: getLocalBest().maxPercent,
     name,
-    avatar: selectedAvatar,
+    avatar: normalizeAvatar(readSavedRsvp()?.avatar || cachedRsvps[deviceToken]?.avatar),
     plusOne: hasPlusOne,
     plusOneName,
     drink,
@@ -1092,12 +1063,26 @@ export function saveRsvp() {
     timestamp: Date.now()
   };
 
-  database.ref(`rsvps/${deviceToken}`).set(rsvpRecord);
+  const submitButton = document.getElementById('rsvpSubmitBtnText')?.closest('button');
+  if (submitButton) submitButton.disabled = true;
+  try {
+    await database.ref(`rsvps/${deviceToken}`).set(rsvpRecord);
+  } catch (error) {
+    console.error('Zusage konnte nicht gespeichert werden.', error);
+    showToast('⚠️ Zusage nicht gespeichert. Bitte erneut versuchen.');
+    return;
+  } finally {
+    if (submitButton) submitButton.disabled = false;
+  }
   cachedRsvps[deviceToken] = rsvpRecord;
   try {
     localStorage.setItem('party_rsvp_data', JSON.stringify(rsvpRecord));
   } catch (_) {}
-  syncLeaderboardName(name);
+  savePlayerName(name);
+  syncLeaderboardName(name).catch(error => {
+    console.error('Name konnte nicht synchronisiert werden.', error);
+    showToast('⚠️ Zusage gespeichert, Arcade-Name noch nicht synchronisiert.');
+  });
 
   updateBottomRsvpButton();
   updateGuestModalFooter();
@@ -1324,6 +1309,7 @@ export function showGuestBoard() {
 
     const guestList = Object.entries(guestsObj)
       .map(([token, guest]) => ({ ...guest, deviceToken: token }))
+      .filter(guest => rsvpStatus(guest) === 'attending')
       .sort((a, b) => (b.updatedAt || b.timestamp || 0) - (a.updatedAt || a.timestamp || 0));
 
     const totalRegistrations = guestList.length;
@@ -1548,13 +1534,29 @@ export function formatRelativeTime(timestamp) {
 }
 
 function renderGuestListModal() {
+  const filterSummary = document.getElementById('guestFilterSummary');
+  if (filterSummary) {
+    const filter = document.querySelector(`.guest-filter-chip[data-filter="${currentGuestFilter}"]`);
+    const sort = document.getElementById('guestSortSelect');
+    filterSummary.textContent = `${filter?.textContent.trim() || 'Alle'} · ${sort?.selectedOptions[0]?.textContent || 'Neueste'}`;
+  }
   const container = document.getElementById('guestListContainer');
   if (!container) return;
 
-  const rawList = Object.entries(cachedRsvps).map(([token, guest]) => ({
+  const allGuests = Object.entries(cachedRsvps).map(([token, guest]) => ({
     ...guest,
     deviceToken: token
   }));
+  const rawList = allGuests.filter(g => rsvpStatus(g) === 'attending');
+  const visibleGuests = allGuests.filter(g => rsvpStatus(g) === currentGuestStatus);
+  const shameTitle = document.getElementById('guestShameTitle');
+  if (shameTitle) shameTitle.hidden = currentGuestStatus !== 'declined';
+  document.querySelectorAll('[data-guest-status]').forEach(button => {
+    const status = button.dataset.guestStatus;
+    button.setAttribute('aria-selected', String(status === currentGuestStatus));
+    const count = button.querySelector('[data-count]');
+    if (count) count.textContent = allGuests.filter(g => rsvpStatus(g) === status).length;
+  });
 
   // Stats aktualisieren
   const totalCount = rawList.length;
@@ -1623,7 +1625,7 @@ function renderGuestListModal() {
   }
 
   // Filtern
-  let filtered = rawList.filter((g) => {
+  let filtered = visibleGuests.filter((g) => {
     // Suchfilter
     if (currentGuestSearchQuery) {
       const q = currentGuestSearchQuery;
@@ -1718,21 +1720,19 @@ function renderGuestListModal() {
                   ${renderArcadeBadge(guest)}
                   ${isCurrentUser ? '<span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-cyan-400 text-black">DU</span>' : ''}
                   ${
-                    guest.plusOne
+                    guest.plusOne && rsvpStatus(guest) === 'attending'
                       ? `<span class="text-[10px] text-cyan-300 bg-cyan-950 border border-cyan-800/80 px-1.5 py-0.5 rounded font-mono">👥 +1: ${escapeHtml(guest.plusOneName || 'Begleitung')}</span>`
                       : ''
                   }
                 </div>
-                <div class="text-[11px] text-neutral-400 flex items-center gap-1 mt-0.5">
+                ${rsvpStatus(guest) === 'attending' ? `<div class="text-[11px] text-neutral-400 flex items-center gap-1 mt-0.5">
                   <span>⛽</span>
-                  <span class="text-neutral-300">${escapeHtml(guest.drink)}</span>
-                </div>
+                  <span class="text-neutral-300">${escapeHtml(guest.drink || 'Noch kein Getränk gewählt')}</span>
+                </div>` : ''}
               </div>
             </div>
             <div class="flex flex-col items-end gap-1 flex-shrink-0">
-              <span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${pegelBadge}">
-                ${guest.pegel || 0}%
-              </span>
+              ${rsvpStatus(guest) === 'attending' ? `<span class="text-xs font-mono font-bold px-2 py-0.5 rounded border ${pegelBadge}">${guest.pegel || 0}%</span>` : ''}
               ${timeAgo ? `<span class="text-[9px] text-neutral-500 font-mono">${timeAgo}</span>` : ''}
             </div>
           </div>
@@ -1806,7 +1806,7 @@ function updateGuestModalFooter() {
   const userStatusEl = document.getElementById('guestUserStatus');
   const rsvpBtn = document.getElementById('guestModalRsvpBtn');
 
-  if (myRsvp && myRsvp.name) {
+  if (myRsvp?.name && rsvpStatus(myRsvp) === 'attending') {
     if (userStatusEl) {
       userStatusEl.innerHTML = `<span class="text-emerald-400 font-bold">✓ Angemeldet als: ${escapeHtml(myRsvp.name)}</span>`;
     }
@@ -1817,7 +1817,7 @@ function updateGuestModalFooter() {
   } else {
     document.getElementById('guestModalTicketBtn')?.classList.add('hidden');
     if (userStatusEl) {
-      userStatusEl.innerHTML = '<span class="text-neutral-400">Du bist noch nicht eingetragen!</span>';
+      userStatusEl.textContent = rsvpStatus(myRsvp) === 'declined' ? '💀 Du hast abgesagt.' : 'Du bist noch nicht eingetragen!';
     }
     if (rsvpBtn) {
       rsvpBtn.innerHTML = '<span>👍</span> Jetzt zusagen';
@@ -1826,13 +1826,14 @@ function updateGuestModalFooter() {
 }
 
 export function updateBottomRsvpButton() {
+  window.dispatchEvent?.(new Event('party-rsvp-change'));
   const bottomRsvpBtn = document.getElementById('bottomRsvpBtn');
   const iconEl = document.getElementById('bottomRsvpBtnIcon');
   const textEl = document.getElementById('bottomRsvpBtnText');
   if (!bottomRsvpBtn) return;
 
   const myRsvp = cachedRsvps[deviceToken] || getSavedLocalRsvp();
-  const hasRsvp = Boolean(myRsvp && myRsvp.name);
+  const hasRsvp = Boolean(myRsvp?.name && rsvpStatus(myRsvp) === 'attending');
   const live = isPartyModeLive() && hasRsvp;
   const voteBtn = document.getElementById('bottomLiveVoteBtn');
   const declineWrapper = document.getElementById('declineWrapper');
@@ -1891,7 +1892,7 @@ export function renderStatDetail(type) {
   const rawList = Object.entries(cachedRsvps).map(([token, guest]) => ({
     ...guest,
     deviceToken: token
-  }));
+  })).filter(guest => rsvpStatus(guest) === 'attending');
 
   const totalCount = rawList.length;
   const totalPersons = rawList.reduce((acc, g) => acc + 1 + (g.plusOne ? 1 : 0), 0);
@@ -2040,4 +2041,3 @@ export function renderStatDetail(type) {
     contentEl.innerHTML = `<div class="space-y-1.5">${quotesHtml}</div>`;
   }
 }
-

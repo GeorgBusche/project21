@@ -20,6 +20,9 @@ import {
   validateStageCues, STAGE_INTRO_SECONDS as RUN_INTRO_SECONDS
 } from './arcade-timeline.js';
 import { renderIntroImpact } from './arcade-cutscenes.js';
+import { requirePlayerIdentity, renderVerdict } from './arcade-verdict.js';
+import { getSavedPlayerName, rsvpStatus } from '../player-identity.js';
+import { discoverArcade } from './arcade-discovery.js';
 
 export { drawFiech };
 
@@ -79,6 +82,10 @@ let preparedStages = [];
 let hudNodes = null;
 let hudValues = {};
 let bestScore = 0;
+let openingRsvpStatus = null;
+let freeplayRun = false;
+let attempts = 0;
+let boardOnly = false;
 
 // API, die jede Stage nutzt
 export const engine = {
@@ -371,6 +378,7 @@ const onPointerUp = () => {
 };
 const CONTROL_KEYS = ['arrowleft', 'arrowright', 'arrowup', 'arrowdown', ' ', 'a', 'd', 'w', 's'];
 const onKeyDown = (ev) => {
+  if (ev.target instanceof HTMLElement && (ev.target.matches('input, textarea, select') || ev.target.isContentEditable)) return;
   const k = ev.key.toLowerCase();
   if (k === 'escape') {
     ev.preventDefault();
@@ -602,58 +610,42 @@ function endRun(won) {
     return;
   }
   const percent = getPercent();
+  if (!won) {
+    attempts++;
+    localStorage.setItem('arcade_attempts', String(attempts));
+  }
   const result = submitRun({ stage: state.stageIndex + 1, percent, score: state.score });
-  const a = arcadeText();
+  showRunResult(won, percent, result);
+}
+
+function showRunResult(won, percent = getPercent(), result = { isRecord: false }) {
   const best = getLocalBest();
   bestScore = best.score;
-
-  if (won) {
-    trackFlag('boss');
-    showScreen(`
-      <div class="text-center font-mono max-w-xs">
-        <div class="text-2xl font-black text-emerald-400 mb-1">${a.victory.title}</div>
-        <div class="text-lg font-bold text-amber-300 mb-2">${a.victory.subtitle}</div>
-        <div class="text-xs text-neutral-300 mb-3">${a.victory.text}</div>
-        <div class="text-sm text-white mb-4">SCORE <b>${state.score}</b> · BEST <b>${best.score}</b>${result.isRecord ? ' · 🆕 REKORD' : ''}</div>
-        <button id="arcadeVictoryBtn" class="w-full py-3 rounded-lg bg-emerald-600 text-white font-bold">${a.victory.button}</button>
-      </div>`);
-    state.overlay.querySelector('#arcadeVictoryBtn').addEventListener('click', () => {
-      closeArcadeGame();
-      window.appendLine?.(`<span class='text-emerald-400 font-bold'>${a.victoryLog}</span>`);
-      window.openRsvpModal?.();
-    });
-    return;
-  }
-
-  showScreen(`
-    <div class="text-center font-mono max-w-xs w-full">
-      <div class="text-2xl font-black text-rose-500 mb-2">${a.gameOver.title}</div>
-      <div class="text-lg font-bold text-white">${percent}% - STAGE ${state.stageIndex + 1}</div>
-      <div class="text-sm text-neutral-300 mt-1 mb-4">SCORE <b>${state.score}</b> · HIGHSCORE <b>${best.score}</b>${result.isRecord ? ' · 🆕' : ''}</div>
-      <div class="flex flex-col gap-2">
-        <button id="arcadeRetry" class="py-3 rounded-lg bg-cyan-600 text-white font-bold">${a.gameOver.retry}</button>
-        <button id="arcadeGiveUp" class="py-3 rounded-lg bg-rose-900/60 border border-rose-700 text-rose-200 font-bold">${a.gameOver.giveUp}</button>
-        <button id="arcadeBoard" class="py-3 rounded-lg bg-neutral-800 border border-neutral-600 text-amber-300 font-bold">${a.gameOver.board}</button>
-      </div>
-    </div>`);
-  const root = state.overlay;
-  root.querySelector('#arcadeRetry').addEventListener('click', () => startRun());
-  root.querySelector('#arcadeGiveUp').addEventListener('click', () => {
-    closeArcadeGame();
-    window.appendLine?.(`<span class='text-rose-400 font-bold'>${a.giveUpLog}</span>`);
-    window.openRsvpModal?.();
+  if (won) trackFlag('boss');
+  const drawResult = () => renderVerdict(showScreen(''), {
+    won, stage: state.stageIndex + 1, percent, score: state.score, isRecord: result.isRecord,
+    protectedRsvp: freeplayRun && openingRsvpStatus === 'attending',
+    retry: () => startRun(), close: closeArcadeGame, board: showBoard
   });
-  root.querySelector('#arcadeBoard').addEventListener('click', showBoard);
+  drawResult();
+  if (won || attempts >= 5) {
+    requirePlayerIdentity(state.overlay, won ? 'victory' : 'deaths', drawResult);
+  }
 }
 
 async function showBoard() {
+  if (!getSavedPlayerName()) {
+    requirePlayerIdentity(state.overlay, 'board', showBoard);
+    return;
+  }
   const a = arcadeText();
+  const root = state.overlay;
   showScreen(`<div class="text-neutral-300 font-mono text-sm">…</div>`);
   const list = await fetchTopTen();
-  if (!state.overlay) return;
+  if (!state.overlay || state.overlay !== root) return;
   const rows =
     list === null || list.length === 0
-      ? `<div class="text-neutral-400 text-sm py-4">${a.boardEmpty}</div>`
+      ? `<div class="text-neutral-400 text-sm py-4">${list === null ? '⚠️ Bestenliste nicht erreichbar. Bitte Verbindung prüfen und erneut öffnen.' : a.boardEmpty}</div>`
       : list
           .map(
             (e, i) => `<div class="flex justify-between gap-3 py-1 border-b border-neutral-800 text-sm">
@@ -667,7 +659,7 @@ async function showBoard() {
       <div class="mb-3">${rows}</div>
       <button id="arcadeBoardBack" class="w-full py-3 rounded-lg bg-neutral-800 border border-neutral-600 font-bold">${a.gameOver.back}</button>
     </div>`);
-  state.overlay.querySelector('#arcadeBoardBack').addEventListener('click', () => endRun(false));
+  state.overlay.querySelector('#arcadeBoardBack').addEventListener('click', () => boardOnly ? closeArcadeGame() : showRunResult(state.mode === 'victory'));
 }
 
 function updateHud() {
@@ -928,8 +920,9 @@ function drawBanner(ctx) {
     drawWipe(ctx, open, color);
   }
 }
-export function openArcadeGame({ stageMenu = false } = {}) {
+export function openArcadeGame({ stageMenu = false, freeplay = false, leaderboard = false } = {}) {
   if (state.overlay) return;
+  if (!stageMenu && !leaderboard) discoverArcade();
   document.getElementById('bodyRoot')?.classList.remove('egg-rotate', 'egg-drunk');
   document.documentElement.style.setProperty('--game-rot', '0deg');
   state.stars = Array.from({ length: 50 }, () => ({
@@ -939,13 +932,24 @@ export function openArcadeGame({ stageMenu = false } = {}) {
     v: 10 + Math.random() * 50
   }));
   state.adminMenu = stageMenu;
+  openingRsvpStatus = rsvpStatus(getPartyContext().getOwnRsvp());
+  freeplayRun = freeplay;
+  boardOnly = leaderboard;
+  attempts = Math.max(0, parseInt(localStorage.getItem('arcade_attempts'), 10) || 0);
   buildOverlay();
   bestScore = getLocalBest().score;
   preloadArcadeAudio();
   attachInput();
   resize();
-  if (stageMenu) showStageMenu();
-  else startRun();
+  if (leaderboard) {
+    state.mode = 'gameover';
+    showBoard();
+  } else if (stageMenu) showStageMenu();
+  else if (attempts >= 5 && !getSavedPlayerName()) {
+    state.mode = 'gameover';
+    showScreen('');
+    requirePlayerIdentity(state.overlay, 'deaths', () => startRun());
+  } else startRun();
   state.last = performance.now();
   state.raf = requestAnimationFrame(frame);
 }
@@ -967,18 +971,4 @@ export function closeArcadeGame() {
 
 export function isArcadeOpen() {
   return Boolean(state.overlay);
-}
-
-if (import.meta.env.DEV) {
-  document.getElementById('arcadeDevLauncher')?.remove();
-  const launcher = document.createElement('button');
-  launcher.id = 'arcadeDevLauncher';
-  launcher.type = 'button';
-  launcher.textContent = 'DEV · STAGES';
-  launcher.className = 'fixed right-3 top-20 z-[99980] px-3 py-2 rounded-lg border border-cyan-600 bg-neutral-950 text-cyan-300 font-mono text-xs shadow-lg';
-  launcher.addEventListener('click', () => {
-    if (!state.overlay) openArcadeGame({ stageMenu: true });
-    else showStageMenu();
-  });
-  document.body.appendChild(launcher);
 }

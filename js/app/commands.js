@@ -15,7 +15,7 @@ const SUDO_SHOWS = ['bella', 'wolle', 'rammstein', 'biertornado', 'ragecage', 's
 const VIRTUAL_FILES = CONTENT.secretCli.virtualFiles;
 
 export function initializeCommands() {
-  if (window.matchMedia('(max-height: 720px)').matches) {
+  if (window.matchMedia('(max-height: 620px)').matches) {
     setCommandsCollapsed(true);
   }
   initializeSecretCli();
@@ -222,6 +222,9 @@ function setCommandsCollapsed(collapsed) {
   const grid = document.getElementById('commandGrid');
   const toggleButton = document.getElementById('cmdToggleBtn');
   if (!grid || !toggleButton) return;
+  toggleButton.setAttribute('aria-expanded', String(!collapsed));
+  toggleButton.setAttribute('aria-controls', 'commandGrid');
+  grid.dataset.collapsed = String(collapsed);
 
   if (commandsCollapsed) {
     grid.className = 'grid grid-cols-6 gap-1 relative';

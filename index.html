@@ -57,10 +57,11 @@
 
     <!-- Top System Bar -->
     <header
+      id="homeHeader"
       class="relative z-30 flex items-center justify-between border-b border-emerald-900/60 bg-black/90 px-3 py-2 backdrop-blur shadow-sm"
     >
       <div
-        class="flex items-center space-x-2 cursor-pointer select-none group"
+        class="admin-header-brand flex items-center space-x-2 cursor-pointer select-none group"
         onclick="openAdminModal()"
         title="👑 Georg Admin-Cockpit (Klicken für PIN-Login)"
       >
@@ -74,9 +75,17 @@
         </span>
       </div>
 
+      <button id="activeIdentity" type="button" class="active-identity" data-identity-edit hidden>
+        <span class="profile-avatar" data-profile-avatar aria-hidden="true">👾</span>
+        <strong data-active-name></strong>
+        <span class="profile-status-dot" aria-hidden="true"></span>
+        <span data-active-status class="sr-only"></span>
+      </button>
       <div class="flex items-center space-x-1.5">
+        <button id="editPlayerName" type="button" class="header-name-edit" title="Namen eingeben">✎ Name ändern</button>
         <button
           onclick="toggleFullscreen()"
+          aria-label="Vollbild umschalten"
           class="px-2.5 py-1.5 border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
         >
           <svg
@@ -106,6 +115,7 @@
 
         <button
           id="soundToggleBtn"
+          aria-label="Sound umschalten"
           onclick="toggleAudio()"
           class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
         >
@@ -114,6 +124,7 @@
 
         <button
           onclick="toggleCRT()"
+          aria-label="CRT-Filter umschalten"
           class="px-2.5 py-1 text-[10px] border border-emerald-800/80 rounded bg-emerald-950/30 text-emerald-300 active:scale-95 transition flex items-center justify-center"
         >
           CRT
@@ -123,10 +134,11 @@
 
     <!-- Main Terminal Frame -->
     <main
+      id="homeTerminal"
       class="relative z-10 flex-1 min-h-0 flex flex-col mt-2 mx-2 border border-emerald-700/50 rounded-lg bg-black/95 p-2.5 sm:p-4 overflow-hidden shadow-lg"
     >
       <div
-        class="border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600"
+        class="home-system-bar border-b border-emerald-900/60 pb-1.5 mb-2 flex justify-between items-center text-[9px] sm:text-[10px] text-emerald-600"
       >
         <span class="truncate pr-2 cursor-pointer select-none" onclick="toggleSecretCli()"
           ><span data-content="ui.serverLabel">SERVER:</span> <strong data-content="ui.serverName" class="text-emerald-400">LOHHOF_49</strong></span
@@ -137,7 +149,7 @@
         >
       </div>
 
-      <!-- Scrollbares Terminal-Fenster -->
+      <!-- Boot and interactive messages share the always-visible terminal. -->
       <div
         id="terminalOutput"
         class="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-2 text-[13px] sm:text-[15px] font-mono leading-relaxed pb-2 relative z-20"
@@ -146,7 +158,7 @@
       <div id="secretCliBar" class="hidden flex items-center gap-1.5 border-t border-emerald-800/70 pt-1.5 mt-1 font-mono text-xs"><span data-content="secretCli.prompt" class="text-emerald-400 font-bold">gast@lohhof49:~$</span><input id="secretCliInput" type="text" autocomplete="off" spellcheck="false" class="flex-1 bg-transparent text-emerald-200 focus:outline-none" placeholder="Befehl eingeben (z. B. help)..." /></div>
 
       <!-- Einklappbares System-Befehle Gitter -->
-      <div class="pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
+      <div class="home-commands pt-2 border-t border-emerald-900/60 flex-shrink-0 relative z-30 bg-black/95">
         <div class="flex justify-between items-end mb-1.5">
           <div data-content="ui.commandsHeading" class="text-[9px] text-emerald-700 font-bold uppercase tracking-widest leading-none">
             ⚡ Befehle
@@ -166,6 +178,7 @@
         >
           <button
             id="sudoPartyBtn"
+            aria-label="SUDO: Zufalls-Show starten"
             title="Tippen: Zufalls-Show · Gedrückt halten: Show auswählen"
             class="cmd-btn select-none py-2 rounded border border-rose-800/80 bg-gradient-to-br from-red-900/20 to-fuchsia-900/20 text-rose-300 text-[11px] active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_8px_rgba(236,72,153,0.1)]"
           >
@@ -250,9 +263,9 @@
 
         <div id="rsvpFormView" class="space-y-2.5 text-xs">
           <!-- 01 Name -->
-          <div>
+          <div id="rsvpNameField">
             <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
-              01. DEIN NAME / ALIAS <span class="text-rose-400">*</span>
+              DEIN NAME / ALIAS <span class="text-rose-400">*</span>
             </label>
             <input
               type="text"
@@ -261,12 +274,16 @@
               class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs sm:text-sm"
             />
           </div>
+          <div id="rsvpIdentity" class="rsvp-identity" hidden>
+            <div><small>DU SAGST ZU ALS</small><strong data-rsvp-name></strong></div>
+            <button type="button" data-rsvp-name-edit>✎ Profil bearbeiten</button>
+          </div>
 
-          <!-- 02. Kraftstoff & Profil-Icon/Foto nebeneinander -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <section class="menu-section" aria-label="Deine Planung">
+            <h3 class="menu-section-title">DEINE PLANUNG</h3>
             <div>
-              <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
-                02. BEVORZUGTER KRAFTSTOFF
+              <label for="rsvpDrink" class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+                BEVORZUGTER KRAFTSTOFF
               </label>
               <select
                 id="rsvpDrink"
@@ -275,93 +292,6 @@
                 <!-- Optionen werden aus DRINKS_CONFIG (js/content.js) befüllt -->
               </select>
             </div>
-
-            <!-- Avatar / Icon / Foto Auswahl -->
-            <div>
-              <div class="flex justify-between items-center mb-0.5">
-                <label class="text-emerald-400 font-bold text-[11px]">
-                  03. DEIN AVATAR / ICON
-                </label>
-                <label
-                  for="rsvpPhotoUpload"
-                  class="text-[10px] text-emerald-300 hover:text-emerald-200 cursor-pointer underline flex items-center gap-1 font-mono"
-                  title="Eigenes Foto oder Selfie aufnehmen/hochladen"
-                >
-                  <span>📷</span> Foto hochladen
-                </label>
-                <input
-                  type="file"
-                  id="rsvpPhotoUpload"
-                  accept="image/*"
-                  class="hidden"
-                  onchange="handleAvatarPhotoUpload(event)"
-                />
-              </div>
-
-              <!-- Schnellauswahl Chips + Vorschau -->
-              <div class="flex items-center gap-1.5">
-                <!-- Aktiver Avatar Preview Kreis -->
-                <div
-                  id="rsvpAvatarPreview"
-                  class="w-8 h-8 rounded-full border border-emerald-500 bg-neutral-900 flex items-center justify-center text-base flex-shrink-0 shadow-sm overflow-hidden"
-                >
-                  😎
-                </div>
-
-                <!-- 6 beliebte Emoji-Avatare -->
-                <div class="flex items-center gap-1 flex-1 overflow-x-auto py-0.5" id="rsvpAvatarPicker">
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('😎')"
-                    data-avatar="😎"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-emerald-700 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    😎
-                  </button>
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('🍻')"
-                    data-avatar="🍻"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    🍻
-                  </button>
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('👑')"
-                    data-avatar="👑"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    👑
-                  </button>
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('⚡')"
-                    data-avatar="⚡"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    ⚡
-                  </button>
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('🤪')"
-                    data-avatar="🤪"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    🤪
-                  </button>
-                  <button
-                    type="button"
-                    onclick="selectAvatarPreset('🚗')"
-                    data-avatar="🚗"
-                    class="avatar-preset-btn w-7 h-7 rounded border border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-sm flex items-center justify-center transition active:scale-95"
-                  >
-                    🚗
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- Kompakte Leiste: +1 Begleitperson & Schlafplatz -->
           <div
@@ -390,12 +320,16 @@
               </div>
             </div>
           </div>
+          </section>
 
-          <!-- 04. Ziel-Pegel (frei von Mathe, feine Abstufungen & Würfel-Button) -->
+          <details id="rsvpExtras" class="menu-disclosure">
+            <summary>♫ Songwunsch & Extras <span>Optional</span></summary>
+            <div class="menu-disclosure-content">
+          <!-- Ziel-Pegel -->
           <div>
             <div class="flex justify-between items-center mb-1">
               <div class="flex items-center gap-1.5">
-                <label class="text-emerald-400 font-bold text-[11px]">04. ZIEL-PEGEL</label>
+                <label for="rsvpPegel" class="text-emerald-400 font-bold text-[11px]">ZIEL-PEGEL</label>
                 <button
                   type="button"
                   onclick="rollRandomPegel()"
@@ -430,10 +364,10 @@
             </div>
           </div>
 
-          <!-- 05. Was muss in die Party-Playlist (Songwunsch) -->
+          <!-- Songwunsch -->
           <div>
-            <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
-              05. WAS MUSS IN DIE PARTY-PLAYLIST? (DEIN SONGWUNSCH)
+            <label for="rsvpSongSearchInput" class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+              DEIN SONGWUNSCH
             </label>
             <div class="relative">
               <div id="rsvpSongInputWrapper">
@@ -453,10 +387,10 @@
             </div>
           </div>
 
-          <!-- 06. Falls du mir was sagen willst (Extrawünsche / Anmerkungen) -->
+          <!-- Nachricht -->
           <div>
-            <label class="block text-emerald-400 font-bold text-[11px] mb-0.5">
-              06. FALLS DU MIR WAS SAGEN WILLST (ANMERKUNG / EXTRAWÜNSCHE) 💬
+            <label for="rsvpNote" class="block text-emerald-400 font-bold text-[11px] mb-0.5">
+              NACHRICHT AN GEORG 💬
             </label>
             <input
               type="text"
@@ -465,9 +399,11 @@
               class="w-full px-2.5 py-1.5 bg-neutral-900 border border-emerald-700 rounded text-emerald-200 focus:border-emerald-400 focus:outline-none placeholder:text-emerald-800 text-xs"
             />
           </div>
+            </div>
+          </details>
 
           <!-- Submit Button -->
-          <div class="pt-1">
+          <div class="rsvp-submit-bar">
             <button
               id="rsvpSubmitBtn"
               onclick="saveRsvp()"
@@ -725,6 +661,7 @@
               type="button"
               onclick="toggleGuestStatsModal()"
               id="guestStatsOpenBtn"
+              aria-label="Party-Statistiken öffnen"
               class="px-2 py-0.5 rounded border border-cyan-500/80 bg-cyan-950/70 hover:bg-cyan-900 text-cyan-200 text-[11px] font-mono font-bold flex items-center gap-1 active:scale-95 transition shadow-sm"
               title="Party-Statistiken & Hitlisten öffnen"
             >
@@ -740,6 +677,10 @@
           </div>
         </div>
 
+        <div class="guest-status-tabs" role="tablist" aria-label="RSVP-Status">
+          <button role="tab" data-guest-status="attending" aria-selected="true" onclick="setGuestStatus('attending')">Dabei (<span data-count>0</span>)</button>
+          <button role="tab" data-guest-status="declined" aria-selected="false" onclick="setGuestStatus('declined')">Absagen (<span data-count>0</span>)</button>
+        </div>
         <!-- Suchleiste & Controls (immer sichtbar) -->
         <div class="space-y-1.5 mb-2 flex-shrink-0">
           <div class="relative">
@@ -764,7 +705,9 @@
           </div>
         </div>
 
-        <!-- Filter-Pills & Sortierung (dauerhaft sichtbar und getrennt) -->
+        <details class="menu-disclosure guest-filter-options">
+        <summary>Filter & Sortierung <span id="guestFilterSummary">Alle · Neueste</span></summary>
+        <!-- Filter-Pills & Sortierung -->
         <div class="flex flex-wrap items-center justify-between gap-1.5 text-[11px] mb-2 flex-shrink-0">
           <div class="flex flex-wrap gap-1" id="guestFilterChips">
             <button
@@ -825,9 +768,11 @@
             </select>
           </div>
         </div>
+        </details>
 
         <!-- Scrollbare Gästeliste & Gästebuch -->
-        <div id="guestListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px]"></div>
+        <p id="guestShameTitle" class="guest-shame-title" hidden>💀 Wall of Shame</p>
+        <div id="guestListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px]" role="tabpanel"></div>
 
         <!-- Footer: Eigenen Status anzeigen / Zusage bearbeiten -->
         <div class="pt-2 mt-2 border-t border-cyan-900/60 flex items-center justify-between text-xs flex-shrink-0">
@@ -1034,6 +979,14 @@
 
         <!-- 2. DASHBOARD VIEW (Nach erfolgreichem Login) -->
         <div id="adminDashboardView" class="hidden flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+          <details id="adminInvitationLinks" class="admin-invitation-links">
+            <summary>↗ Persönliche Einladungen / WhatsApp</summary>
+            <p>Ein Vorname pro Zeile. Die Links zeigen auf die konfigurierte Party-Webseite. WhatsApp öffnet nur einen Entwurf — du wählst den Kontakt und sendest selbst.</p>
+            <label for="adminInviteNames">Wen möchtest du einladen?</label>
+            <textarea id="adminInviteNames" rows="4" placeholder="Max&#10;Anna&#10;Jörg"></textarea>
+            <small data-links-count aria-live="polite">0 persönliche Links</small>
+            <div data-links-list></div>
+          </details>
           <!-- Live Status Bar -->
           <div class="p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-800/80 flex items-center justify-between font-mono">
             <span class="text-emerald-400 font-bold">STATUS:</span>
@@ -1135,18 +1088,6 @@
 
               <button
                 type="button"
-                onclick="openArcadeGame({ stageMenu: true })"
-                class="p-2 rounded bg-neutral-900 border border-lime-800 hover:border-lime-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
-              >
-                <span class="text-lg">👾</span>
-                <div class="min-w-0">
-                  <div class="font-bold text-lime-300 text-xs">Arcade-Stages testen</div>
-                  <div class="text-[10px] text-neutral-400">Jede Stage direkt starten (ohne Rekord)</div>
-                </div>
-              </button>
-
-              <button
-                type="button"
                 onclick="adminExportPlaylist()"
                 class="p-2 rounded bg-neutral-900 border border-fuchsia-800 hover:border-fuchsia-400 text-left hover:bg-neutral-800 active:scale-95 transition flex items-center gap-2"
               >
@@ -1161,6 +1102,20 @@
             <!-- Kalkulationsergebnis -->
             <div id="adminDrinkCalcResult" class="hidden mt-2"></div>
           </div>
+
+          <details class="menu-disclosure">
+            <summary>🧪 Testen & eigener Fortschritt <span>Keine Aktionen für andere Gäste</span></summary>
+            <div class="menu-disclosure-content">
+              <button type="button" onclick="openArcadeGame({ stageMenu: true })" class="p-2 rounded bg-neutral-900 border border-lime-800 text-left">
+                <strong class="block text-lime-300 text-xs">👾 Arcade-Stages testen</strong>
+                <span class="text-[10px] text-neutral-400">Jede Stage direkt starten (ohne Rekord)</span>
+              </button>
+              <button type="button" id="adminResetTestData" onclick="adminResetTestData()" class="p-2 rounded bg-neutral-900 border border-rose-800 text-left disabled:opacity-50">
+                <strong class="block text-rose-300 text-xs">↺ Testdaten zurücksetzen</strong>
+                <span class="text-[10px] text-neutral-400">Nur ich: RSVP, Bestenliste &amp; Browser-Fortschritt</span>
+              </button>
+            </div>
+          </details>
 
           <!-- BEREICH 2: LIVE-ANKÜNDIGUNG (BANNER) -->
           <div class="space-y-1.5 p-2.5 rounded-lg bg-neutral-900 border border-emerald-900/60 font-mono">

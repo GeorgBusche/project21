@@ -2,6 +2,8 @@ import { CONFIG } from '../config.js';
 import { resolveDrinkCategory } from '../content.js';
 import { playBuzzerError, playSuccessChime, playTone } from './audio.js';
 import { escapeHtml, showToast } from './ui.js';
+import { resetOwnTestData } from './admin-test-reset.js';
+import { initializeInvitationLinks } from './admin-invitation-links.js';
 import {
   getPartyModeState,
   onPartyModeChange,
@@ -20,6 +22,31 @@ import {
 function adminOnly(action) {
   if (!isAdminAuth) return undefined;
   return action();
+}
+
+let resettingTestData = false;
+
+export async function adminResetTestData() {
+  if (!isAdminAuth || resettingTestData) return;
+  if (!window.confirm(
+    'Nur deine Testdaten zurücksetzen?\n\n' +
+    'Gelöscht werden dein eigener RSVP- und Bestenlisten-Eintrag sowie Name, ' +
+    'Arcade-Freischaltung, Versuche, Rekord, Boss-Intro und Erfolge dieses Browsers.\n\n' +
+    'Andere Gäste bleiben unberührt. Dein Admin-Login bleibt erhalten. ' +
+    'Die Seite wird anschließend neu geladen. Das Löschen ist nicht rückgängig zu machen.'
+  )) return;
+  resettingTestData = true;
+  const button = document.getElementById('adminResetTestData');
+  if (button) button.disabled = true;
+  try {
+    await resetOwnTestData(getDatabase(), localStorage, sessionStorage);
+    window.location.reload();
+  } catch (error) {
+    console.error('Testdaten konnten nicht zurückgesetzt werden.', error);
+    showToast(`⚠️ Reset fehlgeschlagen: ${error.message}`);
+    resettingTestData = false;
+    if (button) button.disabled = false;
+  }
 }
 
 export function adminSpotifyConnect() {
@@ -75,7 +102,10 @@ function getDatabase() {
   return databaseInstance;
 }
 
-export function initializeAdmin() {
+let openInvitationLinks = false;
+
+export function initializeAdmin({ links = false } = {}) {
+  openInvitationLinks = links;
   onPartyModeChange(updateAdminPartyModeLabels);
   updateAdminPartyModeLabels();
 
@@ -87,7 +117,7 @@ export function initializeAdmin() {
   } catch (_) {}
 
   // Check URL hash
-  if (window.location.hash === '#admin') {
+  if (window.location.hash === '#admin' || links) {
     openAdminModal();
   }
 
@@ -173,6 +203,8 @@ export function adminClearPin() {
 async function showAdminDashboard() {
   document.getElementById('adminPinView')?.classList.add('hidden');
   document.getElementById('adminDashboardView')?.classList.remove('hidden');
+  initializeInvitationLinks(openInvitationLinks);
+  openInvitationLinks = false;
   renderSpotifyAdminState();
 
   await refreshAdminStats();
@@ -192,7 +224,7 @@ async function refreshAdminStats() {
   const songs = songsSnap.val() || {};
   const totalSnaps = Object.keys(snapsSnap.val() || {}).length;
 
-  const rsvpsList = Object.values(rsvps);
+  const rsvpsList = Object.values(rsvps).filter(r => !r.status || r.status === 'attending');
   const totalGuests = rsvpsList.reduce((sum, r) => sum + 1 + (r.plusOne ? 1 : 0), 0);
   const totalSongs = Object.keys(songs).length;
   const totalVotes = Object.values(songs).reduce((sum, s) => sum + (s.votesCount || 0), 0);
@@ -227,7 +259,7 @@ export async function adminExportGuestsCsv() {
   }
 
   const csvRows = [
-    ['Name', 'Begleitung (+1)', 'Name Begleitung', 'Kraftstoff', 'Ziel-Pegel (%)', 'Songwunsch', 'Notiz / Spruch an Georg', 'Datum'].join(';')
+    ['Name', 'Status', 'Begleitung (+1)', 'Name Begleitung', 'Kraftstoff', 'Ziel-Pegel (%)', 'Songwunsch', 'Notiz / Spruch an Georg', 'Datum'].join(';')
   ];
 
   list.forEach((r) => {
@@ -236,6 +268,7 @@ export async function adminExportGuestsCsv() {
     const date = r.updatedAt || r.timestamp ? new Date(r.updatedAt || r.timestamp).toLocaleString('de-DE') : '';
     csvRows.push([
       esc(r.name),
+      esc(r.status || 'attending'),
       esc(r.plusOne ? 'Ja' : 'Nein'),
       esc(r.plusOneName || ''),
       esc(r.drink || ''),
@@ -265,14 +298,14 @@ export async function adminCopyGuestsText() {
     return;
   }
 
-  const totalPeople = list.reduce((sum, r) => sum + 1 + (r.plusOne ? 1 : 0), 0);
+  const totalPeople = list.filter(r => !r.status || r.status === 'attending').reduce((sum, r) => sum + 1 + (r.plusOne ? 1 : 0), 0);
   let text = `🎉 GÄSTELISTE: GEORGS 21. GEBURTSTAG 🎉\n`;
   text += `Gesamt: ${totalPeople} Personen (${list.length} Anmeldungen)\n`;
   text += `--------------------------------------------\n\n`;
 
   list.forEach((r, idx) => {
     const num = String(idx + 1).padStart(2, '0');
-    text += `${num}. ${r.name}${r.plusOne ? ` +1 (${r.plusOneName || 'Begleitung'})` : ''}\n`;
+    text += `${num}. ${r.name} [${r.status || 'attending'}]${r.plusOne ? ` +1 (${r.plusOneName || 'Begleitung'})` : ''}\n`;
     text += `   ⛽ ${r.drink || 'Keine Angabe'} | 📈 ${r.pegel || 0}%\n`;
     if (r.song) text += `   🎵 ${r.song.title} - ${r.song.artist || ''}\n`;
     if (r.note) text += `   💬 "${r.note}"\n`;
@@ -290,7 +323,7 @@ export async function adminShowDrinkCalculator() {
 
   const snap = await db.ref('rsvps').once('value');
   const rsvps = snap.val() || {};
-  const list = Object.values(rsvps);
+  const list = Object.values(rsvps).filter(r => !r.status || r.status === 'attending');
 
   let beerDrinkers = 0;
   let kornDrinkers = 0;

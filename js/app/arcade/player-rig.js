@@ -13,12 +13,15 @@ export function getPlayerAvatar(rsvp) {
   return null;
 }
 
-export function createPlayerAppearance(rsvp) {
+export function createPlayerAppearance(rsvp, onImageReady) {
   const appearance = { avatar: getPlayerAvatar(rsvp), image: null };
   if (appearance.avatar?.type === 'image') {
     const image = new Image();
     image.onload = () => {
-      if (image.naturalWidth > 0 && image.naturalHeight > 0) appearance.image = image;
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        appearance.image = image;
+        onImageReady?.();
+      }
     };
     image.onerror = () =>
       console.warn('[ARCADE-PLAYER] Das gewaehlte Gaestebild konnte nicht geladen werden.');

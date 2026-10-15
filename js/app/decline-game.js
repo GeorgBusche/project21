@@ -2,6 +2,7 @@ import { CONFIG } from '../config.js';
 import { CONTENT } from '../content.js';
 import { playBuzzerError, playTone } from './audio.js';
 import { openArcadeGame } from './arcade/arcade-engine.js';
+import { hasDiscoveredArcade } from './arcade/arcade-discovery.js';
 import { appendLine, showToast } from './ui.js';
 
 const ARCADE_KEY = 'arcade_unlocked';
@@ -23,8 +24,8 @@ function moveDeclineButton() {
 
 export function handleDeclineClick() {
   playBuzzerError();
-  if (sessionStorage.getItem(ARCADE_KEY) === 'true') {
-    openArcadeGame();
+  if (hasDiscoveredArcade()) {
+    openArcadeGame({ freeplay: true });
     return;
   }
   declineCount++;
@@ -138,4 +139,3 @@ function settleFiechButton(button) {
   wrapper.classList.add('w-14', 'shrink-0');
   document.getElementById('declineGhost').style.opacity = '0';
 }
-
